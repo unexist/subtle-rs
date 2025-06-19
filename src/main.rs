@@ -16,6 +16,7 @@ mod client;
 mod view;
 mod tag;
 mod screen;
+mod rect;
 
 use std::sync::atomic;
 use clap_config_file::ClapConfigFile;

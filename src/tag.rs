@@ -10,6 +10,7 @@
 ///
 
 use bitflags::bitflags;
+use crate::rect::Rect;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -24,4 +25,9 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct Tag {
     pub(crate) flags: Flags,
+    pub(crate) name: String,
+    
+    pub(crate) screen_id: u32,
+    pub(crate) gravity_id: u32,
+    pub(crate) geom: Rect,
 }

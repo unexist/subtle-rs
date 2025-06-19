@@ -13,6 +13,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use bitflags::bitflags;
 use x11rb::rust_connection::RustConnection;
+use crate::tag::Tag;
+use crate::view::View;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -41,4 +43,7 @@ pub(crate) struct Subtle {
     pub(crate) flags: Flags,
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) conn: Option<RustConnection>,
+
+    pub(crate) views: Vec<View>,
+    pub(crate) tags: Vec<Tag>,
 }
