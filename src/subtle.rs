@@ -9,12 +9,22 @@
 /// See the file LICENSE for details.
 ///
 
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use bitflags::bitflags;
+use x11rb::rust_connection::RustConnection;
 
 bitflags! {
-    #[derive(Default)]
-    pub(crate) struct SubtleFlags: u32 {
+    #[derive(Default, Debug)]
+    pub(crate) struct Flags: u32 {
         const DEBUG = 1 << 0;
         const CHECK = 1 << 1;
     }
+}
+
+#[derive(Default)]
+pub(crate) struct Subtle {
+    pub(crate) flags: Flags,
+    pub(crate) running: Arc<AtomicBool>,
+    pub(crate) conn: Option<RustConnection>,
 }
