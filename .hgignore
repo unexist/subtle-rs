@@ -1,0 +1,22 @@
+syntax: glob
+
+# IntelliJ
+**/*.iml
+*.iml
+*.bin
+
+# Java
+target/
+.idea/
+.mvn/
+
+# Zig
+**/zig-cache/*
+**/zig-out/*
+
+# Rust
+**/target/*
+
+# subtle
+build/*
+config.*
