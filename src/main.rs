@@ -14,7 +14,7 @@ mod display;
 mod event;
 mod client;
 
-use std::sync::{atomic, Arc};
+use std::sync::atomic;
 use clap_config_file::ClapConfigFile;
 use anyhow::{Context, Result};
 use crate::subtle::Subtle;
@@ -25,7 +25,7 @@ use crate::subtle::Subtle;
 struct Config {
     /// Connect to DISPLAY
     #[config_arg(short = 'd', name = "display", default_value = ":0", accept_from = "cli_only")]
-    dpy_name: String,
+    display: String,
 
     /// Print debugging messages
     #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]

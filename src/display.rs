@@ -13,7 +13,7 @@ use anyhow::{Result};
 use crate::{Config, Subtle};
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    let (conn, _screen_num) = x11rb::connect(Some(&*config.dpy_name))?;
+    let (conn, _screen_num) = x11rb::connect(Some(&*config.display))?;
     
     subtle.conn = Option::from(conn);
     

@@ -18,7 +18,7 @@ use crate::subtle::Subtle;
 use crate::client::Client;
 
 fn handle_map_request(event: MapRequestEvent) -> Result<()> {
-    let client = Client::new(event.window);
+    let _client = Client::new(event.window);
     
     
     Ok(())
