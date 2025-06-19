@@ -15,8 +15,30 @@ use bitflags::bitflags;
 bitflags! {
     #[derive(Default, Debug)]
     pub(crate) struct Flags: u32 {
-        const DEAD = 1 << 0;
-        const FOCUS = 1 << 1;
+        const DEAD = 1 << 0;  // Dead window
+        const FOCUS = 1 << 1; // Send focus message
+        const INPUT = 1 << 2; // Active/passive focus-model
+        const CLOSE = 1 << 3; // Send close message
+        const UNMAP = 1 << 4; // Ignore unmaps
+        const ARRANGE = 1 << 5; // Re-arrange client
+
+        const MODE_FULL = 1 << 6; // Fullscreen mode (also used in tags)
+        const MODE_FLOAT = 1 << 7; // Float mode
+        const MODE_STICK = 1 << 8; // Stick mode
+        const MODE_STICK_SCREEN = 1 << 9; // Stick tagged screen mode
+        const MODE_URGENT = 1 << 10; // Urgent mode
+        const MODE_RESIZE = 1 << 11; // Resize mode
+        const MODE_ZAPHOD = 1 << 12; // Zaphod mode
+        const MODE_FIXED = 1 << 13; // Fixed size mode
+        const MODE_CENTER = 1 << 14; // Center position mode
+        const MODE_BORDERLESS = 1 << 15; // Borderless
+
+        const TYPE_NORMAL = 1 << 16; // Normal type (also used in match)
+        const TYPE_DESKTOP = 1 << 17; // Desktop type
+        const TYPE_DOCK = 1 << 18; // Dock type
+        const TYPE_TOOLBAR = 1 << 19; // Toolbar type
+        const TYPE_SPLASH = 1 << 20; // Splash type
+        const TYPE_DIALOG = 1 << 21; // Dialog type
     }
 }
 
