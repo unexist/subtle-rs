@@ -1,0 +1,200 @@
+#
+# Author::  Christoph Kappel <christoph@unexist.dev>
+# Version:: $Id$
+# License:: GNU GPLv3
+#
+# = Subtle default configuration
+#
+# This file will be installed as default and can also be used as a starter for
+# an own custom configuration file. The system wide config usually resides in
+# +/etc/xdg/subtle+ and the user config in +HOME/.config/subtle+, both locations
+# are dependent on the locations specified by +XDG_CONFIG_DIRS+ and
+# +XDG_CONFIG_HOME+.
+#
+
+#
+# == Options
+#
+# Following options change behaviour and sizes of the window manager:
+#
+
+[subtle]
+# Window move/resize steps in pixel per keypress
+increase_step = 5
+
+# Window screen border snapping
+border_snap = 10
+
+# Default starting gravity for windows. Comment out to use gravity of
+# currently active client
+default_gravity = "center"
+
+# Make dialog windows urgent and draw focus
+urgent_dialogs = "false"
+
+# Honor resize size hints globally
+honor_size_hints = "false"
+
+# Enable gravity tiling for all gravities
+gravity_tiling = "false"
+
+# Enable click-to-focus focus model
+click_to_focus = "false"
+
+# Skip pointer movement on e.g. gravity change
+skip_pointer_warp = "false"
+
+# Skip pointer movement to urgent windows
+skip_urgent_warp = "false"
+
+# Set the WM_NAME of subtle (Java quirk)
+#wmname="LG3D"
+
+#
+# == Gravities
+#
+# Gravities are predefined sizes a window can be set to. There are several ways
+# to set a certain gravity, most convenient is to define a gravity via a tag or
+# change them during runtime via grab. Subtler and subtlext can also modify
+# gravities.
+#
+# A gravity consists of four values which are a percentage value of the screen
+# size. The first two values are x and y starting at the center of the screen
+# and he last two values are the width and height.
+#
+# === Example
+#
+# Following defines a gravity for a window with 100% width and height:
+#
+#   gravity.example = { x = 0, y = 0, width = 100, height = 100 }
+#
+# === Link
+#
+# https://subtle.de/projects/subtle/wiki/Gravity
+#
+
+# Top left
+gravity.top_left = { x = 0, y = 0, width = 50, height = 50 }
+gravity.top_left66 = { x = 0, y = 0, width = 50, height = 66 }
+gravity.top_left33 = { x = 0,  y = 0, width = 50, height = 34 }
+
+# Top
+gravity.top = { x = 0, y = 0, width = 100, height = 50 }
+gravity.top66 = { x = 0, y = 0, width = 100, height = 66 }
+gravity.top33 = { x = 0, y = 0, width = 100, height = 34 }
+
+# Top right
+gravity.top_right = { x = 50, y = 0, width = 50, height = 50 }
+gravity.top_right66 = { x = 50, y = 0, width = 50, height = 66 }
+gravity.top_right33 = { x = 50, y = 0, width = 50, height = 33 }
+
+# Left
+gravity.left = { x = 0, y = 0, width = 50, height = 100 }
+gravity.left66 = { x = 0, y = 0, width = 66, height = 100 }
+gravity.left33 = { x = 0, y = 0, width = 33, height = 100 }
+
+# Center
+gravity.center = { x = 0, y = 0, width = 100, height = 100 }
+gravity.center66 = { x = 17, y = 17, width = 66, height = 66 }
+gravity.center33 = { x = 33, y = 33, width = 33, height = 33 }
+
+# Right
+gravity.right = { x = 50, y = 0, width = 50, height = 100 }
+gravity.right66 = { x = 34, y = 0, width = 66, height = 100 }
+gravity.right33 = { x = 67, y = 0, width = 33, height = 100 }
+
+# Bottom left
+gravity.bottom_left = { x = 0, y = 50, width = 50, height = 50 }
+gravity.bottom_left66 = { x = 0, y = 34, width = 50, height = 66 }
+gravity.bottom_left33 = { x = 0, y = 67, width = 50, height = 33 }
+
+# Bottom
+gravity.bottom = { x = 0, y = 50, width = 100, height = 50 }
+gravity.bottom66 = { x = 0, y = 34, width = 100, height = 66 }
+gravity.bottom33 = { x = 0, y = 67, width = 100, height = 33 }
+
+# Bottom right
+gravity.bottom_right = { x = 50, y = 50, width = 50, height = 50 }
+gravity.bottom_right66 = { x = 50, y = 34, width = 50, height = 66 }
+gravity.bottom_right33 = { x = 50, y = 67, width = 50, height = 33 }
+
+# Gimp
+gravity.gimp_image = { x = 10, y = 0, width = 80, height = 100 }
+gravity.gimp_toolbox = { x = 0, y = 0, width = 10, height = 100 }
+gravity.gimp_dock = { x = 90, y = 0, width = 10, height = 100 }
+
+#
+# == Grabs
+#
+# Grabs are keyboard and mouse actions within subtle, every grab can be
+# assigned either to a key and/or to a mouse button combination. A grab
+# consists of a chain and an action.
+#
+# === Finding keys
+#
+# The best resource for getting the correct key names is
+# */usr/include/X11/keysymdef.h*, but to make life easier here are some hints
+# about it:
+#
+# * Numbers and letters keep their names, so *a* is *a* and *0* is *0*
+# * Keypad keys need *KP_* as prefix, so *KP_1* is *1* on the keypad
+# * Strip the *XK_* from the key names if looked up in
+#   /usr/include/X11/keysymdef.h
+# * Keys usually have meaningful english names
+# * Modifier keys have special meaning (Alt (A), Control (C), Meta (M),
+#   Shift (S), Super (W))
+#
+# === Chaining
+#
+# Chains are a combination of keys and modifiers to one or a list of keys
+# and can be used in various ways to trigger an action. In subtle, there are
+# two ways to define chains for grabs:
+#
+#   1. *Default*: Add modifiers to a key and use it for a grab
+#
+#      *Example*: grab "W-Return", "urxvt"
+#
+#   2. *Chain*: Define a list of grabs that need to be pressed in order
+#
+#      *Example*: grab "C-y Return", "urxvt"
+#
+# ==== Mouse buttons
+#
+# [*B1*]  = Button1 (Left mouse button)
+# [*B2*]  = Button2 (Middle mouse button)
+# [*B3*]  = Button3 (Right mouse button)
+# [*B4*]  = Button4 (Mouse wheel up)
+# [*B5*]  = Button5 (Mouse wheel down)
+# [*...*]
+# [*B20*] = Button20 (Are you sure that this is a mouse and not a keyboard?)
+#
+# ==== Modifiers
+#
+# [*A*] = Alt key (Mod1)
+# [*C*] = Control key
+# [*M*] = Meta key (Mod3)
+# [*S*] = Shift key
+# [*W*] = Super/Windows key (Mod4)
+# [*G*] = Alt Gr (Mod5)
+#
+# === Action
+#
+# An action is something that happens when a grab is activated, this can be one
+# of the following:
+#
+# [*symbol*] Run a subtle action
+# [*string*] Start a certain program
+# [*array*]  Cycle through gravities
+# [*lambda*] Run a Ruby proc
+#
+# === Example
+#
+# This will create a grab that starts a urxvt when Alt+Enter are pressed:
+#
+#   grab "A-Return", "urxvt"
+#   grab "C-a c",    "urxvt"
+#
+# === Link
+#
+# https://subtle.de/projects/subtle/wiki/Grabs
+#
