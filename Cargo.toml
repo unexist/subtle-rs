@@ -1,0 +1,18 @@
+[package]
+name = "subtle-rs"
+version = "0.1.0"
+authors = [
+    "Christoph Kappel <christoph@unexist.dev>"
+]
+license-file = "LICENSE"
+homepage = "https://unexist.dev"
+repository = "https://hg.unexist.dev/record-tools-rs"
+edition = "2024"
+exclude = ["/Taskfile.yml"]
+
+[dependencies]
+clap = { version = "4.5.39", features = ["derive"] }
+clap-config-file = "0.5.0"
+serde = { version = "1.0.219", features = ["derive"] }
+config = "0.15.11"
+anyhow = "1.0.98"
