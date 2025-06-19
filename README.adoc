@@ -1,7 +1,8 @@
 = subtle-rs
 
-This is a rewrite of the window manager subtle with Rust.
+This is a rewrite of the window manager subtle in Rust.
 
 == Links
 
 - https://subtle.de
+- https://duktape.org/
