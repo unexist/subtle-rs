@@ -63,7 +63,7 @@ fn main() -> Result<()> {
     // Load config
     let (config, path, _format) = Config::parse_info();
 
-    println!("Loaded config from: {:?}", path.unwrap_or_default());
+    println!("Reading file `{:?}'", path.unwrap_or_default());
     println!("Config: {:?}", config);
     
     display::init(&config, &mut subtle)?;

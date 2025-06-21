@@ -40,6 +40,9 @@ bitflags! {
 
 pub(crate) struct Subtle {
     pub(crate) flags: Flags,
+    pub(crate) width: u16,
+    pub(crate) height: u16,
+    
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) conn: Option<RustConnection>,
 
@@ -51,6 +54,9 @@ impl Default for Subtle {
     fn default() -> Self {
         Subtle {
             flags: Flags::empty(),
+            width: 0,
+            height: 0,
+            
             running: Arc::new(AtomicBool::new(true)),
             conn: None,
             

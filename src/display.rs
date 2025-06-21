@@ -10,13 +10,20 @@
 ///
 
 use anyhow::{Result};
+use x11rb::connection::Connection;
 use crate::{Config, Subtle};
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    let (conn, _screen_num) = x11rb::connect(Some(&*config.display))?;
+    let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
     
+    subtle.width = conn.setup().roots[screen_num].width_in_pixels;
+    subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.conn = Option::from(conn);
-    
+
+    println!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
+
+        //DisplayString(subtle->dpy), subtle->width, subtle->height);
+
     Ok(())
 }
 
