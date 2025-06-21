@@ -25,7 +25,7 @@ use anyhow::{Context, Result};
 use crate::subtle::Subtle;
 
 #[derive(ClapConfigFile)]
-#[config_file_name = "config"]
+#[config_file_name = "subtle"]
 #[config_file_formats = "yaml,toml,json"]
 struct Config {
     /// Connect to DISPLAY
@@ -35,6 +35,9 @@ struct Config {
     /// Print debugging messages
     #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]
     debug: bool,
+
+    #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
+    pub gravities: Vec<String>,
 }
 
 
@@ -67,7 +70,8 @@ fn main() -> Result<()> {
     println!("Config: {:?}", config);
     
     display::init(&config, &mut subtle)?;
-    
+
+    gravity::configure(&config, &mut subtle)?;
     display::configure(&config, &subtle)?;
     
     // Run event handler

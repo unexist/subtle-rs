@@ -11,7 +11,10 @@
 
 use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
+use anyhow::{Result};
+use crate::Config;
 use crate::rect::Rect;
+use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -41,4 +44,12 @@ impl Gravity {
             }
         }
     }
+}
+
+pub(crate) fn configure(config: &Config, _subtle: &Subtle) -> Result<()> {
+    for g in config.gravities.iter() {
+        println!("{}", g);    
+    }
+    
+    Ok(())
 }
