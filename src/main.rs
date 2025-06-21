@@ -17,6 +17,7 @@ mod view;
 mod tag;
 mod screen;
 mod rect;
+mod gravity;
 
 use std::sync::atomic;
 use clap_config_file::ClapConfigFile;
