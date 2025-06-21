@@ -10,6 +10,7 @@
 ///
 
 use bitflags::bitflags;
+use easy_min_max::{min, max, clamp};
 use crate::rect::Rect;
 
 bitflags! {
@@ -25,4 +26,19 @@ pub(crate) struct Gravity {
     pub(crate) flags: Flags,
     pub(crate) quark: u32,
     pub(crate) geom: Rect,
+}
+
+impl Gravity {
+    fn new(x: u32, y: u32, width: u32, height: u32) -> Self {
+        Gravity {
+            flags: Flags::empty(),
+            quark: 0,
+            geom: Rect {
+                x: clamp!(x, 0, 100),
+                y: clamp!(y, 0, 100),
+                width: clamp!(width, 1, 100),
+                height: clamp!(height, 1, 100),
+            }
+        }
+    }
 }
