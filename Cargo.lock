@@ -323,6 +323,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "easy-min-max"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27967b964a353a5a399c906125276acd8d21a278632f8b0a77cb2c1d7e8543d4"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -751,6 +757,7 @@ dependencies = [
  "clap-config-file",
  "config 0.15.11",
  "ctrlc",
+ "easy-min-max",
  "serde",
  "x11rb",
 ]
