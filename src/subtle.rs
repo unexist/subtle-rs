@@ -38,7 +38,6 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct Subtle {
     pub(crate) flags: Flags,
     pub(crate) running: Arc<AtomicBool>,
@@ -46,4 +45,17 @@ pub(crate) struct Subtle {
 
     pub(crate) views: Vec<View>,
     pub(crate) tags: Vec<Tag>,
+}
+
+impl Default for Subtle {
+    fn default() -> Self {
+        Subtle {
+            flags: Flags::empty(),
+            running: Arc::new(AtomicBool::new(true)),
+            conn: None,
+            
+            views: Vec::new(),
+            tags: Vec::new(),
+        }
+    }
 }
