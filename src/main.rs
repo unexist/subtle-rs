@@ -18,10 +18,12 @@ mod tag;
 mod screen;
 mod rect;
 mod gravity;
+mod logger;
 
 use std::sync::atomic;
 use clap_config_file::ClapConfigFile;
 use anyhow::{Context, Result};
+use log::{error, info, LevelFilter};
 use crate::subtle::Subtle;
 
 #[derive(ClapConfigFile)]
@@ -32,6 +34,10 @@ struct Config {
     #[config_arg(short = 'd', name = "display", default_value = ":0", accept_from = "cli_only")]
     display: String,
 
+    /// Set logging level LEVEL
+    #[config_arg(short = 'l', name = "level", default_value = "", accept_from = "cli_only")]
+    loglevel: String,
+
     /// Print debugging messages
     #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]
     debug: bool,
@@ -40,6 +46,18 @@ struct Config {
     pub gravities: Vec<String>,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum LogLevel {
+    None,
+    Info,
+    Warnings,
+    Error,
+    Deprecated,
+    Events,
+    XError,
+    Subtle,
+    Debug
+}
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     let running = subtle.running.clone();
@@ -50,7 +68,7 @@ fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
 }
 
 fn print_version() {
-    println!(r#"
+    info!(r#"
 {} {} - Copyright (c) 2025-present {}
 Released under the GNU Public License
 Compiled for X11"#,
@@ -60,15 +78,17 @@ Compiled for X11"#,
 fn main() -> Result<()> {
     let mut subtle = Subtle::default();
 
-    install_signal_handler(&mut subtle)?;
-    print_version();
-
     // Load config
     let (config, path, _format) = Config::parse_info();
 
-    println!("Reading file `{:?}'", path.unwrap_or_default());
-    println!("Config: {:?}", config);
-    
+    logger::init(&config)?;
+
+    info!("Reading file `{:?}'", path.unwrap_or_default());
+    info!("Config: {:?}", config);
+
+    install_signal_handler(&mut subtle)?;
+    print_version();
+
     display::init(&config, &mut subtle)?;
 
     gravity::configure(&config, &mut subtle)?;
@@ -76,12 +96,13 @@ fn main() -> Result<()> {
     
     // Run event handler
     if let Err(e) = event::handle_requests(&mut subtle) {
-        eprintln!("Error: {}", e);
+        error!("Error: {}", e);
     }
     
     display::finish(&mut subtle)?;
     
-    println!("Exit");
+    info!("Exit");
     
     Ok(())
 }
+
