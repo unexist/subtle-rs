@@ -10,6 +10,7 @@
 ///
 
 use anyhow::{Result};
+use log::info;
 use x11rb::connection::Connection;
 use crate::{Config, Subtle};
 
@@ -20,9 +21,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.conn = Option::from(conn);
 
-    println!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
-
-        //DisplayString(subtle->dpy), subtle->width, subtle->height);
+    info!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
 
     Ok(())
 }
