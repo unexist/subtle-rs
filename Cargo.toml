@@ -6,7 +6,7 @@ authors = [
 ]
 license-file = "LICENSE"
 homepage = "https://unexist.dev"
-repository = "https://hg.unexist.dev/record-tools-rs"
+repository = "https://hg.unexist.dev/subtle-rs"
 edition = "2024"
 exclude = ["/Taskfile.yml"]
 
@@ -22,3 +22,6 @@ bitflags = "2.9.1"
 x11rb = "0.13.1"
 ctrlc = "3.4.7"
 easy-min-max = "1.0.0"
+
+[dev-dependencies]
+proptest = "1.7.0"
