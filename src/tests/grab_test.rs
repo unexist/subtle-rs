@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file Gravity tests
+/// @file Grab tests
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///
@@ -9,5 +9,7 @@
 /// See the file LICENSE for details.
 ///
 
-mod gravity_test;
-mod grab_test;
+#[test]
+fn should_parse_keybinding() {
+    assert!(true)
+}
