@@ -43,10 +43,8 @@ struct Config {
     debug: bool,
 
     #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
-    pub gravities: Vec<String>,
+    pub gravities: Vec<Vec<i64>>,
 }
-
-
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     let running = subtle.running.clone();
@@ -78,10 +76,12 @@ fn main() -> Result<()> {
     print_version();
 
     display::init(&config, &mut subtle)?;
-
-    gravity::configure(&config, &mut subtle)?;
-    display::configure(&config, &subtle)?;
+    gravity::init(&config, &mut subtle)?;
     
+    drop(config);
+
+    display::configure(&subtle)?;
+
     // Run event handler
     if let Err(e) = event::handle_requests(&mut subtle) {
         error!("Error: {}", e);
