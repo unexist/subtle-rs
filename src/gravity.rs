@@ -1,3 +1,4 @@
+use std::fmt;
 ///
 /// @package subtle-rs
 ///
@@ -9,9 +10,10 @@
 /// See the file LICENSE for details.
 ///
 
+use std::fmt::Display;
 use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
-use anyhow::{Result};
+use anyhow::Result;
 use crate::Config;
 use crate::rect::Rect;
 use crate::subtle::Subtle;
@@ -27,15 +29,15 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct Gravity {
     pub(crate) flags: Flags,
-    pub(crate) quark: u32,
+    pub(crate) name: String,
     pub(crate) geom: Rect,
 }
 
 impl Gravity {
-    fn new(x: u32, y: u32, width: u32, height: u32) -> Self {
+    fn new(name: String, x: u32, y: u32, width: u32, height: u32) -> Self {
         Gravity {
             flags: Flags::empty(),
-            quark: 0,
+            name,
             geom: Rect {
                 x: clamp!(x, 0, 100),
                 y: clamp!(y, 0, 100),
@@ -46,9 +48,15 @@ impl Gravity {
     }
 }
 
-pub(crate) fn configure(config: &Config, _subtle: &Subtle) -> Result<()> {
+impl Display for Gravity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "New: name={}, geom={}", self.name, self.geom)
+    }
+}
+
+pub(crate) fn init(config: &Config, _subtle: &Subtle) -> Result<()> {
     for g in config.gravities.iter() {
-        println!("{}", g);    
+        println!("{:?}", g);    
     }
     
     Ok(())
