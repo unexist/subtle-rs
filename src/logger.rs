@@ -10,6 +10,7 @@
 ///
 
 use log::LevelFilter;
+use anyhow::Result;
 use crate::Config;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -55,9 +56,9 @@ impl From<LogLevel> for LevelFilter {
     }
 }
 
-pub(crate) fn init(config: &Config) -> anyhow::Result<()> {
+pub(crate) fn init(config: &Config) -> Result<()> {
     let mut level = LogLevel::from(&config.loglevel);
-    
+
     if config.debug {
         level = LogLevel::Debug;
     }
