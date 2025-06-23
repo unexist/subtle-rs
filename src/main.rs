@@ -9,6 +9,9 @@
 /// See the file LICENSE for details.
 ///
 
+#[cfg(test)]
+mod tests;
+
 mod subtle;
 mod display;
 mod event;
