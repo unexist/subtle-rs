@@ -26,7 +26,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn configure(_config: &Config, _subtle: &Subtle) -> Result<()> {
+pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
