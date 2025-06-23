@@ -60,7 +60,8 @@ impl fmt::Display for Gravity {
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.gravities = config.gravities.iter()
-        .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], grav.1[2], grav.1[3])).collect(); 
+        .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], 
+                                 grav.1[2], grav.1[3])).collect(); 
     
     Ok(())
 }
