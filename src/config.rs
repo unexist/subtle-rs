@@ -10,6 +10,7 @@
 ///
 
 use clap_config_file::ClapConfigFile;
+use std::collections::HashMap;
 
 #[derive(ClapConfigFile)]
 #[config_file_name = "subtle"]
@@ -28,5 +29,5 @@ pub(crate) struct Config {
     pub(crate) debug: bool,
 
     #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) gravities: Vec<Vec<i64>>,
+    pub(crate) gravities: HashMap<String, Vec<i16>>,
 }
