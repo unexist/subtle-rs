@@ -29,5 +29,5 @@ pub(crate) struct Config {
     pub(crate) debug: bool,
 
     #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) gravities: HashMap<String, Vec<i16>>,
+    pub(crate) gravities: HashMap<String, Vec<u16>>,
 }

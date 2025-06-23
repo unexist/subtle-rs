@@ -13,6 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
 use anyhow::Result;
+use log::debug;
 use crate::Config;
 use crate::rect::Rect;
 use crate::subtle::Subtle;
@@ -34,7 +35,7 @@ pub(crate) struct Gravity {
 
 impl Gravity {
     pub fn new(name: String, x: u16, y: u16, width: u16, height: u16) -> Self {
-        Gravity {
+        let grav = Gravity {
             flags: Flags::empty(),
             name,
             geom: Rect {
@@ -43,20 +44,23 @@ impl Gravity {
                 width: clamp!(width, 1, 100),
                 height: clamp!(height, 1, 100),
             }
-        }
+        };
+        
+        debug!("New: {}", grav);
+        
+        grav
     }
 }
 
 impl fmt::Display for Gravity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "New: name={}, geom={}", self.name, self.geom)
+        write!(f, "name={}, geom={}", self.name, self.geom)
     }
 }
 
-pub(crate) fn init(config: &Config, _subtle: &Subtle) -> Result<()> {
-    for g in config.gravities.iter() {
-        println!("{:?}", g);    
-    }
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    subtle.gravities = config.gravities.iter()
+        .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], grav.1[2], grav.1[3])).collect(); 
     
     Ok(())
 }
