@@ -23,7 +23,7 @@ mod logger;
 use std::sync::atomic;
 use clap_config_file::ClapConfigFile;
 use anyhow::{Context, Result};
-use log::{error, info, LevelFilter};
+use log::{debug, error, info, LevelFilter};
 use crate::subtle::Subtle;
 
 #[derive(ClapConfigFile)]
@@ -46,18 +46,7 @@ struct Config {
     pub gravities: Vec<String>,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum LogLevel {
-    None,
-    Info,
-    Warnings,
-    Error,
-    Deprecated,
-    Events,
-    XError,
-    Subtle,
-    Debug
-}
+
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     let running = subtle.running.clone();
@@ -83,7 +72,7 @@ fn main() -> Result<()> {
     logger::init(&config)?;
 
     info!("Reading file `{:?}'", path.unwrap_or_default());
-    info!("Config: {:?}", config);
+    debug!("Config: {:?}", config);
 
     install_signal_handler(&mut subtle)?;
     print_version();

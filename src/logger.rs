@@ -10,7 +10,20 @@
 ///
 
 use log::LevelFilter;
-use crate::{Config, LogLevel};
+use crate::Config;
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum LogLevel {
+    None,
+    Info,
+    Warnings,
+    Error,
+    Deprecated,
+    Events,
+    XError,
+    Subtle,
+    Debug
+}
 
 impl From<&String> for LogLevel {
     fn from(level: &String) -> Self {
