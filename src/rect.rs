@@ -13,10 +13,10 @@ use std::fmt;
 
 #[derive(Default)]
 pub(crate) struct Rect {
-    pub(crate) x: u32,
-    pub(crate) y: u32,
-    pub(crate) width: u32,
-    pub(crate) height: u32,
+    pub x: u16,
+    pub y: u16,
+    pub width: u16,
+    pub height: u16,
 }
 
 impl fmt::Display for Rect {

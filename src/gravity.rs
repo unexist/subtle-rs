@@ -1,4 +1,3 @@
-use std::fmt;
 ///
 /// @package subtle-rs
 ///
@@ -10,7 +9,7 @@ use std::fmt;
 /// See the file LICENSE for details.
 ///
 
-use std::fmt::Display;
+use std::fmt;
 use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
 use anyhow::Result;
@@ -30,11 +29,11 @@ bitflags! {
 pub(crate) struct Gravity {
     pub(crate) flags: Flags,
     pub(crate) name: String,
-    pub(crate) geom: Rect,
+    pub geom: Rect,
 }
 
 impl Gravity {
-    fn new(name: String, x: u32, y: u32, width: u32, height: u32) -> Self {
+    pub fn new(name: String, x: u16, y: u16, width: u16, height: u16) -> Self {
         Gravity {
             flags: Flags::empty(),
             name,
@@ -48,7 +47,7 @@ impl Gravity {
     }
 }
 
-impl Display for Gravity {
+impl fmt::Display for Gravity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "New: name={}, geom={}", self.name, self.geom)
     }
