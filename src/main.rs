@@ -23,6 +23,7 @@ mod rect;
 mod gravity;
 mod logger;
 mod config;
+mod grab;
 
 use std::sync::atomic;
 use anyhow::{Context, Result};

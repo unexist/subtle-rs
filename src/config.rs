@@ -28,6 +28,9 @@ pub(crate) struct Config {
     #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]
     pub(crate) debug: bool,
 
-    #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) gravities: HashMap<String, Vec<u16>>,
+
+    #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
+    pub(crate) grabs: HashMap<String, String>,
 }

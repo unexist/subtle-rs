@@ -12,6 +12,7 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use bitflags::bitflags;
+use x11rb::protocol::xproto::Grab;
 use x11rb::rust_connection::RustConnection;
 use crate::gravity::Gravity;
 use crate::tag::Tag;
@@ -48,8 +49,9 @@ pub(crate) struct Subtle {
     pub(crate) conn: Option<RustConnection>,
 
     pub(crate) gravities: Vec<Gravity>,
-    pub(crate) views: Vec<View>,
+    pub(crate) grabs: Vec<Grab>,
     pub(crate) tags: Vec<Tag>,
+    pub(crate) views: Vec<View>,
 }
 
 impl Default for Subtle {
@@ -63,8 +65,9 @@ impl Default for Subtle {
             conn: None,
             
             gravities: Vec::new(),
-            views: Vec::new(),
+            grabs: Vec::new(),
             tags: Vec::new(),
+            views: Vec::new(),
         }
     }
 }
