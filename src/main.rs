@@ -19,32 +19,13 @@ mod screen;
 mod rect;
 mod gravity;
 mod logger;
+mod config;
 
 use std::sync::atomic;
-use clap_config_file::ClapConfigFile;
 use anyhow::{Context, Result};
-use log::{debug, error, info, LevelFilter};
+use log::{debug, error, info};
+use crate::config::Config;
 use crate::subtle::Subtle;
-
-#[derive(ClapConfigFile)]
-#[config_file_name = "subtle"]
-#[config_file_formats = "yaml,toml,json"]
-struct Config {
-    /// Connect to DISPLAY
-    #[config_arg(short = 'd', name = "display", default_value = ":0", accept_from = "cli_only")]
-    display: String,
-
-    /// Set logging level LEVEL
-    #[config_arg(short = 'l', name = "level", default_value = "", accept_from = "cli_only")]
-    loglevel: String,
-
-    /// Print debugging messages
-    #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]
-    debug: bool,
-
-    #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
-    pub gravities: Vec<Vec<i64>>,
-}
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     let running = subtle.running.clone();
