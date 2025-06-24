@@ -24,6 +24,7 @@ mod gravity;
 mod logger;
 mod config;
 mod grab;
+mod ewmh;
 
 use std::sync::atomic;
 use anyhow::{Context, Result};
