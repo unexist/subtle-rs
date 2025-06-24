@@ -10,6 +10,9 @@
 ///
 
 use bitflags::bitflags;
+use anyhow::Result;
+use x11rb::protocol::xproto;
+use x11rb::x11_utils::TryParse;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -52,4 +55,27 @@ pub(crate) struct Grab {
     pub(crate) state: u16,
 
     pub(crate) app: Option<String>,
+}
+
+fn parse_key(key: &str) -> Result<(u32, u32, bool)> {
+    let parsed=  xproto::Keysym::try_parse(key)?;
+    
+    let sym = 0u32;
+    let code = 0u32;
+    let is_mouse = false;
+    
+    match parsed.0 {
+        
+    }
+
+    Ok((sym, code, is_mouse))
+}
+
+impl Grab {
+    pub(crate) fn new(name: &str, keys: &str) -> Self {
+        Grab {
+            flags: Flags::empty(),
+            ..Self::default()
+        }
+    }
 }

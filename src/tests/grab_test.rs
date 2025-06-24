@@ -1,3 +1,4 @@
+
 ///
 /// @package subtle-rs
 ///
@@ -9,7 +10,12 @@
 /// See the file LICENSE for details.
 ///
 
+use crate::grab::Grab;
+
 #[test]
 fn should_parse_keybinding() {
-    assert!(true)
+    let grab = Grab::new("subtle_restart", "W-C-S-r");
+
+    assert_eq!(grab.code, 0);
+    assert_eq!(grab.state, 0);
 }
