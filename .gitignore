@@ -37,6 +37,7 @@ release.properties
 
 # Rust
 **/target/*
+proptest-regressions/
 
 # subtle
 build/*
