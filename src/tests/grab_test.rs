@@ -1,4 +1,3 @@
-
 ///
 /// @package subtle-rs
 ///
@@ -10,12 +9,32 @@
 /// See the file LICENSE for details.
 ///
 
-use crate::grab::Grab;
+use proptest::prelude::*;
+use crate::grab;
 
-#[test]
-fn should_parse_keybinding() {
-    let grab = Grab::new("subtle_restart", "W-C-S-r");
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(10))]
+    #[test]
+    fn should_parse_key_combinations(key in "([WCS]-){1,3}[a-z]") {
+        if let Ok((_sym, _code, state, _is_mouse)) = grab::parse_keys(&*key) {
+            assert!(0 < state);
+        } else {
+            assert!(false);
+        }
+    }
+}
 
-    assert_eq!(grab.code, 0);
-    assert_eq!(grab.state, 0);
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(5))]
+    #[test]
+    fn should_parse_mouse(key in "([WCS]-){1,3}B[1-9]") {
+        if let Ok((sym, code, state, is_mouse)) = grab::parse_keys(&*key) {
+            assert!(0 < sym);
+            assert!(0 < code);
+            assert!(0 < state);
+            assert!(is_mouse);
+        } else {
+            panic!();
+        }
+    }
 }

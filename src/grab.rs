@@ -11,8 +11,7 @@
 
 use bitflags::bitflags;
 use anyhow::Result;
-use x11rb::protocol::xproto;
-use x11rb::x11_utils::TryParse;
+use x11rb::protocol::xproto::ModMask;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -57,18 +56,39 @@ pub(crate) struct Grab {
     pub(crate) app: Option<String>,
 }
 
-fn parse_key(key: &str) -> Result<(u32, u32, bool)> {
-    let parsed=  xproto::Keysym::try_parse(key)?;
-    
-    let sym = 0u32;
-    let code = 0u32;
-    let is_mouse = false;
-    
-    match parsed.0 {
-        
+#[allow(non_upper_case_globals)]
+const XK_Pointer_Button1: u32 = 0xfee9;
+
+#[allow(non_upper_case_globals)]
+const XK_a: u32 = 0x0061;
+
+pub(crate) fn parse_keys(keys: &str) -> Result<(u32, u32, u32, bool)> {
+    let mut sym = 0u32;
+    let mut code = 0u32;
+    let mut state = ModMask::default();
+    let mut is_mouse = false;
+
+    for key in keys.split("-") {
+        match key {
+            "S" => state |= ModMask::SHIFT,
+            "C" => state |= ModMask::CONTROL,
+            "A" => state |= ModMask::M1,
+            "M" => state |= ModMask::M3,
+            "W" => state |= ModMask::M4,
+            "G" => state |= ModMask::M5,
+            _ => {
+                if key.starts_with("B") {
+                    let (_, btn) = key.split_at(1);
+
+                    sym = XK_Pointer_Button1;
+                    code = XK_Pointer_Button1 + btn.parse::<u32>()?;
+                    is_mouse = true;
+                }
+            }
+        }
     }
 
-    Ok((sym, code, is_mouse))
+    Ok((sym, code, u32::from(state), is_mouse))
 }
 
 impl Grab {
