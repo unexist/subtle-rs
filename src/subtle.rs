@@ -12,8 +12,9 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use bitflags::bitflags;
-use x11rb::protocol::xproto::Grab;
+use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
+use crate::client::Client;
 use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
@@ -47,7 +48,11 @@ pub(crate) struct Subtle {
     
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) conn: Option<RustConnection>,
+    pub(crate) screen_num: usize,
+    
+    pub(crate) support: Window,
 
+    pub(crate) clients: Vec<Client>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
     pub(crate) tags: Vec<Tag>,
@@ -63,7 +68,11 @@ impl Default for Subtle {
             
             running: Arc::new(AtomicBool::new(true)),
             conn: None,
+            screen_num: 0,
             
+            support: Window::default(),
+
+            clients: Vec::new(),
             gravities: Vec::new(),
             grabs: Vec::new(),
             tags: Vec::new(),
