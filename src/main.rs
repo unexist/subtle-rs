@@ -62,6 +62,7 @@ fn main() -> Result<()> {
     print_version();
 
     display::init(&config, &mut subtle)?;
+    ewmh::init(&config, &mut subtle)?;
     gravity::init(&config, &mut subtle)?;
     
     drop(config);
