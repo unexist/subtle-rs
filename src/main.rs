@@ -67,6 +67,7 @@ fn main() -> Result<()> {
     
     drop(config);
 
+    display::claim(&mut subtle)?;
     display::configure(&subtle)?;
 
     // Run event handler
