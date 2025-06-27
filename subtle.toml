@@ -492,3 +492,85 @@ resize = true
 
 [tag.gravity]
 gravity = "center"
+
+#
+# == Views
+#
+# Views are the virtual desktops in subtle, they show all windows that share a
+# tag with them. Windows that have no tag will be visible on the default view
+# which is the view with the default tag or the first defined view when this
+# tag isn't set.
+#
+# Like tags views can be defined in two ways:
+#
+# === Simple
+#
+# The simple way is exactly the same as for tags:
+#
+# Example:
+#
+#   view "terms", "terms"
+#
+# === Extended
+#
+# The extended way for views is also similar to the tags, but with fewer
+# properties.
+#
+# Example:
+#
+#  view "terms" do
+#    match "terms"
+#    icon  "/usr/share/icons/icon.xbm"
+#  end
+#
+# === Modes
+#
+# Modes can be set with the set option, see below.
+#
+# [*dynamic*]    Enable dynamic mode for views. When set, icons of unoccupied views (views that display no
+#                windows) are hidden.
+#
+#                Example: set :dynamic
+#                Links:   https://subtle.de/projects/subtle/wiki/Views#Dynamic
+#
+# [*icon_only*]  Enable icon only mode. When set, subtle hides the view name from the view buttons, just
+#                the icon will be visible.
+#
+#                Example: set :icon_only
+#                Links:   https://subtle.de/projects/subtle/wiki/Views#Icon_only
+#
+# === Options
+#
+# [*set*]        Set various modes to views. Multiple modes can be set,
+#                separated by comma. (See Modes)
+#
+#                Example: set :dynamic, :icon_only
+#
+# [*match*]      This property adds a matching pattern to a view. Matching
+#                works either via plaintext or regex (see man regex(7)) and
+#                applies to names of tags.
+#
+#                Example: match "terms"
+#
+
+#
+# [*icon*]       This property adds an icon in front of the view name. The
+#                icon can either be path to an icon or an instance of
+#                Subtlext::Icon.
+#
+#                Example: icon "/usr/share/icons/icon.xbm"
+#                         icon Subtlext::Icon.new("/usr/share/icons/icon.xbm")
+#
+# === Link
+#
+# https://subtle.de/projects/subtle/wiki/Tagging
+#
+
+[views]
+www = "browser"
+gimp = "gimp_.*"
+dev = "editor"
+
+[views.terms]
+match = "terms"
+icon = "/usr/share/icons/icon.xbm"
