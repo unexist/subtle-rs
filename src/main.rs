@@ -43,7 +43,7 @@ fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
 fn print_version() {
     info!("{} {} - Copyright (c) 2025-present {}",
         env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"));
-    info!("Released under the GNU Public License");
+    info!("Released under the GNU GPLv3");
     info!("Compiled for X11");
 }
 
