@@ -10,20 +10,14 @@
 ///
 
 use proptest::prelude::*;
-use crate::gravity::Gravity;
+use crate::view::View;
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    #[allow(unused_comparisons)]
-    fn should_stay_in_bounds(x in 1u16..999, y in 1u16..999,
-        width in 1u16..999, height in 1u16..999)
-    {
-        let grav = Gravity::new("test".into(), x, y, width, height);
-        
-        assert!(0 <= grav.geom.x && 100 >= grav.geom.x);
-        assert!(0 <= grav.geom.y && 100 >= grav.geom.y);
-        assert!(0 <= grav.geom.width && 100 >= grav.geom.width);
-        assert!(0 <= grav.geom.height && 100 >= grav.geom.height);
+    fn should_create_tag(s in "[a-zA-Z]*") {
+        let view = View::new(&*s, "");
+
+        assert!(view.is_ok());
     }
 }
