@@ -1031,6 +1031,7 @@ dependencies = [
  "env_logger",
  "log",
  "proptest",
+ "regex",
  "serde",
  "x11rb",
 ]

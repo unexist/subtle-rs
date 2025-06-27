@@ -48,7 +48,98 @@ skip_pointer_warp = "false"
 skip_urgent_warp = "false"
 
 # Set the WM_NAME of subtle (Java quirk)
-#wmname="LG3D"
+#wmname = "LG3D"
+
+# == Styles
+#
+# Styles define various properties of styleable items in a CSS-like syntax.
+#
+# Following properties are available for most the styles:
+#
+# [*foreground*] Foreground text color
+# [*background*] Background color
+# [*margin*]     Outer spacing
+# [*border*]     Border color and size
+# [*padding*]    Inner spacing
+# [*font*]       Font string (xftontsel or xft)
+#
+# The styles also define the styling and appearance of the two possible
+# panels per screen in subtle. Each panel can be configured with different
+# panel items and sublets screen wise. The default config uses a top panel
+# on the first screen only, it's up to the user to enable the bottom panel or
+# disable either one # or both.
+#
+# Following items are available for the panels:
+#
+# [*:views*]     List of views with buttons
+# [*:title*]     Title of the current active window
+# [*:tray*]      Systray icons (Can be used only once)
+# [*:keychain*]  Display current chain (Can be used only once)
+# [*:sublets*]   Catch-all for installed sublets
+# [*:sublet*]    Name of a sublet for direct placement
+# [*:spacer*]    Variable spacer (free width / count of spacers)
+# [*:center*]    Enclose items with :center to center them on the panel
+# [*:separator*] Insert separator
+
+# Empty panels are hidden.
+#
+# === Links
+#
+# https://subtle.rs/projects/subtle/wiki/Styles
+# https://subtle.rs/projects/subtle/wiki/Multihead
+# https://subtle.rs/projects/subtle/wiki/Panel
+
+# Style for all style elements
+[styles.all]
+foreground = "#757575"
+background = "#202020"
+icon = "#757575"
+padding = [0, 3]
+font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
+#font = "xft:sans-8"
+
+# Style for the all views
+[styles.views_focus]
+foreground = "#fecf35"
+
+[styles.urgent]
+foreground = "#ff9800"
+
+# Style for occupied views (views with clients)
+[views.occupied]
+foreground = "#b8b8b8"
+
+# Style for sublets
+#[style.sublets]
+
+# Style for separator
+[styles.separator]
+separator = "|"
+
+# Style for focus window title
+[styles.title]
+foreground = "#fecf35"
+
+# Style for active/inactive windows
+[styles.clients]
+active = ["#303030", 2]
+inactive = ["#202020", 2]
+margin = 0
+width = 50
+
+# Style for tray
+#[styles.tray]
+
+# Style for top panels
+[styles.panel_top]
+screen = 1, [ :views, :title, :spacer, :keychain, :spacer, :tray, :sublets ]
+#screen = 2, [ :views ]
+
+# Style for bottom panels
+[styles.panel_bottom]
+screen 1, [ ]
+#screen 2, [ ]
+
 
 #
 # == Gravities
@@ -70,7 +161,7 @@ skip_urgent_warp = "false"
 #
 # === Link
 #
-# https://subtle.de/projects/subtle/wiki/Gravity
+# https://subtle.rs/projects/subtle/wiki/Gravity
 #
 
 [gravities]
@@ -197,7 +288,7 @@ gimp_dock = [ 90, 0, 10, 100 ]
 #
 # === Link
 #
-# https://subtle.de/projects/subtle/wiki/Grabs
+# https://subtle.rs/projects/subtle/wiki/Grabs
 #
 
 [grabs]
@@ -327,42 +418,42 @@ gravity_cycles = [
 #                around tagged clients are absent.
 #
 #                Example: set :borderless
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Borderless
-#                         https://subtle.de/projects/subtle/wiki/Clients#Borderless
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Borderless
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Borderless
 #
 # [*fixed*]      Enable the fixed mode for tagged clients. When set, the client cannot be
 #                resized anymore.
 #
 #                Example: set :fixed
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Fixed
-#                         https://subtle.de/projects/subtle/wiki/Clients#Fixed
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Fixed
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Fixed
 #
 # [*floating*]   Enables the float mode for tagged clients.
 #
 #                Example: set :floating
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Floating
-#                         https://subtle.de/projects/subtle/wiki/Clients#Floating
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Floating
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Floating
 #
 # [*full*]       Enable the fullscreen mode for tagged clients. When set, the client
 #                covers the whole screen size.
 #
 #                Example: set :full
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Fullscreen
-#                         https://subtle.de/projects/subtle/wiki/Clients#Fullscreen
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Fullscreen
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Fullscreen
 #
 # [*resize*]     Enable resize mode for tagged clients. When set, subtle honors size
 #                hints, that define various size constraints like sizes for columns
 #                and rows of a terminal.
 #
 #                Example: set :resize
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Resize
-#                         https://subtle.de/projects/subtle/wiki/Clients#Resize
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Resize
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Resize
 #
 # [*sticky*]     Enable sticky mode for tagged clients. When set, subtle keeps the
 #                client on the current screen, regardless of the tags.
 #
 #                Example: set :sticky
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Sticky
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Sticky
 #
 # [*urgent*]     Enables the urgent mode for tagged clients. When set, subtle
 #                automatically sets this client to urgent.
@@ -371,15 +462,15 @@ gravity_cycles = [
 #                a visual bell in a term.
 #
 #                Example: set :urgent
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Stick
-#                         https://subtle.de/projects/subtle/wiki/Clients#Urgent
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Stick
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Urgent
 #
 # [*zaphod*]     Enables the zaphod mode for tagged clients. When set, the client
 #                spans across all connected screens.
 #
 #                Example: set :zaphod
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Zaphod
-#                         https://subtle.de/projects/subtle/wiki/Clients#Zaphod
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Zaphod
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Zaphod
 #
 # === Options
 #
@@ -394,13 +485,13 @@ gravity_cycles = [
 #                width and height must be >0.
 #
 #                Example: geometry [100, 100, 50, 50]
-#                Link:    https://subtle.de/projects/subtle/wiki/Tagging#Geometry
+#                Link:    https://subtle.rs/projects/subtle/wiki/Tagging#Geometry
 #
 # [*gravity*]    Set a certain to gravity to the tagged client, but only on views
 #                that have this tag in common.
 #
 #                Example: gravity :center
-#                Link:    https://subtle.de/projects/subtle/wiki/Tagging#Gravity
+#                Link:    https://subtle.rs/projects/subtle/wiki/Tagging#Gravity
 #
 # [*match*]      Add matching patterns to a tag, this can be done more than once.
 #
@@ -418,7 +509,7 @@ gravity_cycles = [
 #                Examples: match instance: "urxvt"
 #                          match [:role, :class] => "test"
 #                          match "[xa]+term"
-#                Link:     https://subtle.de/projects/subtle/wiki/Tagging#Match
+#                Link:     https://subtle.rs/projects/subtle/wiki/Tagging#Match
 #
 # [*on_match*]   Add a Ruby proc that is executed when this tag matches
 #
@@ -438,7 +529,7 @@ gravity_cycles = [
 #                Expected is an array with x and y values.
 #
 #                Example: position [ 10, 10 ]
-#                Link:    https://subtle.de/projects/subtle/wiki/Tagging#Position
+#                Link:    https://subtle.rs/projects/subtle/wiki/Tagging#Position
 #
 # [*stick_to*]   Keep a tagged client on the given screen. When set, clients are
 #                visible on all views, even when they don't have matching tags.
@@ -446,8 +537,8 @@ gravity_cycles = [
 #                On multihead, sticky clients keep the screen they are assigned to.
 #
 #                Example: stick_to 1
-#                Links:   https://subtle.de/projects/subtle/wiki/Tagging#Stick
-#                         https://subtle.de/projects/subtle/wiki/Clients#Stick
+#                Links:   https://subtle.rs/projects/subtle/wiki/Tagging#Stick
+#                         https://subtle.rs/projects/subtle/wiki/Clients#Stick
 #
 # [*type*]       Set the window type of the tagged client, this will force it to be
 #                treated as a specific window type though as the window sets the type by
@@ -456,22 +547,22 @@ gravity_cycles = [
 #                Following types are possible:
 #
 #                [*:desktop*]  Treat as desktop window (_NET_WM_WINDOW_TYPE_DESKTOP)
-#                              Link: https://subtle.de/projects/subtle/wiki/Clients#Desktop
+#                              Link: https://subtle.rs/projects/subtle/wiki/Clients#Desktop
 #                [*:dock*]     Treat as dock window (_NET_WM_WINDOW_TYPE_DOCK)
-#                              Link: https://subtle.de/projects/subtle/wiki/Clients#Dock
+#                              Link: https://subtle.rs/projects/subtle/wiki/Clients#Dock
 #                [*:toolbar*]  Treat as toolbar windows (_NET_WM_WINDOW_TYPE_TOOLBAR)
-#                              Link: https://subtle.de/projects/subtle/wiki/Clients#Toolbar
+#                              Link: https://subtle.rs/projects/subtle/wiki/Clients#Toolbar
 #                [*:splash*]   Treat as splash window (_NET_WM_WINDOW_TYPE_SPLASH)
-#                              Link: https://subtle.de/projects/subtle/wiki/Clients#Splash
+#                              Link: https://subtle.rs/projects/subtle/wiki/Clients#Splash
 #                [*:dialog*]   Treat as dialog window (_NET_WM_WINDOW_TYPE_DIALOG)
-#                              Link: https://subtle.de/projects/subtle/wiki/Clients#Dialog
+#                              Link: https://subtle.rs/projects/subtle/wiki/Clients#Dialog
 #
 #                Example: type :desktop
-#                Link:    https://subtle.de/projects/subtle/wiki/Tagging#Type
+#                Link:    https://subtle.rs/projects/subtle/wiki/Tagging#Type
 #
 # === Link
 #
-# https://subtle.de/projects/subtle/wiki/Tagging
+# https://subtle.rs/projects/subtle/wiki/Tagging
 #
 
 # Simple tags
@@ -531,13 +622,13 @@ gravity = "center"
 #                windows) are hidden.
 #
 #                Example: set :dynamic
-#                Links:   https://subtle.de/projects/subtle/wiki/Views#Dynamic
+#                Links:   https://subtle.rs/projects/subtle/wiki/Views#Dynamic
 #
 # [*icon_only*]  Enable icon only mode. When set, subtle hides the view name from the view buttons, just
 #                the icon will be visible.
 #
 #                Example: set :icon_only
-#                Links:   https://subtle.de/projects/subtle/wiki/Views#Icon_only
+#                Links:   https://subtle.rs/projects/subtle/wiki/Views#Icon_only
 #
 # === Options
 #
@@ -563,7 +654,7 @@ gravity = "center"
 #
 # === Link
 #
-# https://subtle.de/projects/subtle/wiki/Tagging
+# https://subtle.rs/projects/subtle/wiki/Tagging
 #
 
 [views]
