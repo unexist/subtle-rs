@@ -9,7 +9,7 @@
 /// See the file LICENSE for details.
 ///
 
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use anyhow::Result;
 use crate::Config;
 
@@ -68,6 +68,8 @@ pub(crate) fn init(config: &Config) -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .filter_level(filter)
         .try_init()?;
+
+    debug!("Init");
 
     Ok(())
 }
