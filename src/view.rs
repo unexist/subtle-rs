@@ -9,7 +9,11 @@
 /// See the file LICENSE for details.
 ///
 
+use std::fmt;
 use bitflags::bitflags;
+use regex::Regex;
+use anyhow::Result;
+use log::debug;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -24,4 +28,26 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct View {
     pub(crate) flags: Flags,
+    pub(crate) name: String,
+    pub(crate) regex: Option<Regex>,
+}
+
+impl View {
+    pub(crate) fn new(name: &str, regex: &str) -> Result<Self> {
+        let view = Self {
+            name: name.into(),
+            regex: Some(Regex::new(regex)?),
+            ..Default::default()
+        };
+
+        debug!("New: {}", view);
+
+        Ok(view)
+    }
+}
+
+impl fmt::Display for View {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "name={}", self.name)
+    }
 }

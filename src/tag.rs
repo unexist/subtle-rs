@@ -9,7 +9,10 @@
 /// See the file LICENSE for details.
 ///
 
+use std::fmt;
 use bitflags::bitflags;
+use regex::Regex;
+use anyhow::Result;
 use crate::rect::Rect;
 
 bitflags! {
@@ -26,8 +29,25 @@ bitflags! {
 pub(crate) struct Tag {
     pub(crate) flags: Flags,
     pub(crate) name: String,
+    pub(crate) regex: Option<Regex>,
     
     pub(crate) screen_id: u32,
     pub(crate) gravity_id: u32,
     pub(crate) geom: Rect,
+}
+
+impl Tag {
+    pub(crate) fn new(name: &str, regex: &str) -> Result<Self> {
+        Ok(Self {
+            name: name.into(),
+            regex: Some(Regex::new(regex)?),
+            ..Default::default()
+        })
+    }
+}
+
+impl fmt::Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "name={}", self.name)
+    }
 }
