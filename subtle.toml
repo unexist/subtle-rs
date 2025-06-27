@@ -574,3 +574,19 @@ dev = "editor"
 [views.terms]
 match = "terms"
 icon = "/usr/share/icons/icon.xbm"
+
+#
+# == Screens
+#
+# Subtle usually creates screens based on the information it gathers from  X
+# and xrandr runtime.
+#
+# To allow more flexibility, subtle can split physically screens into virtual
+# ones and low to see multiple views on screen per virtual screen.
+#
+# === Example
+#
+#   screen 1 do
+#     virtual [  0,  0, 50, 50 ]
+#     virtual [ 50, 50, 50, 50 ]
+#   end
