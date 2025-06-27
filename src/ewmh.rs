@@ -9,6 +9,11 @@
 /// See the file LICENSE for details.
 ///
 
+use anyhow::Result;
+use log::debug;
+use crate::config::Config;
+use crate::subtle::Subtle;
+
 x11rb::atom_manager! {
     pub Atoms: AtomsCookie {
         // ICCCM
@@ -58,4 +63,10 @@ x11rb::atom_manager! {
         SUBTLE_RENDER, SUBTLE_RELOAD, SUBTLE_RESTART, SUBTLE_QUIT, SUBTLE_COLORS,
         SUBTLE_FONT, SUBTLE_DATA, SUBTLE_VERSION,
     }
+}
+
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    debug!("Init");
+
+    Ok(())
 }
