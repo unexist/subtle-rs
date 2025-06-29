@@ -48,8 +48,6 @@ fn print_version() {
 }
 
 fn main() -> Result<()> {
-    let mut subtle = Subtle::default();
-
     // Load config
     let (config, path, _format) = Config::parse_info();
 
@@ -57,6 +55,9 @@ fn main() -> Result<()> {
 
     info!("Reading file `{:?}'", path.unwrap_or_default());
     debug!("Config: {:?}", config);
+
+    // Init systems
+    let mut subtle = Subtle::from(&config);
 
     install_signal_handler(&mut subtle)?;
     print_version();

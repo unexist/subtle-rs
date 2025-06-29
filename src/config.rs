@@ -19,6 +19,10 @@ pub(crate) struct Config {
     /// Connect to DISPLAY
     #[config_arg(short = 'd', name = "display", default_value = ":0", accept_from = "cli_only")]
     pub(crate) display: String,
+    
+    /// Replace current window manager
+    #[config_arg(short = 'r', name = "replace", default_value = false, accept_from = "cli_only")]
+    pub(crate) replace: bool,
 
     /// Set logging level LEVEL
     #[config_arg(short = 'l', name = "level", default_value = "", accept_from = "cli_only")]
