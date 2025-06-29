@@ -15,6 +15,7 @@ use bitflags::bitflags;
 use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::client::Client;
+use crate::config::Config;
 use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
@@ -78,5 +79,17 @@ impl Default for Subtle {
             tags: Vec::new(),
             views: Vec::new(),
         }
+    }
+}
+
+impl From<&Config> for Subtle {
+    fn from(config: &Config) -> Self {
+        let mut subtle = Self::default();
+        
+        if config.replace {
+            subtle.flags.insert(Flags::REPLACE);
+        }
+        
+        subtle
     }
 }
