@@ -34,7 +34,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                        -100, -100, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?;
 
-
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.conn = Option::from(conn);
@@ -77,6 +76,10 @@ pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn finish(_subtle: &Subtle) -> Result<()> {
+pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
+    let conn = subtle.conn.as_mut().ok_or(anyhow!("No connection"))?;
+    
+    conn.destroy_window(subtle.support)?;
+    
     Ok(())
 }

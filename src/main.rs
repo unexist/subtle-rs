@@ -56,7 +56,7 @@ fn main() -> Result<()> {
     info!("Reading file `{:?}'", path.unwrap_or_default());
     debug!("Config: {:?}", config);
 
-    // Init systems
+    // Init subtle
     let mut subtle = Subtle::from(&config);
 
     install_signal_handler(&mut subtle)?;
@@ -72,9 +72,7 @@ fn main() -> Result<()> {
     display::configure(&subtle)?;
 
     // Run event handler
-    if let Err(e) = event::handle_requests(&mut subtle) {
-        error!("Error: {}", e);
-    }
+    event::handle_requests(&mut subtle)?;
     
     display::finish(&mut subtle)?;
     
