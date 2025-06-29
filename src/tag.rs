@@ -13,6 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
+use log::debug;
 use crate::rect::Rect;
 
 bitflags! {
@@ -38,11 +39,15 @@ pub(crate) struct Tag {
 
 impl Tag {
     pub(crate) fn new(name: &str, regex: &str) -> Result<Self> {
-        Ok(Self {
+        let tag = Self {
             name: name.into(),
             regex: Some(Regex::new(regex)?),
             ..Default::default()
-        })
+        };
+
+        debug!("New: {}", tag);
+        
+        Ok(tag)
     }
 }
 
