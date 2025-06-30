@@ -28,7 +28,7 @@ mod ewmh;
 
 use std::sync::atomic;
 use anyhow::{Context, Result};
-use log::{debug, error, info};
+use log::{debug, info};
 use crate::config::Config;
 use crate::subtle::Subtle;
 
@@ -70,6 +70,7 @@ fn main() -> Result<()> {
 
     display::claim(&mut subtle)?;
     display::configure(&subtle)?;
+    display::scan(&mut subtle)?;
 
     // Run event handler
     event::handle_requests(&mut subtle)?;

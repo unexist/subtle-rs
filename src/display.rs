@@ -9,13 +9,14 @@
 /// See the file LICENSE for details.
 ///
 
-use anyhow::{anyhow, Result};
-use log::{error, info};
+use std::sync::{Arc, RwLock};
+use anyhow::{anyhow, Context, Result};
+use log::{debug, info};
 use x11rb::connection::Connection;
 use x11rb::COPY_DEPTH_FROM_PARENT;
-use x11rb::protocol::randr::select_input;
-use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, Time, WindowClass};
+use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, Time, WindowClass};
 use crate::{Config, Subtle};
+use crate::client::Client;
 use crate::subtle::Flags;
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
@@ -36,7 +37,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
-    subtle.conn = Option::from(conn);
+    subtle.conn.set(conn).unwrap();
     subtle.screen_num = screen_num;
 
     info!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
@@ -44,8 +45,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn claim(subtle: &mut Subtle) -> Result<()> {
-    let conn = subtle.conn.as_mut().ok_or(anyhow!("No connection"))?;
+pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
     let session = conn.intern_atom(false,
                                    format!("WM_S{}", subtle.screen_num).as_bytes())?.reply()?.atom;
 
@@ -69,6 +70,33 @@ pub(crate) fn claim(subtle: &mut Subtle) -> Result<()> {
         return Err(anyhow!("Failed replacing current window manager"))
     }
 
+    debug!("Claim");
+
+    Ok(())
+}
+
+pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    for win in conn.query_tree(screen.root)?.reply()?.children {
+        let attr = conn.get_window_attributes(win)?.reply()?;
+
+        if !attr.override_redirect {
+            match attr.map_state {
+                MapState::VIEWABLE => {
+                    let client = Client::new(subtle, win);
+
+                    subtle.clients.push(client?);
+                },
+                _ => {},
+            }
+        }
+    }
+
+    debug!("Scan");
+
     Ok(())
 }
 
@@ -77,9 +105,11 @@ pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
 }
 
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
-    let conn = subtle.conn.as_mut().ok_or(anyhow!("No connection"))?;
+    let conn = subtle.conn.get().context("Failed to get connection")?;
     
     conn.destroy_window(subtle.support)?;
-    
+
+    debug!("Finish");
+
     Ok(())
 }

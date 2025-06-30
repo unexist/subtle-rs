@@ -49,7 +49,7 @@ pub(crate) struct Subtle {
     pub(crate) height: u16,
     
     pub(crate) running: Arc<AtomicBool>,
-    pub(crate) conn: OnceCell<Arc<RwLock<RustConnection>>>,
+    pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
     
     pub(crate) support: Window,
