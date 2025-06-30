@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 ///
 /// @package subtle-rs
 ///
@@ -9,7 +10,7 @@
 /// See the file LICENSE for details.
 ///
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::sync::atomic::AtomicBool;
 use bitflags::bitflags;
 use x11rb::protocol::xproto::{Grab, Window};
@@ -48,7 +49,7 @@ pub(crate) struct Subtle {
     pub(crate) height: u16,
     
     pub(crate) running: Arc<AtomicBool>,
-    pub(crate) conn: Option<RustConnection>,
+    pub(crate) conn: OnceCell<Arc<RwLock<RustConnection>>>,
     pub(crate) screen_num: usize,
     
     pub(crate) support: Window,
@@ -68,9 +69,9 @@ impl Default for Subtle {
             height: 0,
             
             running: Arc::new(AtomicBool::new(true)),
-            conn: None,
+            conn: OnceCell::new(),
             screen_num: 0,
-            
+
             support: Window::default(),
 
             clients: Vec::new(),
