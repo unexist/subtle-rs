@@ -12,7 +12,7 @@
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
 use x11rb::connection::Connection;
-use x11rb::COPY_DEPTH_FROM_PARENT;
+use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
 use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, Time, WindowClass};
 use crate::{Config, Subtle};
 use crate::client::Client;
@@ -24,13 +24,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Create support window
     let screen = &conn.setup().roots[screen_num];
 
-    subtle.support = conn.generate_id()?;
+    subtle.support_win = conn.generate_id()?;
 
     let aux = CreateWindowAux::default()
         .event_mask(EventMask::PROPERTY_CHANGE)
         .override_redirect(1);
 
-    conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support, screen.root,
+    conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, screen.root,
                        -100, -100, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?;
 
@@ -48,10 +48,10 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     let session = conn.intern_atom(false,
                                    format!("WM_S{}", subtle.screen_num).as_bytes())?.reply()?.atom;
-
+    
     let owner = conn.get_selection_owner(session)?.reply()?.owner;
     
-    if 0 != owner {
+    if NONE != owner {
         if !subtle.flags.contains(Flags::REPLACE) {
             return Err(anyhow!("Found a running window manager"))
         }
@@ -63,9 +63,12 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
         conn.flush()?;
     }
 
-    conn.set_selection_owner(session, subtle.support, Time::CURRENT_TIME)?;
-
-    if conn.get_selection_owner(session)?.reply()?.owner != subtle.support {
+    // Acquire session selection
+    conn.set_selection_owner(subtle.support_win, session, Time::CURRENT_TIME)?.check()?;
+    
+    let reply = conn.get_selection_owner(session)?.reply()?;
+    
+    if conn.get_selection_owner(session)?.reply()?.owner != subtle.support_win {
         return Err(anyhow!("Failed replacing current window manager"))
     }
 
@@ -106,7 +109,7 @@ pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     
-    conn.destroy_window(subtle.support)?;
+    conn.destroy_window(subtle.support_win)?;
 
     debug!("Finish");
 
