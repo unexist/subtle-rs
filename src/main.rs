@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     gravity::init(&config, &mut subtle)?;
     tag::init(&config, &mut subtle)?;
     view::init(&config, &mut subtle)?;
-    
+
     drop(config);
 
     display::claim(&mut subtle)?;

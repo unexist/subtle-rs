@@ -10,9 +10,11 @@
 ///
 
 use std::fmt;
-use x11rb::protocol::xproto::{ConnectionExt, Rectangle, SetMode, Window};
+use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, Rectangle, SetMode, Window};
 use bitflags::bitflags;
 use anyhow::{Result};
+use log::debug;
+use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -59,15 +61,23 @@ pub(crate) struct Client {
 impl Client {
     pub(crate) fn new(subtle: &Subtle, win: Window) -> Result<Self> {
         let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
 
         conn.grab_server()?;
         conn.change_save_set(SetMode::INSERT, win)?;
         conn.ungrab_server()?;
 
+        let wm_name = conn.get_property(false, win,
+                                        atoms.WM_NAME, atoms.UTF8_STRING,
+                                        0, 1024)?.reply()?.value;
+
         let client = Client {
             win,
+            title: String::from_utf8(wm_name)?,
             ..Self::default()
         };
+
+        debug!("New: {}", client);
 
         Ok(client)
     }
