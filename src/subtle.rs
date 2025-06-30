@@ -1,4 +1,3 @@
-use std::cell::OnceCell;
 ///
 /// @package subtle-rs
 ///
@@ -10,16 +9,17 @@ use std::cell::OnceCell;
 /// See the file LICENSE for details.
 ///
 
-use std::sync::{Arc, RwLock};
-use std::sync::atomic::AtomicBool;
-use bitflags::bitflags;
-use x11rb::protocol::xproto::{Grab, Window};
-use x11rb::rust_connection::RustConnection;
 use crate::client::Client;
 use crate::config::Config;
 use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
+use bitflags::bitflags;
+use std::cell::OnceCell;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use x11rb::protocol::xproto::{Grab, Window};
+use x11rb::rust_connection::RustConnection;
 
 bitflags! {
     #[derive(Default, Debug)]
