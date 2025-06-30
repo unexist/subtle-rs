@@ -15,6 +15,8 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use x11rb::protocol::xproto::Rectangle;
+use crate::config::Config;
+use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -55,4 +57,10 @@ impl fmt::Display for Tag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "name={}", self.name)
     }
+}
+
+pub(crate) fn init(_config: &Config, _subtle: &mut Subtle) -> Result<()> {
+    debug!("Init");
+    
+    Ok(())
 }

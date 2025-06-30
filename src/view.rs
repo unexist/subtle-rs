@@ -14,6 +14,8 @@ use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
 use log::debug;
+use crate::config::Config;
+use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -50,4 +52,10 @@ impl fmt::Display for View {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "name={}", self.name)
     }
+}
+
+pub(crate) fn init(_config: &Config, _subtle: &mut Subtle) -> Result<()> {
+    debug!("Init");
+
+    Ok(())
 }
