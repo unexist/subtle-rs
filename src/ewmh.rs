@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicPtr;
 ///
 /// @package subtle-rs
 ///
@@ -66,6 +67,12 @@ x11rb::atom_manager! {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    
+    let atoms = Atoms::new(conn)?.reply()?;
+    
+    subtle.atoms.set(atoms).unwrap();
+    
     debug!("Init");
 
     Ok(())

@@ -20,6 +20,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
+use crate::ewmh::Atoms;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -51,6 +52,8 @@ pub(crate) struct Subtle {
     pub(crate) running: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
+
+    pub(crate) atoms: OnceCell<Atoms>,
     
     pub(crate) support_win: Window,
 
@@ -71,6 +74,8 @@ impl Default for Subtle {
             running: Arc::new(AtomicBool::new(true)),
             conn: OnceCell::new(),
             screen_num: 0,
+            
+            atoms: OnceCell::new(),
 
             support_win: Window::default(),
 
