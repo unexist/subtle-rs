@@ -52,7 +52,7 @@ pub(crate) struct Subtle {
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
     
-    pub(crate) support: Window,
+    pub(crate) support_win: Window,
 
     pub(crate) clients: Vec<Client>,
     pub(crate) gravities: Vec<Gravity>,
@@ -72,7 +72,7 @@ impl Default for Subtle {
             conn: OnceCell::new(),
             screen_num: 0,
 
-            support: Window::default(),
+            support_win: Window::default(),
 
             clients: Vec::new(),
             gravities: Vec::new(),
