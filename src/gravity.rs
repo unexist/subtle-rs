@@ -39,8 +39,8 @@ impl Gravity {
             flags: Flags::empty(),
             name,
             geom: Rect {
-                x: clamp!(x, 0, 100),
-                y: clamp!(y, 0, 100),
+                x: clamp!(x as i16, 0, 100),
+                y: clamp!(y as i16, 0, 100),
                 width: clamp!(width, 1, 100),
                 height: clamp!(height, 1, 100),
             }
