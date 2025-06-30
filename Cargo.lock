@@ -1030,6 +1030,7 @@ dependencies = [
  "easy-min-max",
  "env_logger",
  "log",
+ "once_cell",
  "proptest",
  "regex",
  "serde",
