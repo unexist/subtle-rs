@@ -65,15 +65,23 @@ impl Client {
 
         conn.grab_server()?;
         conn.change_save_set(SetMode::INSERT, win)?;
-        conn.ungrab_server()?;
+        
+        let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let wm_name = conn.get_property(false, win,
                                         atoms.WM_NAME, atoms.UTF8_STRING,
                                         0, 1024)?.reply()?.value;
+        conn.ungrab_server()?;
 
         let client = Client {
             win,
             title: String::from_utf8(wm_name)?,
+            geom: Rectangle {
+                x: geom_reply.x,
+                y: geom_reply.y,
+                width: geom_reply.width,
+                height: geom_reply.height,
+            },
             ..Self::default()
         };
 

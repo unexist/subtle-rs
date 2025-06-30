@@ -17,10 +17,8 @@ use x11rb::protocol::Event;
 use crate::subtle::Subtle;
 use crate::client::Client;
 
-fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
+fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
     let _client = Client::new(subtle, event.window);
-    
-    Ok(())
 }
 
 pub(crate) fn handle_requests(subtle: &Subtle) -> Result<()> {
@@ -32,7 +30,7 @@ pub(crate) fn handle_requests(subtle: &Subtle) -> Result<()> {
         let event = conn.wait_for_event()?;
 
         match event {
-            Event::MapRequest(event) => handle_map_request(subtle, event)?,
+            Event::MapRequest(event) => handle_map_request(subtle, event),
 
             _ => println!("Unhandled event: {:?}", event),
         }
