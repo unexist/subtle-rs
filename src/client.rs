@@ -9,8 +9,11 @@
 /// See the file LICENSE for details.
 ///
 
-use x11rb::protocol::xproto::Window;
+use std::fmt;
+use x11rb::protocol::xproto::{ConnectionExt, Rectangle, SetMode, Window};
 use bitflags::bitflags;
+use anyhow::{Result};
+use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -44,16 +47,34 @@ bitflags! {
 
 #[derive(Default, Debug)]
 pub(crate) struct Client {
-    pub flags: Flags,
-    pub win: Window,
-    pub title: String,
+    pub(crate) flags: Flags,
+    pub(crate) win: Window,
+    pub(crate) title: String,
+    pub(crate) instance: String,
+    pub(crate) klass: String,
+    
+    pub(crate) geom: Rectangle,
 }
 
 impl Client {
-    pub(crate) fn new(win: Window) -> Self {
-        Client {
+    pub(crate) fn new(subtle: &Subtle, win: Window) -> Result<Self> {
+        let conn = subtle.conn.get().unwrap();
+
+        conn.grab_server()?;
+        conn.change_save_set(SetMode::INSERT, win)?;
+        conn.ungrab_server()?;
+
+        let client = Client {
             win,
             ..Self::default()
-        }
+        };
+
+        Ok(client)
+    }
+}
+
+impl fmt::Display for Client {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "title={}", self.title)
     }
 }

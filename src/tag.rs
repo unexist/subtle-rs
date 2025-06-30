@@ -14,7 +14,7 @@ use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
 use log::debug;
-use crate::rect::Rect;
+use x11rb::protocol::xproto::Rectangle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -34,7 +34,7 @@ pub(crate) struct Tag {
     
     pub(crate) screen_id: u32,
     pub(crate) gravity_id: u32,
-    pub(crate) geom: Rect,
+    pub(crate) geom: Rectangle,
 }
 
 impl Tag {

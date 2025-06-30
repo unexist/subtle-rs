@@ -19,7 +19,6 @@ mod client;
 mod view;
 mod tag;
 mod screen;
-mod rect;
 mod gravity;
 mod logger;
 mod config;

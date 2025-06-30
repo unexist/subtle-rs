@@ -14,8 +14,8 @@ use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
 use anyhow::Result;
 use log::debug;
+use x11rb::protocol::xproto::Rectangle;
 use crate::Config;
-use crate::rect::Rect;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -30,7 +30,7 @@ bitflags! {
 pub(crate) struct Gravity {
     pub(crate) flags: Flags,
     pub(crate) name: String,
-    pub geom: Rect,
+    pub geom: Rectangle,
 }
 
 impl Gravity {
@@ -38,7 +38,7 @@ impl Gravity {
         let grav = Gravity {
             flags: Flags::empty(),
             name,
-            geom: Rect {
+            geom: Rectangle {
                 x: clamp!(x as i16, 0, 100),
                 y: clamp!(y as i16, 0, 100),
                 width: clamp!(width, 1, 100),
@@ -54,7 +54,8 @@ impl Gravity {
 
 impl fmt::Display for Gravity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, geom={}", self.name, self.geom)
+        write!(f, "name={}, geom=(x={}, y={}, width={}, height={})",
+               self.name, self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }
 
