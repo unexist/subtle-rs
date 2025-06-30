@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file Gravity tests
+/// @file View tests
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///
