@@ -9,7 +9,6 @@
 /// See the file LICENSE for details.
 ///
 
-use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
 use x11rb::connection::Connection;
