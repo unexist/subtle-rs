@@ -109,6 +109,10 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn configure(subtle: &Subtle) {
+    debug!("Render");
+}
+
 
 pub(crate) fn render(subtle: &Subtle) {
     debug!("Render");
