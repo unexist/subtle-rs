@@ -34,6 +34,19 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                        -100, -100, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?;
 
+    // Check extensions
+    if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
+        subtle.flags.insert(Flags::XINERAMA);
+        
+        debug!("Found xinerama extension");
+    }
+    
+    if conn.query_extension("RANDR".as_ref())?.reply()?.present {
+        subtle.flags.insert(Flags::XRANDR);
+
+        debug!("Found xrandr extension");
+    }
+
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.conn.set(conn).unwrap();
