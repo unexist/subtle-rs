@@ -25,8 +25,8 @@ use crate::subtle::Subtle;
 bitflags! {
     #[derive(Default, Debug)]
     pub(crate) struct Flags: u32 {
-        const PANEL1 = 1 << 0; // Screen sanel1 enabled
-        const PANEL2 = 1 << 1; // Screen sanel2 enabled
+        const PANEL1 = 1 << 0; // Screen panel1 enabled
+        const PANEL2 = 1 << 1; // Screen panel2 enabled
         const VIRTUAL = 1 << 3; // Screen is virtual       
     }
 }
@@ -76,7 +76,8 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
         for crtc in crtcs {
             let screen_size = conn.randr_get_crtc_info(crtc, CURRENT_TIME)?.reply()?;
 
-            let screen = Screen::new(subtle, screen_size.x, screen_size.y, screen_size.width, screen_size.height);
+            let screen = Screen::new(subtle, screen_size.x, screen_size.y, 
+                                     screen_size.width, screen_size.height);
 
             subtle.screens.push(screen);
         }
@@ -87,13 +88,20 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
             let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
 
             for screen_info in screens {
-                let screen = Screen::new(subtle,
-                                         screen_info.x_org, screen_info.y_org, screen_info.width, screen_info.height);
+                let screen = Screen::new(subtle, screen_info.x_org, screen_info.y_org,
+                                         screen_info.width, screen_info.height);
 
                 subtle.screens.push(screen);
             }
 
         }
+    }
+    
+    // Create default screen
+    if subtle.screens.is_empty() {
+        let screen = Screen::new(subtle, 0, 0, subtle.width, subtle.height);
+        
+        subtle.screens.push(screen);
     }
 
     debug!("Init");
