@@ -13,7 +13,7 @@ use anyhow::{Context, Result};
 use std::sync::atomic;
 use log::{debug, warn};
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ExposeEvent, MapRequestEvent, SelectionClearEvent};
+use x11rb::protocol::xproto::{DestroyNotifyEvent, DestroyWindowRequest, ExposeEvent, MapRequestEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{Flags, Subtle};
 use crate::client::Client;
@@ -27,8 +27,25 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
     debug!("Expose: win={}", event.window);
 }
 
+fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) {
+    debug!("Destroy: win={}", event.window);
+}
+
 fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
-    let _client = Client::new(subtle, event.window);
+    // Check if we know the window
+    let client = subtle.find_client(event.window);
+
+    if client.is_some() {
+        screen::render(subtle);
+    } else {
+        let _map_client = Client::new(subtle, event.window);
+    }
+
+    debug!("MapRequest: win={}", event.window);
+}
+
+fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) {
+    debug!("Unmap: win={}", event.window);
 }
 
 fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
@@ -53,8 +70,10 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         match event {
             Event::Expose(evt) => handle_expose(subtle, evt),
+            Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
             Event::MapRequest(evt) => handle_map_request(subtle, evt),
             Event::SelectionClear(evt) => handle_selection(subtle, evt),
+            Event::UnmapNotify(evt) => handle_unmap(subtle, evt),
 
             _ => println!("Unhandled event: {:?}", event),
         }
