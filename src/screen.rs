@@ -16,10 +16,9 @@ use crate::subtle::Subtle;
 bitflags! {
     #[derive(Default, Debug)]
     pub(crate) struct Flags: u32 {
-        const PANEL1 = 1 << 10; // Screen sanel1 enabled
-        const PANEL2 = 1 << 11; // Screen sanel2 enabled
-        const STIPPLE = 1 << 12; // Screen stipple enabled
-        const VIRTUAL = 1 << 13; // Screen is virtual       
+        const PANEL1 = 1 << 0; // Screen sanel1 enabled
+        const PANEL2 = 1 << 1; // Screen sanel2 enabled
+        const VIRTUAL = 1 << 3; // Screen is virtual       
     }
 }
 
