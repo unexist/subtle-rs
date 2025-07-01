@@ -21,7 +21,7 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
     let _client = Client::new(subtle, event.window);
 }
 
-pub(crate) fn handle_requests(subtle: &Subtle) -> Result<()> {
+pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     
     while subtle.running.load(atomic::Ordering::SeqCst) {
