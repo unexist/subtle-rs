@@ -34,16 +34,16 @@ pub(crate) struct Gravity {
 }
 
 impl Gravity {
-    pub fn new(name: String, x: u16, y: u16, width: u16, height: u16) -> Self {
+    pub(crate) fn new(name: String, x: u16, y: u16, width: u16, height: u16) -> Self {
         let grav = Gravity {
-            flags: Flags::empty(),
             name,
             geom: Rectangle {
                 x: clamp!(x as i16, 0, 100),
                 y: clamp!(y as i16, 0, 100),
                 width: clamp!(width, 1, 100),
                 height: clamp!(height, 1, 100),
-            }
+            },
+            ..Self::default()
         };
         
         debug!("New: {}", grav);

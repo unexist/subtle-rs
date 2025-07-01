@@ -94,7 +94,6 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(u32, u32, u32, bool)> {
 impl Grab {
     pub(crate) fn new(name: &str, keys: &str) -> Self {
         Grab {
-            flags: Flags::empty(),
             ..Self::default()
         }
     }
