@@ -10,12 +10,24 @@
 ///
 
 use std::fmt;
-use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, Rectangle, SetMode, Window};
+use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, PropMode, Rectangle, SetMode, Window};
 use bitflags::bitflags;
 use anyhow::{Result};
+use easy_min_max::max;
 use log::debug;
+use x11rb::NONE;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
+
+const MIN_WIDTH: u16 = 1;
+const MIN_HEIGHT: u16 = 1;
+
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub(crate) enum WMState {
+    WithdrawnState = 0,
+    NormalState = 1,
+}
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -67,13 +79,13 @@ impl Client {
         conn.change_save_set(SetMode::INSERT, win)?;
         
         let geom_reply = conn.get_geometry(win)?.reply()?;
-        
+
         let wm_name = conn.get_property(false, win,
                                         atoms.WM_NAME, AtomEnum::STRING,
                                         0, 1024)?.reply()?.value;
 
         let wm_klass = conn.get_property(false, win,
-                                           atoms.WM_CLASS, AtomEnum::STRING, 0, 1024)?.reply()?.value;
+                                         atoms.WM_CLASS, AtomEnum::STRING, 0, 1024)?.reply()?.value;
 
         let inst_klass = String::from_utf8(wm_klass)
             .expect("UTF-8 string should be valid UTF-8")
@@ -92,21 +104,34 @@ impl Client {
             geom: Rectangle {
                 x: geom_reply.x,
                 y: geom_reply.y,
-                width: geom_reply.width,
-                height: geom_reply.height,
+                width: max!(MIN_WIDTH, geom_reply.width),
+                height: max!(MIN_HEIGHT, geom_reply.height),
             },
             ..Self::default()
         };
 
+        client.set_wm_state(subtle, WMState::WithdrawnState);
+
         debug!("New: {}", client);
 
         Ok(client)
+    }
+
+    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let data: [u8; 2] = [state as u8, NONE as u8];
+
+        let _result = conn.change_property(PropMode::REPLACE,
+                                            self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data);
     }
 }
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "name={}, instance={}, class={}, win={}, geom=(x={}, y={}, width={}, height={})", 
-               self.name, self.instance, self.klass, self.win, self.geom.x, self.geom.y, self.geom.width, self.geom.height)
+               self.name, self.instance, self.klass, self.win,
+               self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }
