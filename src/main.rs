@@ -36,7 +36,7 @@ use crate::config::Config;
 use crate::subtle::{Flags, Subtle};
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
-    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&subtle.term))
+    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&subtle.exterminate))
         .map_err(|e| anyhow!("Failed to register SIGTERM handler: {}", e))?;
     
     Ok(())

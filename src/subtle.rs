@@ -49,7 +49,7 @@ pub(crate) struct Subtle {
     pub(crate) width: u16,
     pub(crate) height: u16,
     
-    pub(crate) term: Arc<AtomicBool>,
+    pub(crate) exterminate: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
 
@@ -79,7 +79,7 @@ impl Default for Subtle {
             width: 0,
             height: 0,
             
-            term: Arc::new(AtomicBool::new(false)),
+            exterminate: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),
             screen_num: 0,
             

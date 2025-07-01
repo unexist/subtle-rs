@@ -53,7 +53,7 @@ fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
        debug!("Tray not supported yet"); 
     } else if event.owner == subtle.support_win {
         warn!("Leaving the field");
-        subtle.term.store(false, atomic::Ordering::Relaxed);
+        subtle.exterminate.store(false, atomic::Ordering::Relaxed);
     }
     
     debug!("SelectionClear: win={}, tray={}, support={}",
@@ -63,7 +63,7 @@ fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
 pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     
-    while !subtle.term.load(atomic::Ordering::SeqCst) {
+    while !subtle.exterminate.load(atomic::Ordering::SeqCst) {
         conn.flush()?;
 
         let event = conn.wait_for_event()?;
