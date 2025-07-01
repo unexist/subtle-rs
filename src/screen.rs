@@ -12,9 +12,14 @@
 use std::fmt;
 use bitflags::bitflags;
 use log::debug;
-use anyhow::Result;
+use anyhow::{Context, Result};
+use x11rb::connection::Connection;
+use x11rb::CURRENT_TIME;
+use x11rb::protocol::randr::ConnectionExt as randr_ext;
+use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
 use x11rb::protocol::xproto::Rectangle;
 use crate::config::Config;
+use crate::subtle::Flags as SubtleFlags;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -60,7 +65,37 @@ impl fmt::Display for Screen {
     }
 }
 
-pub(crate) fn init(_config: &Config, _subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    // Check both but prefer xrandr
+    if subtle.flags.contains(SubtleFlags::XRANDR) {
+        let screen = &conn.setup().roots[subtle.screen_num];
+        let crtcs= conn.randr_get_screen_resources_current(screen.root)?.reply()?.crtcs;
+
+        for crtc in crtcs {
+            let screen_size = conn.randr_get_crtc_info(crtc, CURRENT_TIME)?.reply()?;
+
+            let screen = Screen::new(subtle, screen_size.x, screen_size.y, screen_size.width, screen_size.height);
+
+            subtle.screens.push(screen);
+        }
+    }
+
+    if subtle.flags.contains(SubtleFlags::XINERAMA) && subtle.screens.is_empty() {
+        if 0 != conn.xinerama_is_active()?.reply()?.state {
+            let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
+
+            for screen_info in screens {
+                let screen = Screen::new(subtle,
+                                         screen_info.x_org, screen_info.y_org, screen_info.width, screen_info.height);
+
+                subtle.screens.push(screen);
+            }
+
+        }
+    }
+
     debug!("Init");
 
     Ok(())
