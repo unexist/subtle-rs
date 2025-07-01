@@ -96,7 +96,7 @@ impl Client {
 
         conn.ungrab_server()?;
 
-        let client = Client {
+        let client = Self {
             win,
             name: String::from_utf8(wm_name)?,
             instance: inst_klass[0].to_string(),
