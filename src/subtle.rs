@@ -65,6 +65,13 @@ pub(crate) struct Subtle {
     pub(crate) views: Vec<View>,
 }
 
+impl Subtle {
+    pub(crate) fn find_client(&self, win: Window) -> Option<&Client> {
+        self.clients.iter()
+            .find(|c| c.win == win)
+    }
+}
+
 impl Default for Subtle {
     fn default() -> Self {
         Subtle {
