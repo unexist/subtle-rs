@@ -21,6 +21,7 @@ use std::sync::Arc;
 use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
+use crate::screen::Screen;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -58,6 +59,7 @@ pub(crate) struct Subtle {
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
 
+    pub(crate) screens: Vec<Screen>,
     pub(crate) clients: Vec<Client>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
@@ -88,6 +90,7 @@ impl Default for Subtle {
             support_win: Window::default(),
             tray_win: Window::default(),
 
+            screens: Vec::new(),
             clients: Vec::new(),
             gravities: Vec::new(),
             grabs: Vec::new(),
