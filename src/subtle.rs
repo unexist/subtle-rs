@@ -50,6 +50,11 @@ pub(crate) struct Subtle {
     pub(crate) width: u16,
     pub(crate) height: u16,
     
+    pub(crate) visible_tags: u32,
+    pub(crate) visible_views: u32,
+    pub(crate) client_tags: u32,
+    pub(crate) urgent_tags: u32,
+    
     pub(crate) exterminate: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
@@ -80,6 +85,11 @@ impl Default for Subtle {
             flags: Flags::empty(),
             width: 0,
             height: 0,
+            
+            visible_tags: 0,
+            visible_views: 0,
+            client_tags: 0,
+            urgent_tags: 0,
             
             exterminate: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),
