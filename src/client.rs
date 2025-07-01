@@ -51,7 +51,7 @@ bitflags! {
 pub(crate) struct Client {
     pub(crate) flags: Flags,
     pub(crate) win: Window,
-    pub(crate) title: String,
+    pub(crate) name: String,
     pub(crate) instance: String,
     pub(crate) klass: String,
     
@@ -67,15 +67,28 @@ impl Client {
         conn.change_save_set(SetMode::INSERT, win)?;
         
         let geom_reply = conn.get_geometry(win)?.reply()?;
-
+        
         let wm_name = conn.get_property(false, win,
-                                        atoms.WM_NAME, atoms.UTF8_STRING,
+                                        atoms.WM_NAME, AtomEnum::STRING,
                                         0, 1024)?.reply()?.value;
+
+        let wm_klass = conn.get_property(false, win,
+                                           atoms.WM_CLASS, AtomEnum::STRING, 0, 1024)?.reply()?.value;
+
+        let inst_klass = String::from_utf8(wm_klass)
+            .expect("UTF-8 string should be valid UTF-8")
+            .trim_matches('\0')
+            .split('\0')
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+
         conn.ungrab_server()?;
 
         let client = Client {
             win,
-            title: String::from_utf8(wm_name)?,
+            name: String::from_utf8(wm_name)?,
+            instance: inst_klass[0].to_string(),
+            klass: inst_klass[1].to_string(),
             geom: Rectangle {
                 x: geom_reply.x,
                 y: geom_reply.y,
@@ -93,6 +106,7 @@ impl Client {
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "title={}", self.title)
+        write!(f, "name={}, instance={}, class={}, win={}, geom=(x={}, y={}, width={}, height={})", 
+               self.name, self.instance, self.klass, self.win, self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }
