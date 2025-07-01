@@ -10,6 +10,8 @@
 ///
 
 use bitflags::bitflags;
+use log::debug;
+use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -24,4 +26,8 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct Screen {
     pub(crate) flags: Flags,
+}
+
+pub(crate) fn render(subtle: &Subtle) {
+    debug!("Render");
 }
