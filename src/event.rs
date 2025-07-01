@@ -11,14 +11,36 @@
 
 use anyhow::{Context, Result};
 use std::sync::atomic;
+use log::{debug, warn};
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::MapRequestEvent;
+use x11rb::protocol::xproto::{ExposeEvent, MapRequestEvent, SelectionClearEvent};
 use x11rb::protocol::Event;
-use crate::subtle::Subtle;
+use crate::subtle::{Flags, Subtle};
 use crate::client::Client;
+use crate::screen;
+
+fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
+    if 0 == event.count {
+        screen::render(subtle);    
+    }
+    
+    debug!("Expose: win={}", event.window);
+}
 
 fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
     let _client = Client::new(subtle, event.window);
+}
+
+fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
+    if event.owner == subtle.tray_win {
+       debug!("Tray not supported yet"); 
+    } else if event.owner == subtle.support_win {
+        warn!("Leaving the field");
+        subtle.running.store(false, atomic::Ordering::Relaxed);
+    }
+    
+    debug!("SelectionClear: win={}, tray={}, support={}",
+        event.owner, subtle.tray_win, subtle.support_win);
 }
 
 pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
@@ -30,7 +52,9 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
         let event = conn.wait_for_event()?;
 
         match event {
-            Event::MapRequest(event) => handle_map_request(subtle, event),
+            Event::Expose(evt) => handle_expose(subtle, evt),
+            Event::MapRequest(evt) => handle_map_request(subtle, evt),
+            Event::SelectionClear(evt) => handle_selection(subtle, evt),
 
             _ => println!("Unhandled event: {:?}", event),
         }
