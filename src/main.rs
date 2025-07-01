@@ -29,18 +29,17 @@ mod ewmh;
 
 use std::env;
 use std::env::current_exe;
-use std::sync::atomic;
-use anyhow::{Context, Result};
+use std::sync::{atomic, Arc};
+use anyhow::{anyhow, Context, Result};
 use log::{debug, error, info};
 use crate::config::Config;
 use crate::subtle::{Flags, Subtle};
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
-    let running = subtle.running.clone();
-
-    ctrlc::set_handler(move || {
-        running.store(false, atomic::Ordering::SeqCst);
-    }).with_context(|| "Failed to set CTRL-C handler")
+    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&subtle.term))
+        .map_err(|e| anyhow!("Failed to register SIGTERM handler: {}", e))?;
+    
+    Ok(())
 }
 
 fn print_version() {
