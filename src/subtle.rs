@@ -56,6 +56,7 @@ pub(crate) struct Subtle {
     pub(crate) atoms: OnceCell<Atoms>,
     
     pub(crate) support_win: Window,
+    pub(crate) tray_win: Window,
 
     pub(crate) clients: Vec<Client>,
     pub(crate) gravities: Vec<Gravity>,
@@ -78,6 +79,7 @@ impl Default for Subtle {
             atoms: OnceCell::new(),
 
             support_win: Window::default(),
+            tray_win: Window::default(),
 
             clients: Vec::new(),
             gravities: Vec::new(),
