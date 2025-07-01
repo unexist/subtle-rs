@@ -27,11 +27,13 @@ mod config;
 mod grab;
 mod ewmh;
 
+use std::env;
+use std::env::current_exe;
 use std::sync::atomic;
 use anyhow::{Context, Result};
-use log::{debug, info};
+use log::{debug, error, info};
 use crate::config::Config;
-use crate::subtle::Subtle;
+use crate::subtle::{Flags, Subtle};
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     let running = subtle.running.clone();
@@ -76,9 +78,19 @@ fn main() -> Result<()> {
     display::scan(&mut subtle)?;
 
     // Run event handler
-    event::handle_requests(&mut subtle)?;
+    event::event_loop(&mut subtle)?;
     
     display::finish(&mut subtle)?;
+    
+    // Restart if necessary
+    if subtle.flags.contains(Flags::RESTART) {
+        info!("Restarting");
+
+        // When this actually returns something went wrong
+        let err = exec::execvp(current_exe()?.as_os_str(), env::args());
+        
+        error!("Error: {:?}", err);
+    }
     
     info!("Exit");
     
