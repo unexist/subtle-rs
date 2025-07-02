@@ -369,7 +369,6 @@ window_kill = "W-S-k"
 #    { "W-KP_3" = [ "bottom_right", "bottom_right66", "bottom_right33" ] }
 #]
 
-[tags]
 #
 # == Tags
 #
@@ -565,8 +564,13 @@ window_kill = "W-S-k"
 # https://subtle.rs/projects/subtle/wiki/Tagging
 #
 
+[tags]
+
 # Simple tags
-terms = "xterm|[u]?rxvt"
+[tags.terms]
+match = "xterm|[u]?rxvt"
+
+[tags.browser]
 browser = "opera|firefox|(google-)?chrom[e|ium]"
 
 # Placement
