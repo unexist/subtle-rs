@@ -9,17 +9,19 @@
 /// See the file LICENSE for details.
 ///
 
-use proptest::prelude::ProptestConfig;
-use proptest::proptest;
+use proptest::prelude::*;
+use crate::tagging::Tagging;
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn should_add_and_match_tag(id in 1u16..30) 
-        let taggings = Taggings::empty();
+    fn should_add_and_match_tag(id in 1u16..30) {
+        let mut tagging = Tagging::empty();
     
-        let tag = Taggings::from_bits_retain(1 << id);
+        let tag = Tagging::from_bits_retain(1 << id);
     
-        assert!(view.is_ok());
+        tagging.insert(tag);
+    
+        assert!(tagging.contains(tag));
     }
 }
