@@ -13,3 +13,4 @@ mod gravity_test;
 mod grab_test;
 mod tag_test;
 mod view_test;
+mod tagging;
