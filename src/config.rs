@@ -17,11 +17,11 @@ use std::collections::HashMap;
 #[config_file_formats = "yaml,toml,json"]
 pub(crate) struct Config {
     /// Connect to DISPLAY
-    #[config_arg(short = 'd', name = "display", default_value = ":0", accept_from = "cli_only")]
+    #[config_arg(short = 'd', default_value = ":0", accept_from = "cli_only")]
     pub(crate) display: String,
     
     /// Replace current window manager
-    #[config_arg(short = 'r', name = "replace", default_value = false, accept_from = "cli_only")]
+    #[config_arg(short = 'r', default_value = false, accept_from = "cli_only")]
     pub(crate) replace: bool,
 
     /// Set logging level LEVEL
@@ -29,7 +29,7 @@ pub(crate) struct Config {
     pub(crate) loglevel: String,
 
     /// Print debugging messages
-    #[config_arg(short = 'D', name = "debug", default_value = false, accept_from = "cli_only")]
+    #[config_arg(short = 'D', default_value = false, accept_from = "cli_only")]
     pub(crate) debug: bool,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
@@ -37,4 +37,7 @@ pub(crate) struct Config {
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) grabs: HashMap<String, String>,
+
+    #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
+    pub(crate) tags: HashMap<String, HashMap<String, String>>,
 }
