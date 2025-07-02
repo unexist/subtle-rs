@@ -76,19 +76,21 @@ pub(crate) struct Client {
     pub(crate) min_ratio: f32,
     pub(crate) max_ratio: f32,
 
-    pub(crate) min_width: u32,
-    pub(crate) min_height: u32,
-    pub(crate) max_width: u32,
-    pub(crate) max_height: u32,
-    pub(crate) inc_width: u32,
-    pub(crate) inc_height: u32,
-    pub(crate) base_width: u32,
-    pub(crate) base_height: u32,
+    pub(crate) min_width: i32,
+    pub(crate) min_height: i32,
+    pub(crate) max_width: i32,
+    pub(crate) max_height: i32,
+    pub(crate) inc_width: i32,
+    pub(crate) inc_height: i32,
+    pub(crate) base_width: i32,
+    pub(crate) base_height: i32,
 
-    pub(crate) screen_id: u32,
-    pub(crate) gravity_id: u32,
+    pub(crate) screen_id: usize,
+    pub(crate) gravity_id: usize,
     
     pub(crate) geom: Rectangle,
+
+    pub(crate) gravities: Vec<usize>,
 }
 
 impl Client {
@@ -128,6 +130,7 @@ impl Client {
                 width: max!(MIN_WIDTH, geom_reply.width),
                 height: max!(MIN_HEIGHT, geom_reply.height),
             },
+            gravities: Vec::with_capacity(subtle.views.len()),
             ..Self::default()
         };
 
