@@ -21,10 +21,10 @@ use crate::tagging::Tagging;
 bitflags! {
     #[derive(Default, Debug)]
     pub(crate) struct Flags: u32 {
-        const MODE_ICON = 1 << 10; // View icon
-        const MODE_ICON_ONLY = 1 << 11; // Icon only
-        const MODE_DYNAMIC = 1 << 12; // Dynamic views
-        const MODE_STICK = 1 << 13; // Stick view
+        const MODE_ICON = 1 << 0; // View icon
+        const MODE_ICON_ONLY = 1 << 1; // Icon only
+        const MODE_DYNAMIC = 1 << 2; // Dynamic views
+        const MODE_STICK = 1 << 3; // Stick view
     }
 }
 
