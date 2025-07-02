@@ -16,6 +16,7 @@ use anyhow::Result;
 use log::debug;
 use x11rb::protocol::xproto::Rectangle;
 use crate::config::Config;
+use crate::gravity::Gravity;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -40,26 +41,35 @@ pub(crate) struct Tag {
 }
 
 impl Tag {
-    pub(crate) fn new(name: &str, regex: &str) -> Result<Self> {
+    pub(crate) fn new(name: &str) -> Self {
         let tag = Self {
             name: name.into(),
-            regex: Some(Regex::new(regex)?),
             ..Default::default()
         };
 
         debug!("New: {}", tag);
         
-        Ok(tag)
+        tag
     }
 }
 
 impl fmt::Display for Tag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}", self.name)
+        write!(f, "name={}, regex={:?}", self.name, self.regex)
     }
 }
 
-pub(crate) fn init(_config: &Config, _subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    for (name, values) in config.tags.iter() {
+        let mut tag = Tag::new(name);
+        
+        if values.contains_key("matcher") {
+            tag.regex = Some(Regex::new(values.get("matcher").unwrap())?);
+        }
+        
+        subtle.tags.push(tag)
+    }
+    
     debug!("Init");
     
     Ok(())

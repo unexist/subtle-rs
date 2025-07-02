@@ -16,8 +16,8 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn should_create_tag(s in "[a-zA-Z]*") {
-        let tag = Tag::new(&*s, "");
+        let tag = Tag::new(&*s);
         
-        assert!(tag.is_ok());
+        assert!(!tag.name.is_empty());
     }
 }
