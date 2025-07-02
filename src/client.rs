@@ -147,8 +147,20 @@ impl Client {
 
         let data: [u8; 2] = [state as u8, NONE as u8];
 
-        let _result = conn.change_property(PropMode::REPLACE,
-                                            self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data);
+        let _ = conn.change_property(PropMode::REPLACE,
+                                     self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data);
+    }
+
+    pub(crate) fn map(&self, subtle: &Subtle) {
+        let conn = subtle.conn.get().unwrap();
+
+        let _ = conn.map_window(self.win);
+    }
+
+    pub(crate) fn unmap(&self, subtle: &Subtle) {
+        let conn = subtle.conn.get().unwrap();
+
+        let _ = conn.unmap_window(self.win);
     }
 }
 
