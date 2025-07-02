@@ -18,6 +18,7 @@ use log::debug;
 use x11rb::NONE;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
+use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
 const MIN_HEIGHT: u16 = 1;
@@ -62,10 +63,30 @@ bitflags! {
 #[derive(Default, Debug)]
 pub(crate) struct Client {
     pub(crate) flags: Flags,
+    pub(crate) tags: Tagging,
+
     pub(crate) win: Window,
+    pub(crate) leader: Window,
+
     pub(crate) name: String,
     pub(crate) instance: String,
     pub(crate) klass: String,
+    pub(crate) role: String,
+
+    pub(crate) min_ratio: f32,
+    pub(crate) max_ratio: f32,
+
+    pub(crate) min_width: u32,
+    pub(crate) min_height: u32,
+    pub(crate) max_width: u32,
+    pub(crate) max_height: u32,
+    pub(crate) inc_width: u32,
+    pub(crate) inc_height: u32,
+    pub(crate) base_width: u32,
+    pub(crate) base_height: u32,
+
+    pub(crate) screen_id: u32,
+    pub(crate) gravity_id: u32,
     
     pub(crate) geom: Rectangle,
 }
