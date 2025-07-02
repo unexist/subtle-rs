@@ -34,8 +34,8 @@ pub(crate) struct Tag {
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
     
-    pub(crate) screen_id: u32,
-    pub(crate) gravity_id: u32,
+    pub(crate) screen_id: usize,
+    pub(crate) gravity_id: usize,
     pub(crate) geom: Rectangle,
 }
 
