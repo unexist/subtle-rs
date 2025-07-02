@@ -15,7 +15,7 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use x11rb::protocol::xproto::Rectangle;
-use crate::config::Config;
+use crate::config::{Config, Mixed};
 use crate::gravity::Gravity;
 use crate::subtle::Subtle;
 
@@ -62,9 +62,11 @@ impl fmt::Display for Tag {
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.tags.iter() {
         let mut tag = Tag::new(name);
-        
+
         if values.contains_key("matcher") {
-            tag.regex = Some(Regex::new(values.get("matcher").unwrap())?);
+            if let Mixed::S(value) = values.get("matcher").unwrap() {
+                tag.regex = Some(Regex::new(value)?);
+            }
         }
         
         subtle.tags.push(tag)
