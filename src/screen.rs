@@ -17,10 +17,12 @@ use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::Rectangle;
+use x11rb::protocol::xproto::{MapState, Rectangle};
 use crate::config::Config;
 use crate::subtle::Flags as SubtleFlags;
 use crate::subtle::Subtle;
+use crate::client::{Client, Flags as ClientFlags, WMState};
+use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -34,6 +36,8 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct Screen {
     pub(crate) flags: Flags,
+
+    pub(crate) view_id: usize,
 
     pub(crate) geom: Rectangle,
     pub(crate) base: Rectangle,
@@ -73,8 +77,8 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
         let screen = &conn.setup().roots[subtle.screen_num];
         let crtcs= conn.randr_get_screen_resources_current(screen.root)?.reply()?.crtcs;
 
-        for crtc in crtcs {
-            let screen_size = conn.randr_get_crtc_info(crtc, CURRENT_TIME)?.reply()?;
+        for crtc in crtcs.iter() {
+            let screen_size = conn.randr_get_crtc_info(*crtc, CURRENT_TIME)?.reply()?;
 
             let screen = Screen::new(subtle, screen_size.x, screen_size.y, 
                                      screen_size.width, screen_size.height);
@@ -87,7 +91,7 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
         if 0 != conn.xinerama_is_active()?.reply()?.state {
             let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
 
-            for screen_info in screens {
+            for screen_info in screens.iter() {
                 let screen = Screen::new(subtle, screen_info.x_org, screen_info.y_org,
                                          screen_info.width, screen_info.height);
 
@@ -110,6 +114,57 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
 }
 
 pub(crate) fn configure(subtle: &Subtle) {
+    let mut visible_tags = Tagging::empty();
+    let mut visible_views = Tagging::empty();
+    let mut client_tags = Tagging::empty();
+
+    // Check each client
+    for client in subtle.clients.iter() {
+        let mut gravity_id: usize = 0;
+        let mut screen_id: usize = 0;
+        let mut view_id: usize = 0;
+        let mut visible = 0;
+
+        if client.flags.contains(ClientFlags::DEAD) {
+            continue;
+        }
+
+        // Set available client tags to ease lookups
+        client_tags.insert(client.tags);
+
+        for (j, screen) in subtle.screens.iter().enumerate() {
+            let view = &subtle.views[screen.view_id];
+
+            // Set visible tags and views tgo ease lookups
+            visible_tags.insert(view.tags);
+            visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
+
+            if visible_tags.contains(view.tags) {
+                // Keep screen when sticky
+                if client.flags.contains(ClientFlags::MODE_STICK) {
+                    let screen = &subtle.screens[client.screen_id];
+
+                    screen_id = client.screen_id;
+                } else {
+                    screen_id = j;
+                }
+                
+                view_id = screen.view_id;
+                gravity_id = client.gravities[screen.view_id];
+                visible += 1;
+            }
+        }
+        
+        // After all screens are checked..
+        if 0 < visible {
+            client.set_wm_state(subtle, WMState::NormalState);
+            client.map(subtle);
+        } else {
+            client.set_wm_state(subtle, WMState::WithdrawnState);
+            client.unmap(subtle);
+        }
+    }
+
     debug!("Render");
 }
 
