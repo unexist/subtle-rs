@@ -1,5 +1,8 @@
 version: '3'
 
+env:
+  DISPLAY: ':2'
+
 tasks:
   test:
     cmds:
@@ -14,6 +17,10 @@ tasks:
       RUST_BACKTRACE: 1
     cmds:
       - cargo test
+
+  debug:
+    cmds:
+      - cargo run -- -d {{.DISPLAY}} --replace --debug {{.CLI_ARGS}}
 
   run:
     cmds:
