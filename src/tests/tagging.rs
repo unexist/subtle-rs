@@ -15,13 +15,18 @@ use crate::tagging::Tagging;
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn should_add_and_match_tag(id in 1u16..30) {
+    fn should_add_and_match_tag(id1 in 0u16..31, id2 in 0u16..32) {
         let mut tagging = Tagging::empty();
     
-        let tag = Tagging::from_bits_retain(1 << id);
+        let tag1 = Tagging::from_bits_retain(1 << id1);
+        let tag2 = Tagging::from_bits_retain(1 << id2);
+        
+        tagging.insert(tag1);
     
-        tagging.insert(tag);
-    
-        assert!(tagging.contains(tag));
+        assert!(tagging.contains(tag1));
+        
+        if id1 != id2 {
+            assert!(!tagging.contains(tag2));
+        }
     }
 }
