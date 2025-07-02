@@ -12,7 +12,7 @@
 use bitflags::bitflags;
 
 bitflags! {
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct Tagging: u32 {
         const None = 1 << 0;
     }
