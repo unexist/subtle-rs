@@ -26,6 +26,7 @@ mod logger;
 mod config;
 mod grab;
 mod ewmh;
+mod tagging;
 
 use std::env;
 use std::env::current_exe;
