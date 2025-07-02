@@ -22,6 +22,7 @@ use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::screen::Screen;
+use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -50,10 +51,10 @@ pub(crate) struct Subtle {
     pub(crate) width: u16,
     pub(crate) height: u16,
     
-    pub(crate) visible_tags: u32,
-    pub(crate) visible_views: u32,
-    pub(crate) client_tags: u32,
-    pub(crate) urgent_tags: u32,
+    pub(crate) visible_tags: Tagging,
+    pub(crate) visible_views: Tagging,
+    pub(crate) client_tags: Tagging,
+    pub(crate) urgent_tags: Tagging,
     
     pub(crate) exterminate: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
@@ -85,11 +86,11 @@ impl Default for Subtle {
             flags: Flags::empty(),
             width: 0,
             height: 0,
-            
-            visible_tags: 0,
-            visible_views: 0,
-            client_tags: 0,
-            urgent_tags: 0,
+
+            visible_tags: Tagging::empty(),
+            visible_views: Tagging::empty(),
+            client_tags: Tagging::empty(),
+            urgent_tags: Tagging::empty(),
             
             exterminate: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),
@@ -113,7 +114,7 @@ impl Default for Subtle {
 impl From<&Config> for Subtle {
     fn from(config: &Config) -> Self {
         let mut subtle = Self::default();
-        
+
         if config.replace {
             subtle.flags.insert(Flags::REPLACE);
         }

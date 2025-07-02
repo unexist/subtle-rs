@@ -16,6 +16,7 @@ use anyhow::Result;
 use log::debug;
 use crate::config::Config;
 use crate::subtle::Subtle;
+use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -30,6 +31,8 @@ bitflags! {
 #[derive(Default)]
 pub(crate) struct View {
     pub(crate) flags: Flags,
+    pub(crate) tags: Tagging,
+    
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
 }
