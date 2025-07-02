@@ -1,4 +1,4 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables))]
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables, unused_assignments))]
 
 ///
 /// @package subtle-rs
