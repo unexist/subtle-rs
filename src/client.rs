@@ -107,8 +107,8 @@ impl Client {
                                         atoms.WM_NAME, AtomEnum::STRING,
                                         0, 1024)?.reply()?.value;
 
-        let wm_klass = conn.get_property(false, win,
-                                         atoms.WM_CLASS, AtomEnum::STRING, 0, 1024)?.reply()?.value;
+        let wm_klass = conn.get_property(false, win, atoms.WM_CLASS,
+                                         AtomEnum::STRING, 0, 1024)?.reply()?.value;
 
         let inst_klass = String::from_utf8(wm_klass)
             .expect("UTF-8 string should be valid UTF-8")
@@ -119,7 +119,7 @@ impl Client {
 
         conn.ungrab_server()?;
 
-        let client = Self {
+        let mut client = Self {
             win,
             name: String::from_utf8(wm_name)?,
             instance: inst_klass[0].to_string(),
@@ -134,7 +134,19 @@ impl Client {
             ..Self::default()
         };
 
+        // Update client
+        let mut new_flags = Flags::empty();
+
         client.set_wm_state(subtle, WMState::WithdrawnState);
+        client.retag(subtle, &mut new_flags);
+
+        // Set leader window
+        let leader = conn.get_property(false, client.win, AtomEnum::WINDOW,
+                                       atoms.WM_CLIENT_LEADER, 0, 1)?.reply()?.value;
+
+        if !leader.is_empty() && NONE != leader[0] as u32 {
+            client.leader = leader[0] as Window;
+        }
 
         debug!("New: {}", client);
 
@@ -149,6 +161,32 @@ impl Client {
 
         let _ = conn.change_property(PropMode::REPLACE,
                                      self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data);
+    }
+
+    pub(crate) fn tag(&self, tag_idx: usize, new_flags: &mut Flags) {
+
+    }
+
+    pub(crate) fn retag(&self, subtle: &Subtle, new_flags: &mut Flags) {
+        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
+            if tag.matches(self) {
+                self.tag(tag_idx, new_flags);
+            }
+        }
+
+        if self.flags.contains(Flags::MODE_STICK) && !new_flags.contains(Flags::MODE_STICK) {
+            let mut visible: u8 = 0;
+
+            for view in subtle.views.iter() {
+                if view.tags.contains(self.tags) {
+                    visible += 1;
+                }
+            }
+
+            if 0 == visible {
+                self.tag(0, new_flags);
+            }
+        }
     }
 
     pub(crate) fn map(&self, subtle: &Subtle) {
@@ -166,8 +204,8 @@ impl Client {
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, instance={}, class={}, win={}, geom=(x={}, y={}, width={}, height={})", 
-               self.name, self.instance, self.klass, self.win,
+        write!(f, "name={}, instance={}, class={}, win={}, leader={}, geom=(x={}, y={}, width={}, height={})",
+               self.name, self.instance, self.klass, self.win, self.leader,
                self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }
