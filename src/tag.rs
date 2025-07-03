@@ -15,7 +15,7 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use x11rb::protocol::xproto::Rectangle;
-use crate::config::{Config, Mixed};
+use crate::config::{Config, MixedConfigVal};
 use crate::gravity::Gravity;
 use crate::subtle::Subtle;
 
@@ -64,7 +64,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         let mut tag = Tag::new(name);
 
         if values.contains_key("match") {
-            if let Mixed::S(value) = values.get("match").unwrap() {
+            if let MixedConfigVal::S(value) = values.get("match").unwrap() {
                 tag.regex = Some(Regex::new(value)?);
             }
         }

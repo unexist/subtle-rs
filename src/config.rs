@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
-pub(crate) enum Mixed {
+pub(crate) enum MixedConfigVal {
     S(String),
     V(Vec<i32>),
     I(i32),
@@ -49,5 +49,8 @@ pub(crate) struct Config {
     pub(crate) grabs: HashMap<String, String>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) tags: HashMap<String, HashMap<String, Mixed>>,
+    pub(crate) tags: HashMap<String, HashMap<String, MixedConfigVal>>,
+
+    #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
+    pub(crate) views: HashMap<String, HashMap<String, MixedConfigVal>>,
 }
