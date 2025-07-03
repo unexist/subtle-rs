@@ -46,6 +46,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         debug!("Found xrandr extension");
     }
+    
+    conn.flush()?;
 
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
