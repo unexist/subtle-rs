@@ -662,9 +662,15 @@ gravity = "center"
 #
 
 [views]
-www = "browser"
-gimp = "gimp_.*"
-dev = "editor"
+
+[views.www]
+match = "browser"
+
+[views.gimp]
+match = "gimp_.*"
+
+[views.dev]
+match = "editor"
 
 [views.terms]
 match = "terms"
