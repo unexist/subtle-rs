@@ -63,8 +63,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.tags.iter() {
         let mut tag = Tag::new(name);
 
-        if values.contains_key("matcher") {
-            if let Mixed::S(value) = values.get("matcher").unwrap() {
+        if values.contains_key("match") {
+            if let Mixed::S(value) = values.get("match").unwrap() {
                 tag.regex = Some(Regex::new(value)?);
             }
         }

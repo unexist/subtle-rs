@@ -571,7 +571,7 @@ window_kill = "W-S-k"
 match = "xterm|[u]?rxvt"
 
 [tags.browser]
-browser = "opera|firefox|(google-)?chrom[e|ium]"
+match = "opera|firefox|(google-)?chrom[e|ium]"
 
 # Placement
 [tags.editor]
