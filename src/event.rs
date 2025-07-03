@@ -66,16 +66,16 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     while !subtle.exterminate.load(atomic::Ordering::SeqCst) {
         conn.flush()?;
 
-        let event = conn.wait_for_event()?;
+        if let Some(event) = conn.poll_for_event()? {
+            match event {
+                Event::Expose(evt) => handle_expose(subtle, evt),
+                Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
+                Event::MapRequest(evt) => handle_map_request(subtle, evt),
+                Event::SelectionClear(evt) => handle_selection(subtle, evt),
+                Event::UnmapNotify(evt) => handle_unmap(subtle, evt),
 
-        match event {
-            Event::Expose(evt) => handle_expose(subtle, evt),
-            Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
-            Event::MapRequest(evt) => handle_map_request(subtle, evt),
-            Event::SelectionClear(evt) => handle_selection(subtle, evt),
-            Event::UnmapNotify(evt) => handle_unmap(subtle, evt),
-
-            _ => println!("Unhandled event: {:?}", event),
+                _ => println!("Unhandled event: {:?}", event),
+            }
         }
     }
     
