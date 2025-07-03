@@ -15,6 +15,7 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use x11rb::protocol::xproto::Rectangle;
+use crate::client::Client;
 use crate::config::{Config, MixedConfigVal};
 use crate::gravity::Gravity;
 use crate::subtle::Subtle;
@@ -50,6 +51,10 @@ impl Tag {
         debug!("New: {}", tag);
         
         tag
+    }
+    
+    pub(crate) fn matches(&self, client: &Client) -> bool {
+        true
     }
 }
 
