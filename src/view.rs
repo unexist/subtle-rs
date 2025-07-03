@@ -14,8 +14,9 @@ use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
 use log::debug;
-use crate::config::Config;
+use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
+use crate::tag::Tag;
 use crate::tagging::Tagging;
 
 bitflags! {
@@ -38,16 +39,15 @@ pub(crate) struct View {
 }
 
 impl View {
-    pub(crate) fn new(name: &str, regex: &str) -> Result<Self> {
+    pub(crate) fn new(name: &str) -> Self {
         let view = Self {
             name: name.into(),
-            regex: Some(Regex::new(regex)?),
             ..Default::default()
         };
 
         debug!("New: {}", view);
 
-        Ok(view)
+        view
     }
 }
 
@@ -57,7 +57,19 @@ impl fmt::Display for View {
     }
 }
 
-pub(crate) fn init(_config: &Config, _subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    for (name, values) in config.views.iter() {
+        let mut view = View::new(name);
+
+        if values.contains_key("match") {
+            if let MixedConfigVal::S(value) = values.get("match").unwrap() {
+                view.regex = Some(Regex::new(value)?);
+            }
+        }
+
+        subtle.views.push(view)
+    }
+
     debug!("Init");
 
     Ok(())

@@ -15,9 +15,9 @@ use crate::view::View;
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn should_create_tag(s in "[a-zA-Z]*") {
-        let view = View::new(&*s, "");
+    fn should_create_view(s in "[a-zA-Z]*") {
+        let view = View::new(&*s);
 
-        assert!(view.is_ok());
+        assert!(!view.name.is_empty());
     }
 }
