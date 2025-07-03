@@ -50,6 +50,10 @@ pub(crate) struct Subtle {
     pub(crate) flags: Flags,
     pub(crate) width: u16,
     pub(crate) height: u16,
+
+    pub(crate) panel_height: u16,
+    pub(crate) step_size: u16,
+    pub(crate) snap_size: u16,
     
     pub(crate) visible_tags: Tagging,
     pub(crate) visible_views: Tagging,
@@ -99,6 +103,10 @@ impl Default for Subtle {
             width: 0,
             height: 0,
 
+            panel_height: 0,
+            step_size: 0,
+            snap_size: 0,
+            
             visible_tags: Tagging::empty(),
             visible_views: Tagging::empty(),
             client_tags: Tagging::empty(),
