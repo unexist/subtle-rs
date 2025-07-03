@@ -10,14 +10,17 @@
 ///
 
 use std::fmt;
+use std::ops::Div;
 use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, PropMode, Rectangle, SetMode, Window};
 use bitflags::bitflags;
-use anyhow::{Result};
+use anyhow::{Context, Result};
 use easy_min_max::max;
 use log::debug;
 use x11rb::NONE;
+use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
+use crate::subtle::Flags as SubtleFlags;
 use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
@@ -76,14 +79,14 @@ pub(crate) struct Client {
     pub(crate) min_ratio: f32,
     pub(crate) max_ratio: f32,
 
-    pub(crate) min_width: i32,
-    pub(crate) min_height: i32,
-    pub(crate) max_width: i32,
-    pub(crate) max_height: i32,
-    pub(crate) inc_width: i32,
-    pub(crate) inc_height: i32,
-    pub(crate) base_width: i32,
-    pub(crate) base_height: i32,
+    pub(crate) min_width: u16,
+    pub(crate) min_height: u16,
+    pub(crate) max_width: u16,
+    pub(crate) max_height: u16,
+    pub(crate) width_inc: u16,
+    pub(crate) height_inc: u16,
+    pub(crate) base_width: u16,
+    pub(crate) base_height: u16,
 
     pub(crate) screen_id: usize,
     pub(crate) gravity_id: usize,
@@ -135,10 +138,19 @@ impl Client {
         };
 
         // Update client
-        let mut new_flags = Flags::empty();
+        let mut mode_flags = Flags::empty();
 
-        client.set_wm_state(subtle, WMState::WithdrawnState);
-        client.retag(subtle, &mut new_flags);
+        client.set_wm_state(subtle, WMState::WithdrawnState)?;
+        //client.set_protocols
+        //client.set_strut
+        client.set_wm_type(subtle, &mut mode_flags)?;
+        client.retag(subtle, &mut mode_flags);
+        client.set_size_hints(subtle, &mut mode_flags)?;
+        //client.set_wm_hints
+        //client.set_state
+        //client.set_transient
+        //client.set_mw_hints
+        //client.toggle(mode_flags
 
         // Set leader window
         let leader = conn.get_property(false, client.win, AtomEnum::WINDOW,
@@ -153,28 +165,164 @@ impl Client {
         Ok(client)
     }
 
-    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) {
+    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
         let data: [u8; 2] = [state as u8, NONE as u8];
 
-        let _ = conn.change_property(PropMode::REPLACE,
-                                     self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data);
+        conn.change_property(PropMode::REPLACE,
+                             self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
+
+        Ok(())
     }
 
-    pub(crate) fn tag(&self, tag_idx: usize, new_flags: &mut Flags) {
+    pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
 
-    }
+        let wm_types = conn.get_property(false, self.win, AtomEnum::ATOM,
+                                         atoms._NET_WM_WINDOW_TYPE, 0, 5)?.reply()?.value;
 
-    pub(crate) fn retag(&self, subtle: &Subtle, new_flags: &mut Flags) {
-        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
-            if tag.matches(self) {
-                self.tag(tag_idx, new_flags);
+        for wm_type in wm_types {
+            if atoms._NET_WM_WINDOW_TYPE_DESKTOP == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DESKTOP);
+                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+            } else if atoms._NET_WM_WINDOW_TYPE_DOCK == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DOCK);
+                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+            } else if atoms._NET_WM_WINDOW_TYPE_TOOLBAR == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_TOOLBAR);
+            } else if atoms._NET_WM_WINDOW_TYPE_SPLASH == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_SPLASH);
+                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
+            } else if atoms._NET_WM_WINDOW_TYPE_DIALOG == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DIALOG);
+                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
             }
         }
 
-        if self.flags.contains(Flags::MODE_STICK) && !new_flags.contains(Flags::MODE_STICK) {
+        Ok(())
+    }
+
+    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        // Assume first screen
+        let screen = subtle.screens.first().context("No screens")?;
+
+        // Set default values
+        self.min_width = MIN_WIDTH;
+        self.min_height = MIN_HEIGHT;
+        self.max_width = u16::MAX;
+        self.max_height = u16::MAX;
+        self.min_ratio = 0.0;
+        self.max_ratio = 0.0;
+        self.width_inc = 1;
+        self.height_inc = 1;
+        self.base_width = 0;
+        self.base_height = 0;
+
+        let maybe_hints = WmSizeHints::get_normal_hints(conn, self.win)?.reply()?;
+
+        if let Some(hints) = maybe_hints {
+            // Program min size - limit min size to screen size if larger
+           if let Some((min_width, min_height)) = hints.min_size {
+               self.min_width = if self.min_width > screen.geom.width {
+                   screen.geom.width } else { max!(MIN_WIDTH, min_width as u16) };
+
+               self.min_height = if self.min_height > screen.geom.height {
+                   screen.geom.height } else { max!(MIN_HEIGHT, min_height as u16) };
+           }
+
+            // Program max size - limit max size to screen if larger
+            if let Some((max_width, max_height)) = hints.max_size {
+                self.max_width = if max_width > screen.geom.width as i32 {
+                    screen.geom.width } else { max_width as u16 };
+
+                self.max_height = if max_height > screen.geom.height as i32 {
+                    screen.geom.height - subtle.panel_height } else { max_height as u16 };
+            }
+
+            // Set float when min == max size (EWMH: Fixed size windows)
+            if let Some((min_width, min_height)) = hints.min_size
+                && let Some((max_width, max_height)) = hints.max_size
+            {
+                if min_width == max_width && min_height == max_height && !self.flags.contains(Flags::TYPE_DESKTOP) {
+                    mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_FIXED);
+                }
+            }
+
+            // Aspect ratios
+            if let Some((min_aspect, max_aspect)) = hints.aspect {
+                self.min_ratio = min_aspect.numerator as f32 / min_aspect.denominator as f32;
+                self.max_ratio = max_aspect.numerator as f32 / max_aspect.denominator as f32;
+            }
+
+            // Resize increment steps
+            if let Some((width_inc, height_inc)) = hints.size_increment {
+                self.width_inc = width_inc as u16;
+                self.height_inc = height_inc as u16;
+
+            }
+
+            // Base sizes
+            if let Some((base_width, base_height)) = hints.base_size {
+                self.base_width = base_width as u16;
+                self.base_height = base_height as u16;
+            }
+
+            // Check for specific position and size
+            if subtle.flags.contains(SubtleFlags::RESIZE)
+                || self.flags.contains(Flags::MODE_FLOAT | Flags::MODE_RESIZE | Flags::TYPE_DOCK)
+            {
+                // User/program position
+                if let Some((hint_spec, x, y)) = hints.position {
+                    match hint_spec {
+                        WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
+                            self.geom.x = x as i16;
+                            self.geom.y = y as i16;
+                        }
+                    }
+                }
+
+                // User/program size
+                if let Some((hint_spec, x, y)) = hints.size {
+                    match hint_spec {
+                        WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
+                            self.geom.width = x as u16;
+                            self.geom.height = y as u16;
+                        }
+                    }
+                }
+
+                // Sanitize positions for stupid clients like GIMP
+                //self.resize(&screen.geom, true);
+            }
+        }
+
+        debug!("SetSizeHints: x={}, y={}, width={}, height={}, minw={}, minh={}, maxw={}, maxh={}, \
+            minr={}, maxr={}, incw={}, inch={}, basew={}, baseh={}",
+            self.geom.x, self.geom.y, self.geom.width, self.geom.height,
+            self.min_width, self.min_height, self.max_width, self.max_height,
+            self.min_ratio, self.max_ratio, self.width_inc, self.height_inc,
+            self.base_width, self.base_height);
+
+        Ok(())
+    }
+
+    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut Flags) {
+
+    }
+
+    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut Flags) {
+        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
+            if tag.matches(self) {
+                self.tag(tag_idx, mode_flags);
+            }
+        }
+
+        if self.flags.contains(Flags::MODE_STICK) && !mode_flags.contains(Flags::MODE_STICK) {
             let mut visible: u8 = 0;
 
             for view in subtle.views.iter() {
@@ -184,7 +332,7 @@ impl Client {
             }
 
             if 0 == visible {
-                self.tag(0, new_flags);
+                self.tag(0, mode_flags);
             }
         }
     }
