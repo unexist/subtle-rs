@@ -11,13 +11,15 @@
 
 use std::fmt;
 use std::ops::Div;
-use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, PropMode, Rectangle, SetMode, Window};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, PropMode, Rectangle, SetMode, Window};
 use bitflags::bitflags;
 use anyhow::{Context, Result};
 use easy_min_max::max;
 use log::debug;
+use stdext::function_name;
 use x11rb::NONE;
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
+use x11rb::protocol::randr::ModeFlag;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
 use crate::subtle::Flags as SubtleFlags;
@@ -140,16 +142,16 @@ impl Client {
         // Update client
         let mut mode_flags = Flags::empty();
 
-        client.set_wm_state(subtle, WMState::WithdrawnState)?;
-        //client.set_protocols
         //client.set_strut
-        client.set_wm_type(subtle, &mut mode_flags)?;
-        client.retag(subtle, &mut mode_flags);
         client.set_size_hints(subtle, &mut mode_flags)?;
+        client.set_wm_state(subtle, WMState::WithdrawnState)?;
+        client.set_wm_protocols(subtle)?;
+        client.set_wm_type(subtle, &mut mode_flags)?;
         //client.set_wm_hints
-        //client.set_state
+        client.set_motif_wm_hints(subtle, &mut mode_flags)?;
+        client.set_net_wm_state(subtle, &mut mode_flags)?;
         //client.set_transient
-        //client.set_mw_hints
+        client.retag(subtle, &mut mode_flags);
         //client.toggle(mode_flags
 
         // Set leader window
@@ -164,48 +166,8 @@ impl Client {
 
         Ok(client)
     }
-
-    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
-        let conn = subtle.conn.get().unwrap();
-        let atoms = subtle.atoms.get().unwrap();
-
-        let data: [u8; 2] = [state as u8, NONE as u8];
-
-        conn.change_property(PropMode::REPLACE,
-                             self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
-
-        Ok(())
-    }
-
-    pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
-        let conn = subtle.conn.get().unwrap();
-        let atoms = subtle.atoms.get().unwrap();
-
-        let wm_types = conn.get_property(false, self.win, AtomEnum::ATOM,
-                                         atoms._NET_WM_WINDOW_TYPE, 0, 5)?.reply()?.value;
-
-        for wm_type in wm_types {
-            if atoms._NET_WM_WINDOW_TYPE_DESKTOP == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DESKTOP);
-                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
-            } else if atoms._NET_WM_WINDOW_TYPE_DOCK == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DOCK);
-                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
-            } else if atoms._NET_WM_WINDOW_TYPE_TOOLBAR == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_TOOLBAR);
-            } else if atoms._NET_WM_WINDOW_TYPE_SPLASH == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_SPLASH);
-                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
-            } else if atoms._NET_WM_WINDOW_TYPE_DIALOG == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DIALOG);
-                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
-            }
-        }
-
-        Ok(())
-    }
-
-    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    
+        pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
         // Assume first screen
@@ -301,18 +263,117 @@ impl Client {
             }
         }
 
-        debug!("SetSizeHints: x={}, y={}, width={}, height={}, minw={}, minh={}, maxw={}, maxh={}, \
+        debug!("{}: client={}, minw={}, minh={}, maxw={}, maxh={}, \
             minr={}, maxr={}, incw={}, inch={}, basew={}, baseh={}",
-            self.geom.x, self.geom.y, self.geom.width, self.geom.height,
-            self.min_width, self.min_height, self.max_width, self.max_height,
+            function_name!(), self, self.min_width, self.min_height,
+            self.max_width, self.max_height,
             self.min_ratio, self.max_ratio, self.width_inc, self.height_inc,
             self.base_width, self.base_height);
 
         Ok(())
     }
 
-    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut Flags) {
+    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
 
+        let data: [u8; 2] = [state as u8, NONE as u8];
+
+        conn.change_property(PropMode::REPLACE,
+                             self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
+
+        Ok(())
+    }
+
+    pub(crate) fn set_wm_protocols(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let protocols = conn.get_property(false, self.win, atoms.WM_PROTOCOLS,
+                                          AtomEnum::ATOM, 0, 4)?.reply()?.value;
+
+        for protocol in protocols {
+            if atoms.WM_TAKE_FOCUS == protocol as u32 {
+                self.flags.insert(Flags::FOCUS);
+            } else if atoms.WM_DELETE_WINDOW == protocol as u32 {
+                self.flags.insert(Flags::CLOSE);
+            }
+        }
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let wm_types = conn.get_property(false, self.win, AtomEnum::ATOM,
+                                         atoms._NET_WM_WINDOW_TYPE, 0, 5)?.reply()?.value;
+
+        for wm_type in wm_types {
+            if atoms._NET_WM_WINDOW_TYPE_DESKTOP == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DESKTOP);
+                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+            } else if atoms._NET_WM_WINDOW_TYPE_DOCK == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DOCK);
+                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+            } else if atoms._NET_WM_WINDOW_TYPE_TOOLBAR == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_TOOLBAR);
+            } else if atoms._NET_WM_WINDOW_TYPE_SPLASH == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_SPLASH);
+                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
+            } else if atoms._NET_WM_WINDOW_TYPE_DIALOG == wm_type as u32 {
+                self.flags.insert(Flags::TYPE_DIALOG);
+                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
+            }
+        }
+
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_motif_wm_hints(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+        
+        let hins = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
+            atoms._MOTIF_WM_HINTS, 0, 1)?.reply()?.value;
+
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_net_wm_state(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let states = conn.get_property(false, self.win, AtomEnum::ATOM,
+                                       atoms._NET_WM_STATE, 0, 4)?.reply()?.value;
+
+        for state in states {
+            if atoms._NET_WM_STATE_FULLSCREEN == state as Atom {
+                mode_flags.insert(Flags::MODE_FULL);
+            } else if atoms._NET_WM_STATE_ABOVE == state as Atom {
+                mode_flags.insert(Flags::MODE_FLOAT);
+            } else if atoms._NET_WM_STATE_STICKY == state as Atom {
+                mode_flags.insert(Flags::MODE_STICK);
+            } else if atoms._NET_WM_STATE_DEMANDS_ATTENTION == state as Atom {
+                mode_flags.insert(Flags::MODE_URGENT);
+            }
+        }
+
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
+    }
+
+
+    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut Flags) {
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
     }
 
     pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut Flags) {
@@ -335,6 +396,8 @@ impl Client {
                 self.tag(0, mode_flags);
             }
         }
+
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
     }
 
     pub(crate) fn map(&self, subtle: &Subtle) {
@@ -352,8 +415,10 @@ impl Client {
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, instance={}, class={}, win={}, leader={}, geom=(x={}, y={}, width={}, height={})",
-               self.name, self.instance, self.klass, self.win, self.leader,
-               self.geom.x, self.geom.y, self.geom.width, self.geom.height)
+        write!(f, "name={}, instance={}, class={}, win={}, leader={}, \
+            geom=(x={}, y={}, width={}, height={}), input={}, focus={}",
+            self.name, self.instance, self.klass, self.win, self.leader,
+            self.geom.x, self.geom.y, self.geom.width, self.geom.height,
+            self.flags.contains(Flags::INPUT), self.flags.contains(Flags::FOCUS))
     }
 }
