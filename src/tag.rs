@@ -78,6 +78,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.tags.push(tag)
     }
     
+    // Sanity check
+    if subtle.tags.is_empty() {
+        let tag = Tag::new("default");
+        
+        subtle.tags.push(tag);
+    }
+    
     debug!("{}", function_name!());
     
     Ok(())

@@ -17,7 +17,6 @@ use log::debug;
 use stdext::function_name;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
-use crate::tag::Tag;
 use crate::tagging::Tagging;
 
 bitflags! {
@@ -71,6 +70,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.views.push(view)
     }
 
+    // Sanity check
+    if subtle.views.is_empty() {
+        let view = View::new("default");
+
+        subtle.views.push(view);
+    }
+    
     debug!("{}", function_name!());
 
     Ok(())
