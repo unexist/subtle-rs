@@ -15,8 +15,8 @@ use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
 use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, Time, WindowClass};
-use crate::{Config, Subtle};
-use crate::client::Client;
+use crate::{client, Config, Subtle};
+use crate::client::{Client};
 use crate::subtle::Flags;
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
@@ -112,6 +112,8 @@ pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
             }
         }
     }
+    
+    client::publish(subtle, false)?;
 
     debug!("{}", function_name!());
 
