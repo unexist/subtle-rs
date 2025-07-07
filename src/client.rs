@@ -17,6 +17,7 @@ use anyhow::{Context, Result};
 use easy_min_max::max;
 use log::debug;
 use stdext::function_name;
+use x11rb::connection::Connection;
 use x11rb::NONE;
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use x11rb::protocol::randr::ModeFlag;
@@ -291,7 +292,7 @@ impl Client {
         let atoms = subtle.atoms.get().unwrap();
 
         let protocols = conn.get_property(false, self.win, atoms.WM_PROTOCOLS,
-                                          AtomEnum::ATOM, 0, 4)?.reply()?.value;
+                                          AtomEnum::ATOM, 0, u32::MAX)?.reply()?.value;
 
         for protocol in protocols {
             if atoms.WM_TAKE_FOCUS == protocol as u32 {
@@ -343,6 +344,8 @@ impl Client {
         let hints = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
                                       atoms._MOTIF_WM_HINTS, 0, 1)?.reply()?.value;
 
+        // TODO
+
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
 
         Ok(())
@@ -381,9 +384,9 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
+        for (idx, tag) in subtle.tags.iter().enumerate() {
             if tag.matches(self) {
-                self.tag(tag_idx, mode_flags);
+                self.tag(idx, mode_flags);
             }
         }
 
@@ -414,6 +417,7 @@ impl Client {
 
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
         if use_size_hints {
+            // TODO
             //self.update_bounds(bounds, false, false);
         }
 
@@ -481,4 +485,34 @@ impl fmt::Display for Client {
             self.geom.x, self.geom.y, self.geom.width, self.geom.height,
             self.flags.contains(Flags::INPUT), self.flags.contains(Flags::FOCUS))
     }
+}
+
+pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.len());
+
+    // Sort clients from top to bottom
+    for (idx, client) in subtle.clients.iter().enumerate().rev() {
+        wins.push(client.win);
+    }
+
+    // EWMH: Client list and stacking list (same for us)
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CLIENT_LIST,
+                           AtomEnum::WINDOW, &wins)?;
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CLIENT_LIST_STACKING,
+                           AtomEnum::WINDOW, &wins)?;
+
+    // Restack windows? We assembled the array anyway
+    if restack_windows {
+        // TODO
+        //XRestackWindows
+    }
+
+    debug!("{}: clients={}, restack={}", function_name!(), subtle.clients.len(), restack_windows);
+
+    Ok(())
 }
