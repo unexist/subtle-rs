@@ -109,6 +109,8 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     conn.change_property8(PropMode::REPLACE, screen.root, atoms.SUBTLE_TAG_LIST,
                           AtomEnum::STRING, tags.join("\0").as_bytes())?.check()?;
 
+    conn.flush()?;
+
     debug!("{}: tags={}", function_name!(), subtle.tags.len());
     
     Ok(())

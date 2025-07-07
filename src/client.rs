@@ -537,6 +537,8 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
         //XRestackWindows
     }
 
+    conn.flush()?;
+
     debug!("{}: clients={}, restack={}", function_name!(), subtle.clients.len(), restack_windows);
 
     Ok(())
