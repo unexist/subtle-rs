@@ -1,3 +1,4 @@
+use std::process;
 ///
 /// @package subtle-rs
 ///
@@ -12,11 +13,14 @@
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
 use stdext::function_name;
+use struct_iterable::Iterable;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
-use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, Time, WindowClass};
+use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, PropMode, Time, WindowClass};
+use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
 use crate::client::{Client};
+use crate::ewmh::AtomsCookie;
 use crate::subtle::Flags;
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
@@ -52,8 +56,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
-    subtle.conn.set(conn).unwrap();
     subtle.screen_num = screen_num;
+    subtle.conn.set(conn).unwrap();
 
     info!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
 
@@ -121,6 +125,59 @@ pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
 }
 
 pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
+    Ok(())
+}
+
+pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    // TODO Tray
+
+    // EWMH: Supported hints
+    let mut supported_atoms: Vec<u32> = Vec::with_capacity(atoms.iter().len());
+
+    for (field_name, field_value) in atoms.iter() {
+        let maybe_atom = (&*field_value).downcast_ref::<u32>();
+
+        if let Some(atom) = maybe_atom {
+            supported_atoms.push(atom.clone());
+        }
+    }
+
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_SUPPORTED,
+                           AtomEnum::ATOM, &supported_atoms)?.check()?;
+
+    // EWMH: Window manager information
+    let data: [u32; 1] = [subtle.support_win];
+
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_SUPPORTING_WM_CHECK,
+                           AtomEnum::WINDOW, &data)?.check()?;
+    conn.change_property8(PropMode::REPLACE, subtle.support_win, atoms._NET_WM_NAME,
+            AtomEnum::STRING, env!("CARGO_PKG_NAME").as_bytes())?.check()?;
+    conn.change_property8(PropMode::REPLACE, subtle.support_win, atoms.WM_CLASS,
+                          AtomEnum::STRING, env!("CARGO_PKG_NAME").as_bytes())?.check()?;
+
+    let data: [u32; 1] = [process::id()];
+
+    conn.change_property32(PropMode::REPLACE, subtle.support_win, atoms._NET_WM_PID,
+                           AtomEnum::CARDINAL, &data)?.check()?;
+
+    conn.change_property8(PropMode::REPLACE, subtle.support_win, atoms.SUBTLE_VERSION,
+                          AtomEnum::STRING, env!("CARGO_PKG_VERSION").as_bytes())?.check()?;
+
+    // EWMH: Desktop geometry
+    let data: [u32; 2] = [subtle.width as u32, subtle.height as u32];
+
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_GEOMETRY,
+                           AtomEnum::CARDINAL, &data)?.check()?;
+
+    conn.flush()?;
+
+    debug!("{}: views={}", function_name!(), subtle.views.len());
+
     Ok(())
 }
 

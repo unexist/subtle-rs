@@ -79,6 +79,7 @@ fn main() -> Result<()> {
 
     display::claim(&mut subtle)?;
     display::configure(&subtle)?;
+    display::publish(&subtle)?;
     display::scan(&mut subtle)?;
 
     // Run event handler
