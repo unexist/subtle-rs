@@ -12,10 +12,12 @@
 use anyhow::Result;
 use log::debug;
 use stdext::function_name;
+use struct_iterable::Iterable;
 use crate::config::Config;
 use crate::subtle::Subtle;
 
 x11rb::atom_manager! {
+    #[derive(Iterable)]
     pub Atoms: AtomsCookie {
         // ICCCM
         WM_NAME, WM_CLASS, WM_STATE, WM_PROTOCOLS, WM_TAKE_FOCUS,
