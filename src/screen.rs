@@ -18,7 +18,8 @@ use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{MapState, Rectangle};
+use x11rb::protocol::xproto::{AtomEnum, MapState, PropMode, Rectangle};
+use x11rb::wrapper::ConnectionExt;
 use crate::config::Config;
 use crate::subtle::Flags as SubtleFlags;
 use crate::subtle::Subtle;
@@ -109,6 +110,8 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.screens.push(screen);
     }
 
+    publish(subtle, true)?;
+
     debug!("{}", function_name!());
 
     Ok(())
@@ -178,4 +181,61 @@ pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
 
 pub(crate) fn render(subtle: &Subtle) {
     debug!("{}", function_name!());
+}
+
+
+pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    if publish_all {
+        let mut workareas: Vec<u32> = Vec::with_capacity(4 * subtle.screens.len());
+        let mut panels: Vec<u32> = Vec::with_capacity(2 * subtle.screens.len());
+        let mut viewports: Vec<u32> = Vec::with_capacity(2 * subtle.screens.len());
+
+        for screen in subtle.screens.iter() {
+            workareas.push(screen.geom.x as u32);
+            workareas.push(screen.geom.y as u32);
+            workareas.push(screen.geom.width as u32);
+            workareas.push(screen.geom.height as u32);
+
+            panels.push(if screen.flags.contains(Flags::PANEL1) {
+                subtle.panel_height as u32 } else { 0 });
+            panels.push(if screen.flags.contains(Flags::PANEL2) {
+                subtle.panel_height as u32 } else { 0 });
+
+            viewports.push(0);
+            viewports.push(0);
+        }
+
+        // EWMH: Workarea
+        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_WORKAREA,
+                               AtomEnum::CARDINAL, &workareas)?.check()?;
+
+        // EWMH: Screen panels
+        conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_SCREEN_PANELS,
+                               AtomEnum::CARDINAL, &panels)?.check()?;
+
+        // EWMH: Desktop viewport
+        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_VIEWPORT,
+                               AtomEnum::CARDINAL, &viewports)?.check()?;
+    }
+
+    let mut views: Vec<u32> = Vec::with_capacity(subtle.screens.len());
+
+    for screen in subtle.screens.iter() {
+        views.push(screen.view_id as u32);
+    }
+
+    // EWMH: Views per screen
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_SCREEN_VIEWS,
+                           AtomEnum::CARDINAL, &views)?.check()?;
+
+    conn.flush()?;
+
+    debug!("{}: screens={}", function_name!(), subtle.views.len());
+
+    Ok(())
 }
