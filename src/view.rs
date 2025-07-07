@@ -15,6 +15,9 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use stdext::function_name;
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{AtomEnum, PropMode};
+use x11rb::wrapper::ConnectionExt;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
@@ -76,8 +79,54 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         subtle.views.push(view);
     }
-    
+
+    publish(subtle)?;
+
     debug!("{}", function_name!());
+
+    Ok(())
+}
+
+pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    let mut names: Vec<&str> = Vec::with_capacity(subtle.views.len());
+    let mut tags: Vec<u32> = Vec::with_capacity(subtle.views.len());
+    let mut icons: Vec<u32> = Vec::with_capacity(subtle.views.len());
+
+    for view in subtle.views.iter() {
+        names.push(&*view.name);
+        tags.push(view.tags.bits());
+        icons.push(0);
+    }
+
+    // EWMH: Tags
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VIEW_TAGS,
+                           AtomEnum::CARDINAL, &tags)?.check()?;
+
+    // EWMH: Icons
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VIEW_ICONS,
+                           AtomEnum::CARDINAL, &icons)?.check()?;
+
+    // EWMH: Desktops
+    let data: [u32; 1] = [subtle.views.len() as u32];
+
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_NUMBER_OF_DESKTOPS,
+                           AtomEnum::CARDINAL, &data)?.check()?;
+
+    conn.change_property8(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_NAMES,
+                          AtomEnum::STRING, names.join("\0").as_bytes())?.check()?;
+    
+    // EWMH: Current desktop
+    let data: [u32; 1] = [0];
+    
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CURRENT_DESKTOP,
+                           AtomEnum::CARDINAL, &data)?.check()?;
+
+    debug!("{}: views={}", function_name!(), subtle.views.iter().len());
 
     Ok(())
 }

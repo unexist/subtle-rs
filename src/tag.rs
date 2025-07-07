@@ -15,7 +15,9 @@ use regex::Regex;
 use anyhow::Result;
 use log::debug;
 use stdext::function_name;
-use x11rb::protocol::xproto::Rectangle;
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, PropMode, Rectangle};
+use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::client::Client;
 use crate::config::{Config, MixedConfigVal};
 use crate::gravity::Gravity;
@@ -85,14 +87,29 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.tags.push(tag);
     }
     
+    publish(subtle)?;
+    
     debug!("{}", function_name!());
     
     Ok(())
 }
 
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
 
-    debug!("{}", function_name!());
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    let mut tags: Vec<&str> = Vec::with_capacity(subtle.tags.len());
+
+    for tag in subtle.tags.iter() {
+        tags.push(&*tag.name);
+    }
+
+    conn.change_property8(PropMode::REPLACE, screen.root, atoms.SUBTLE_TAG_LIST,
+                          AtomEnum::STRING, tags.join("\0").as_bytes())?.check()?;
+
+    debug!("{}: tags={}", function_name!(), subtle.tags.len());
     
     Ok(())
 }
