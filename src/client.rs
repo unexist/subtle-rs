@@ -20,6 +20,7 @@ use stdext::function_name;
 use x11rb::NONE;
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use x11rb::protocol::randr::ModeFlag;
+use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
 use crate::subtle::Flags as SubtleFlags;
@@ -151,7 +152,7 @@ impl Client {
         client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         client.set_net_wm_state(subtle, &mut mode_flags)?;
         //client.set_transient
-        client.retag(subtle, &mut mode_flags);
+        client.retag(subtle, &mut mode_flags)?;
         //client.toggle(mode_flags
 
         // Set leader window
@@ -259,7 +260,7 @@ impl Client {
                 }
 
                 // Sanitize positions for stupid clients like GIMP
-                //self.resize(&screen.geom, true);
+                self.resize(subtle, &screen.geom, true)?;
             }
         }
 
@@ -338,9 +339,9 @@ impl Client {
     pub(crate) fn set_motif_wm_hints(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
-        
-        let hins = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
-            atoms._MOTIF_WM_HINTS, 0, 1)?.reply()?.value;
+
+        let hints = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
+                                      atoms._MOTIF_WM_HINTS, 0, 1)?.reply()?.value;
 
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
 
@@ -376,7 +377,10 @@ impl Client {
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
     }
 
-    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut Flags) {
+    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if tag.matches(self) {
                 self.tag(tag_idx, mode_flags);
@@ -397,19 +401,75 @@ impl Client {
             }
         }
 
+        // EWMH: Tags
+        let data: [u32; 1] = [self.tags.bits()];
+
+        conn.change_property32(PropMode::REPLACE, self.win, 
+                               atoms.SUBTLE_CLIENT_TAGS, AtomEnum::CARDINAL, &data)?.check()?;
+
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
     }
 
-    pub(crate) fn map(&self, subtle: &Subtle) {
-        let conn = subtle.conn.get().unwrap();
+    pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
+        if use_size_hints {
+            //self.update_bounds(bounds, false, false);
+        }
 
-        let _ = conn.map_window(self.win);
+        if !self.flags.contains(Flags::MODE_FULL | Flags::TYPE_DOCK) {
+            let mut max_x = 0;
+            let mut max_y = 0;
+
+            if !self.flags.contains(Flags::MODE_FIXED) {
+                if self.geom.width > bounds.width {
+                    self.geom.width = bounds.width;
+                }
+
+                if self.geom.height > bounds.height {
+                    self.geom.height = bounds.height;
+                }
+            }
+
+            // Check whether window fits into bounds
+            max_x = bounds.x + bounds.width as i16;
+            max_y = bounds.y + bounds.height as i16;
+
+            // Check x and center
+            if self.geom.x < bounds.x || self.geom.x > max_x || self.geom.x + self.geom.width as i16  > max_x {
+                if self.flags.contains(Flags::MODE_FLOAT) {
+                    self.geom.x = bounds.x + ((bounds.width as i16 - self.geom.width as i16) / 2);
+                } else {
+                    self.geom.x = bounds.x;
+                }
+            }
+
+            // Check y and center
+            if self.geom.y < bounds.y || self.geom.y > max_y || self.geom.y + self.geom.height as i16 > max_y {
+                if self.flags.contains(Flags::MODE_FLOAT) {
+                    self.geom.y = bounds.y + ((bounds.height as i16 - self.geom.height as i16) / 2);
+                } else {
+                    self.geom.y = bounds.y;
+                }
+            }
+        }
+        Ok(())
     }
 
-    pub(crate) fn unmap(&self, subtle: &Subtle) {
+    pub(crate) fn map(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
-        let _ = conn.unmap_window(self.win);
+        conn.map_window(self.win)?.check()?;
+
+        Ok(())
+    }
+
+    pub(crate) fn unmap(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        conn.unmap_window(self.win)?.check()?;
+
+        Ok(())
     }
 }
 
