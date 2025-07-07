@@ -126,7 +126,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CURRENT_DESKTOP,
                            AtomEnum::CARDINAL, &data)?.check()?;
 
-    debug!("{}: views={}", function_name!(), subtle.views.iter().len());
+    debug!("{}: views={}", function_name!(), subtle.views.len());
 
     Ok(())
 }
