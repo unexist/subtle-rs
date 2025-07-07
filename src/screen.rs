@@ -113,7 +113,7 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn configure(subtle: &mut Subtle) {
+pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
     let mut visible_tags = Tagging::empty();
     let mut visible_views = Tagging::empty();
     let mut client_tags = Tagging::empty();
@@ -157,10 +157,10 @@ pub(crate) fn configure(subtle: &mut Subtle) {
         
         // After all screens are checked..
         if 0 < visible {
-            client.set_wm_state(subtle, WMState::NormalState);
+            client.set_wm_state(subtle, WMState::NormalState)?;
             client.map(subtle);
         } else {
-            client.set_wm_state(subtle, WMState::WithdrawnState);
+            client.set_wm_state(subtle, WMState::WithdrawnState)?;
             client.unmap(subtle);
         }
     }
@@ -169,7 +169,9 @@ pub(crate) fn configure(subtle: &mut Subtle) {
     subtle.visible_views = visible_views;
     subtle.client_tags = client_tags;
 
-    debug!("Render");
+    debug!("Configure");
+    
+    Ok(())
 }
 
 
