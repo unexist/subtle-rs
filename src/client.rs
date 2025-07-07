@@ -131,6 +131,10 @@ impl Client {
             name: String::from_utf8(wm_name)?,
             instance: inst_klass[0].to_string(),
             klass: inst_klass[1].to_string(),
+
+            screen_id: 0,
+            //gravity_id = -1,
+
             geom: Rectangle {
                 x: geom_reply.x,
                 y: geom_reply.y,
@@ -164,7 +168,28 @@ impl Client {
             client.leader = leader[0] as Window;
         }
 
-        debug!("New: {}", client);
+        // EWMH: Gravity, screen, desktop, extents
+        let data: [u32; 1] = [client.gravity_id as u32];
+
+        conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_GRAVITY,
+            AtomEnum::CARDINAL, &data)?.check()?;
+
+        let data: [u32; 1] = [client.screen_id as u32];
+
+        conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
+                               AtomEnum::CARDINAL, &data)?.check()?;
+
+        let data: [u32; 1] = [0];
+
+        conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_WM_DESKTOP,
+            AtomEnum::CARDINAL, &data)?.check()?;
+
+        // TODO
+        //conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_FRAME_EXTENTS
+        //                       AtomEnum::CARDINAL, &data)?.check()?;
+        
+
+        debug!("{}: {}", function_name!(), client);
 
         Ok(client)
     }
