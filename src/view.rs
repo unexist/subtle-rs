@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
 use log::debug;
+use stdext::function_name;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 use crate::tag::Tag;
@@ -45,7 +46,7 @@ impl View {
             ..Default::default()
         };
 
-        debug!("New: {}", view);
+        debug!("{}: {}", function_name!(), view);
 
         view
     }
@@ -70,7 +71,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.views.push(view)
     }
 
-    debug!("Init");
+    debug!("{}", function_name!());
 
     Ok(())
 }

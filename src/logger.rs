@@ -11,6 +11,7 @@
 
 use log::{debug, LevelFilter};
 use anyhow::Result;
+use stdext::function_name;
 use crate::Config;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -69,7 +70,7 @@ pub(crate) fn init(config: &Config) -> Result<()> {
         .filter_level(filter)
         .try_init()?;
 
-    debug!("Init");
+    debug!("{}", function_name!());
 
     Ok(())
 }

@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use regex::Regex;
 use anyhow::Result;
 use log::debug;
+use stdext::function_name;
 use x11rb::protocol::xproto::Rectangle;
 use crate::client::Client;
 use crate::config::{Config, MixedConfigVal};
@@ -48,7 +49,7 @@ impl Tag {
             ..Default::default()
         };
 
-        debug!("New: {}", tag);
+        debug!("{}: {}", tag, function_name!());
         
         tag
     }
@@ -77,7 +78,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.tags.push(tag)
     }
     
-    debug!("Init");
+    debug!("{}", function_name!());
+    
+    Ok(())
+}
+
+pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
+
+    debug!("{}", function_name!());
     
     Ok(())
 }

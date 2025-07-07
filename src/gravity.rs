@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
 use anyhow::Result;
 use log::debug;
+use stdext::function_name;
 use x11rb::protocol::xproto::Rectangle;
 use crate::Config;
 use crate::subtle::Subtle;
@@ -46,7 +47,7 @@ impl Gravity {
             ..Self::default()
         };
         
-        debug!("New: {}", grav);
+        debug!("{}: {}", grav, function_name!());
         
         grav
     }
@@ -64,7 +65,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], 
                                  grav.1[2], grav.1[3])).collect();
 
-    debug!("Init");
+    debug!("{}", function_name!());
     
     Ok(())
 }

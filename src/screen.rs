@@ -13,6 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use log::debug;
 use anyhow::{Context, Result};
+use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
@@ -56,7 +57,7 @@ impl Screen {
             ..Self::default()
         };
 
-        debug!("New: {}", screen);
+        debug!("{}: {}", screen, function_name!());
 
         screen
     }
@@ -108,7 +109,7 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
         subtle.screens.push(screen);
     }
 
-    debug!("Init");
+    debug!("{}", function_name!());
 
     Ok(())
 }
@@ -158,10 +159,10 @@ pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
         // After all screens are checked..
         if 0 < visible {
             client.set_wm_state(subtle, WMState::NormalState)?;
-            client.map(subtle);
+            client.map(subtle)?;
         } else {
             client.set_wm_state(subtle, WMState::WithdrawnState)?;
-            client.unmap(subtle);
+            client.unmap(subtle)?;
         }
     }
 
@@ -169,12 +170,12 @@ pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
     subtle.visible_views = visible_views;
     subtle.client_tags = client_tags;
 
-    debug!("Configure");
+    debug!("{}", function_name!());
     
     Ok(())
 }
 
 
 pub(crate) fn render(subtle: &Subtle) {
-    debug!("Render");
+    debug!("{}", function_name!());
 }

@@ -1,4 +1,3 @@
-use std::sync::atomic::AtomicPtr;
 ///
 /// @package subtle-rs
 ///
@@ -12,6 +11,7 @@ use std::sync::atomic::AtomicPtr;
 
 use anyhow::Result;
 use log::debug;
+use stdext::function_name;
 use crate::config::Config;
 use crate::subtle::Subtle;
 
@@ -73,7 +73,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     
     subtle.atoms.set(atoms).unwrap();
     
-    debug!("Init");
+    debug!("{}", function_name!());
 
     Ok(())
 }

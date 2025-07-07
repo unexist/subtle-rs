@@ -11,6 +11,7 @@
 
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
+use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
 use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, Time, WindowClass};
@@ -87,7 +88,7 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
         return Err(anyhow!("Failed replacing current window manager"))
     }
 
-    debug!("Claim");
+    debug!("{}", function_name!());
 
     Ok(())
 }
@@ -112,7 +113,7 @@ pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
         }
     }
 
-    debug!("Scan");
+    debug!("{}", function_name!());
 
     Ok(())
 }
@@ -126,7 +127,7 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     
     conn.destroy_window(subtle.support_win)?;
 
-    debug!("Finish");
+    debug!("{}", function_name!());
 
     Ok(())
 }
