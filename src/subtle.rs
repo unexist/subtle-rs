@@ -54,6 +54,7 @@ pub(crate) struct Subtle {
     pub(crate) panel_height: u16,
     pub(crate) step_size: u16,
     pub(crate) snap_size: u16,
+    pub(crate) default_gravity: usize,
     
     pub(crate) visible_tags: Tagging,
     pub(crate) visible_views: Tagging,
@@ -68,6 +69,7 @@ pub(crate) struct Subtle {
     
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
+    pub(crate) focus_win: Window,
 
     pub(crate) screens: Vec<Screen>,
     pub(crate) clients: Vec<Client>,
@@ -106,6 +108,7 @@ impl Default for Subtle {
             panel_height: 0,
             step_size: 0,
             snap_size: 0,
+            default_gravity: 0,
             
             visible_tags: Tagging::empty(),
             visible_views: Tagging::empty(),
@@ -120,6 +123,7 @@ impl Default for Subtle {
 
             support_win: Window::default(),
             tray_win: Window::default(),
+            focus_win: Window::default(),
 
             screens: Vec::new(),
             clients: Vec::new(),
