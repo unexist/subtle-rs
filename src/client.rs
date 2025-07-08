@@ -85,15 +85,15 @@ pub(crate) struct Client {
 
     pub(crate) min_width: u16,
     pub(crate) min_height: u16,
-    pub(crate) max_width: u16,
-    pub(crate) max_height: u16,
+    pub(crate) max_width: i16,
+    pub(crate) max_height: i16,
     pub(crate) width_inc: u16,
     pub(crate) height_inc: u16,
     pub(crate) base_width: u16,
     pub(crate) base_height: u16,
 
     pub(crate) screen_id: usize,
-    pub(crate) gravity_id: usize,
+    pub(crate) gravity_id: isize,
     
     pub(crate) geom: Rectangle,
 
@@ -133,7 +133,7 @@ impl Client {
             klass: inst_klass[1].to_string(),
 
             screen_id: 0,
-            //gravity_id = -1,
+            gravity_id: -1,
 
             geom: Rectangle {
                 x: geom_reply.x,
@@ -194,7 +194,7 @@ impl Client {
         Ok(client)
     }
     
-        pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
         // Assume first screen
@@ -203,8 +203,8 @@ impl Client {
         // Set default values
         self.min_width = MIN_WIDTH;
         self.min_height = MIN_HEIGHT;
-        self.max_width = u16::MAX;
-        self.max_height = u16::MAX;
+        self.max_width = -1;
+        self.max_height = -1;
         self.min_ratio = 0.0;
         self.max_ratio = 0.0;
         self.width_inc = 1;
@@ -227,10 +227,11 @@ impl Client {
             // Program max size - limit max size to screen if larger
             if let Some((max_width, max_height)) = hints.max_size {
                 self.max_width = if max_width > screen.geom.width as i32 {
-                    screen.geom.width } else { max_width as u16 };
+                    screen.geom.width as i16 } else { max_width as i16 };
 
                 self.max_height = if max_height > screen.geom.height as i32 {
-                    screen.geom.height - subtle.panel_height } else { max_height as u16 };
+                    (screen.geom.height - subtle.panel_height) as i16
+                } else { max_height as i16 };
             }
 
             // Set float when min == max size (EWMH: Fixed size windows)
@@ -442,8 +443,7 @@ impl Client {
 
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
         if use_size_hints {
-            // TODO
-            //self.update_bounds(bounds, false, false);
+            self.check_bounds(bounds, false, false);
         }
 
         if !self.flags.contains(Flags::MODE_FULL | Flags::TYPE_DOCK) {
@@ -499,6 +499,77 @@ impl Client {
         conn.unmap_window(self.win)?.check()?;
 
         Ok(())
+    }
+
+    fn get_gravity(&self, subtle: &Subtle) -> isize {
+        let mut grav_id= 0;
+
+        if -1 == grav_id {
+            // Copy gravity from current client
+            if let Some(client) = subtle.find_client(subtle.focus_win) {
+                grav_id = client.gravity_id;
+            }
+        } else {
+            grav_id = subtle.default_gravity;
+        }
+
+        grav_id
+    }
+
+    fn check_bounds(&mut self, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
+        if !self.flags.contains(Flags::MODE_FIXED)
+            && (self.flags.contains(Flags::MODE_RESIZE)
+            || self.flags.contains(Flags::MODE_FLOAT | Flags::MODE_RESIZE))
+        {
+            let border_width = if self.flags.contains(Flags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO
+
+            // Calculate max width and max height for bounds
+            let max_width = if -1 == self.max_width { bounds.width } else { self.max_width as u16 };
+            let max_height = if -1 == self.max_height { bounds.height } else { self.max_height as u16 };
+
+            // Limit width and height
+            if self.geom.width < self.min_width {
+                self.geom.width = self.min_width;
+            }
+
+            if self.geom.width > max_width {
+                self.geom.width = max_width;
+            }
+
+            if self.geom.height < self.min_height {
+               self.geom.height = self.min_height;
+            }
+
+            if self.geom.height > max_height {
+                self.geom.height = max_height;
+            }
+
+            // Adjust based on increment values (see ICCCM 4.1.2.3)
+            let diff_width = (self.geom.width - self.base_width) % self.width_inc;
+            let diff_height = (self.geom.height - self.base_height) % self.height_inc;
+
+
+            // Adjust x and/or y
+            if adjust_x {
+                self.geom.x += diff_width as i16;
+            }
+
+            if adjust_y {
+                self.geom.y += diff_height as i16;
+            }
+
+            self.geom.width -= diff_width;
+            self.geom.height -= diff_height;
+
+            // Check aspect ratios
+            if 0f32 < self.min_ratio && self.geom.height as f32 * self.min_ratio > self.geom.width as f32 {
+                self.geom.width = (self.geom.height as f32 * self.min_ratio) as u16;
+            }
+
+            if 0f32 < self.max_ratio && self.geom.height as f32 * self.max_ratio < self.geom.width as f32 {
+                self.geom.width = (self.geom.height as f32 * self.max_ratio) as u16;
+            }
+        }
     }
 }
 
