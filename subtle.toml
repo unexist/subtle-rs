@@ -30,22 +30,22 @@ border_snap = 10
 default_gravity = "center"
 
 # Make dialog windows urgent and draw focus
-urgent_dialogs = "false"
+urgent_dialogs = false
 
 # Honor resize size hints globally
-honor_size_hints = "false"
+honor_size_hints = false
 
 # Enable gravity tiling for all gravities
-gravity_tiling = "false"
+gravity_tiling = false
 
 # Enable click-to-focus focus model
-click_to_focus = "false"
+click_to_focus = false
 
 # Skip pointer movement on e.g. gravity change
-skip_pointer_warp = "false"
+skip_pointer_warp = false
 
 # Skip pointer movement to urgent windows
-skip_urgent_warp = "false"
+skip_urgent_warp = false
 
 # Set the WM_NAME of subtle (Java quirk)
 #wmname = "LG3D"
