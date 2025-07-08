@@ -10,7 +10,7 @@
 ///
 
 use crate::client::Client;
-use crate::config::Config;
+use crate::config::{Config, MixedConfigVal};
 use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
@@ -142,7 +142,11 @@ impl From<&Config> for Subtle {
         if config.replace {
             subtle.flags.insert(Flags::REPLACE);
         }
-        
+       
+        if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {
+            subtle.default_gravity = grav_id.clone() as usize;
+        }
+
         subtle
     }
 }
