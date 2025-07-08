@@ -54,7 +54,7 @@ pub(crate) struct Subtle {
     pub(crate) panel_height: u16,
     pub(crate) step_size: u16,
     pub(crate) snap_size: u16,
-    pub(crate) default_gravity: usize,
+    pub(crate) default_gravity: isize,
     
     pub(crate) visible_tags: Tagging,
     pub(crate) visible_views: Tagging,
@@ -144,7 +144,7 @@ impl From<&Config> for Subtle {
         }
        
         if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {
-            subtle.default_gravity = grav_id.clone() as usize;
+            subtle.default_gravity = grav_id.clone() as isize;
         }
 
         subtle
