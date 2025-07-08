@@ -58,7 +58,7 @@ impl Screen {
             ..Self::default()
         };
 
-        debug!("{}: {}", screen, function_name!());
+        debug!("{}: {}", function_name!(), screen);
 
         screen
     }

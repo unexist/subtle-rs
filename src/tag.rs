@@ -51,7 +51,7 @@ impl Tag {
             ..Default::default()
         };
 
-        debug!("{}: {}", tag, function_name!());
+        debug!("{}: {}", function_name!(), tag);
         
         tag
     }

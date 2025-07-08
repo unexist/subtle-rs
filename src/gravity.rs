@@ -49,7 +49,7 @@ impl Gravity {
             ..Self::default()
         };
         
-        debug!("{}: {}", grav, function_name!());
+        debug!("{}: {}", function_name!(), grav);
         
         grav
     }
