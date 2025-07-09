@@ -53,6 +53,13 @@ impl Gravity {
         
         grav
     }
+
+    pub(crate) fn calculate_geometry(&self, bounds: &Rectangle, geom: &mut Rectangle) {
+        geom.x = bounds.x + (bounds.width as i16 * self.geom.x / 100);
+        geom.y = bounds.y + (bounds.height as i16 * self.geom.y / 100);
+        geom.width = bounds.width * self.geom.width / 100;
+        geom.height = bounds.height * self.geom.height / 100;
+    }
 }
 
 impl fmt::Display for Gravity {
