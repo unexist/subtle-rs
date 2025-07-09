@@ -15,7 +15,7 @@ use x11rb::protocol::xproto::ModMask;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct GrabFlags: u32 {
         const KEY = 1 << 0; // Key grab
         const MOUSE = 1 << 1; // Mouse grab
         const SPAWN = 1 << 2; // Spawn an app
@@ -48,7 +48,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct Grab {
-    pub(crate) flags: Flags,
+    pub(crate) flags: GrabFlags,
 
     pub(crate) code: u16,
     pub(crate) state: u16,

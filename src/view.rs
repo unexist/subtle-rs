@@ -24,7 +24,7 @@ use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct ViewFlags: u32 {
         const MODE_ICON = 1 << 0; // View icon
         const MODE_ICON_ONLY = 1 << 1; // Icon only
         const MODE_DYNAMIC = 1 << 2; // Dynamic views
@@ -34,7 +34,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct View {
-    pub(crate) flags: Flags,
+    pub(crate) flags: ViewFlags,
     pub(crate) tags: Tagging,
     
     pub(crate) name: String,

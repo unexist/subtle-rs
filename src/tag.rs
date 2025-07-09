@@ -25,7 +25,7 @@ use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct TagFlags: u32 {
         const GRAVITY = 1 << 0; // Gravity property
         const GEOMETRY = 1 << 1; // Geometry property
         const POSITION = 1 << 2; // Position property
@@ -35,7 +35,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct Tag {
-    pub(crate) flags: Flags,
+    pub(crate) flags: TagFlags,
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
     

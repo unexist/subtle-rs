@@ -23,7 +23,7 @@ use crate::subtle::Subtle;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct GravityFlags: u32 {
         const HORZ = 1 << 0; // Gravity tile gravity horizontally
         const VERT = 1 << 1; // Gravity tile gravity vertically
     }
@@ -31,7 +31,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct Gravity {
-    pub(crate) flags: Flags,
+    pub(crate) flags: GravityFlags,
     pub(crate) name: String,
     pub geom: Rectangle,
 }

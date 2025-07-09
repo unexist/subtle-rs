@@ -23,9 +23,8 @@ use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use x11rb::protocol::randr::ModeFlag;
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh::{Atoms, AtomsCookie};
-use crate::subtle::Subtle;
-use crate::subtle::Flags as SubtleFlags;
-use crate::gravity::Flags as GravityFlags;
+use crate::subtle::{Subtle, SubtleFlags};
+use crate::gravity::GravityFlags;
 use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
@@ -40,7 +39,7 @@ pub(crate) enum WMState {
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct ClientFlags: u32 {
         const DEAD = 1 << 0;  // Dead window
         const FOCUS = 1 << 1; // Send focus message
         const INPUT = 1 << 2; // Active/passive focus-model
@@ -70,7 +69,7 @@ bitflags! {
 
 #[derive(Default, Debug)]
 pub(crate) struct Client {
-    pub(crate) flags: Flags,
+    pub(crate) flags: ClientFlags,
     pub(crate) tags: Tagging,
 
     pub(crate) win: Window,
@@ -166,7 +165,7 @@ impl Client {
         };
 
         // Update client
-        let mut mode_flags = Flags::empty();
+        let mut mode_flags = ClientFlags::empty();
 
         //client.set_strut
         client.set_size_hints(subtle, &mut mode_flags)?;
@@ -213,7 +212,7 @@ impl Client {
         Ok(client)
     }
     
-    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
         // Assume first screen
@@ -257,8 +256,8 @@ impl Client {
             if let Some((min_width, min_height)) = hints.min_size
                 && let Some((max_width, max_height)) = hints.max_size
             {
-                if min_width == max_width && min_height == max_height && !self.flags.contains(Flags::TYPE_DESKTOP) {
-                    mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_FIXED);
+                if min_width == max_width && min_height == max_height && !self.flags.contains(ClientFlags::TYPE_DESKTOP) {
+                    mode_flags.insert(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FIXED);
                 }
             }
 
@@ -283,7 +282,7 @@ impl Client {
 
             // Check for specific position and size
             if subtle.flags.contains(SubtleFlags::RESIZE)
-                || self.flags.contains(Flags::MODE_FLOAT | Flags::MODE_RESIZE | Flags::TYPE_DOCK)
+                || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE | ClientFlags::TYPE_DOCK)
             {
                 // User/program position
                 if let Some((hint_spec, x, y)) = hints.position {
@@ -341,9 +340,9 @@ impl Client {
 
         for protocol in protocols {
             if atoms.WM_TAKE_FOCUS == protocol as u32 {
-                self.flags.insert(Flags::FOCUS);
+                self.flags.insert(ClientFlags::FOCUS);
             } else if atoms.WM_DELETE_WINDOW == protocol as u32 {
-                self.flags.insert(Flags::CLOSE);
+                self.flags.insert(ClientFlags::CLOSE);
             }
         }
 
@@ -352,7 +351,7 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
@@ -361,19 +360,19 @@ impl Client {
 
         for wm_type in wm_types {
             if atoms._NET_WM_WINDOW_TYPE_DESKTOP == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DESKTOP);
-                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+                self.flags.insert(ClientFlags::TYPE_DESKTOP);
+                mode_flags.insert(ClientFlags::MODE_FIXED | ClientFlags::MODE_STICK);
             } else if atoms._NET_WM_WINDOW_TYPE_DOCK == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DOCK);
-                mode_flags.insert(Flags::MODE_FIXED | Flags::MODE_STICK);
+                self.flags.insert(ClientFlags::TYPE_DOCK);
+                mode_flags.insert(ClientFlags::MODE_FIXED | ClientFlags::MODE_STICK);
             } else if atoms._NET_WM_WINDOW_TYPE_TOOLBAR == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_TOOLBAR);
+                self.flags.insert(ClientFlags::TYPE_TOOLBAR);
             } else if atoms._NET_WM_WINDOW_TYPE_SPLASH == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_SPLASH);
-                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
+                self.flags.insert(ClientFlags::TYPE_SPLASH);
+                mode_flags.insert(ClientFlags::MODE_FLOAT | ClientFlags::MODE_CENTER);
             } else if atoms._NET_WM_WINDOW_TYPE_DIALOG == wm_type as u32 {
-                self.flags.insert(Flags::TYPE_DIALOG);
-                mode_flags.insert(Flags::MODE_FLOAT | Flags::MODE_CENTER);
+                self.flags.insert(ClientFlags::TYPE_DIALOG);
+                mode_flags.insert(ClientFlags::MODE_FLOAT | ClientFlags::MODE_CENTER);
             }
         }
 
@@ -382,7 +381,7 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn set_motif_wm_hints(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn set_motif_wm_hints(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
@@ -396,7 +395,7 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn set_net_wm_state(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn set_net_wm_state(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
@@ -405,13 +404,13 @@ impl Client {
 
         for state in states {
             if atoms._NET_WM_STATE_FULLSCREEN == state as Atom {
-                mode_flags.insert(Flags::MODE_FULL);
+                mode_flags.insert(ClientFlags::MODE_FULL);
             } else if atoms._NET_WM_STATE_ABOVE == state as Atom {
-                mode_flags.insert(Flags::MODE_FLOAT);
+                mode_flags.insert(ClientFlags::MODE_FLOAT);
             } else if atoms._NET_WM_STATE_STICKY == state as Atom {
-                mode_flags.insert(Flags::MODE_STICK);
+                mode_flags.insert(ClientFlags::MODE_STICK);
             } else if atoms._NET_WM_STATE_DEMANDS_ATTENTION == state as Atom {
-                mode_flags.insert(Flags::MODE_URGENT);
+                mode_flags.insert(ClientFlags::MODE_URGENT);
             }
         }
 
@@ -421,11 +420,11 @@ impl Client {
     }
 
 
-    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut Flags) {
+    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut ClientFlags) {
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
     }
 
-    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut Flags) -> Result<()> {
+    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
@@ -435,7 +434,7 @@ impl Client {
             }
         }
 
-        if self.flags.contains(Flags::MODE_STICK) && !mode_flags.contains(Flags::MODE_STICK) {
+        if self.flags.contains(ClientFlags::MODE_STICK) && !mode_flags.contains(ClientFlags::MODE_STICK) {
             let mut visible: u8 = 0;
 
             for view in subtle.views.iter() {
@@ -465,11 +464,11 @@ impl Client {
             self.check_bounds(bounds, false, false);
         }
 
-        if !self.flags.contains(Flags::MODE_FULL | Flags::TYPE_DOCK) {
+        if !self.flags.contains(ClientFlags::MODE_FULL | ClientFlags::TYPE_DOCK) {
             let mut max_x = 0;
             let mut max_y = 0;
 
-            if !self.flags.contains(Flags::MODE_FIXED) {
+            if !self.flags.contains(ClientFlags::MODE_FIXED) {
                 if self.geom.width > bounds.width {
                     self.geom.width = bounds.width;
                 }
@@ -485,7 +484,7 @@ impl Client {
 
             // Check x and center
             if self.geom.x < bounds.x || self.geom.x > max_x || self.geom.x + self.geom.width as i16  > max_x {
-                if self.flags.contains(Flags::MODE_FLOAT) {
+                if self.flags.contains(ClientFlags::MODE_FLOAT) {
                     self.geom.x = bounds.x + ((bounds.width as i16 - self.geom.width as i16) / 2);
                 } else {
                     self.geom.x = bounds.x;
@@ -494,7 +493,7 @@ impl Client {
 
             // Check y and center
             if self.geom.y < bounds.y || self.geom.y > max_y || self.geom.y + self.geom.height as i16 > max_y {
-                if self.flags.contains(Flags::MODE_FLOAT) {
+                if self.flags.contains(ClientFlags::MODE_FLOAT) {
                     self.geom.y = bounds.y + ((bounds.height as i16 - self.geom.height as i16) / 2);
                 } else {
                     self.geom.y = bounds.y;
@@ -543,7 +542,7 @@ impl Client {
 
     pub(crate) fn is_visible(&self, subtle: &Subtle) -> bool {
         subtle.visible_tags.contains(self.tags)
-            || self.flags.contains(Flags::TYPE_DESKTOP | Flags::MODE_STICK)
+            || self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
     }
 
     pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
@@ -560,7 +559,7 @@ impl Client {
         conn.change_window_attributes(self.win, &aux)?.check()?;
 
         // Remove client tags from urgent tags
-        if self.flags.contains(Flags::MODE_URGENT) {
+        if self.flags.contains(ClientFlags::MODE_URGENT) {
             subtle.urgent_tags = subtle.urgent_tags.difference(self.tags);
         }
 
@@ -592,7 +591,7 @@ impl Client {
         for client in subtle.clients.iter() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.contains(client.tags)
-                && !client.flags.contains(Flags::MODE_FLOAT | Flags::MODE_FULL)
+                && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
                 used += 1;
             }
@@ -624,7 +623,7 @@ impl Client {
         for client in subtle.clients.iter_mut() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.contains(client.tags)
-                && !client.flags.contains(Flags::MODE_FLOAT | Flags::MODE_FULL)
+                && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
                 if gravity.flags.contains(GravityFlags::HORZ) {
                     client.geom.x = geom.x + (pos * calc) as i16;
@@ -665,11 +664,11 @@ impl Client {
     }
 
     fn check_bounds(&mut self, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
-        if !self.flags.contains(Flags::MODE_FIXED)
-            && (self.flags.contains(Flags::MODE_RESIZE)
-            || self.flags.contains(Flags::MODE_FLOAT | Flags::MODE_RESIZE))
+        if !self.flags.contains(ClientFlags::MODE_FIXED)
+            && (self.flags.contains(ClientFlags::MODE_RESIZE)
+            || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE))
         {
-            let border_width = if self.flags.contains(Flags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO
+            let border_width = if self.flags.contains(ClientFlags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO
 
             // Calculate max width and max height for bounds
             let max_width = if -1 == self.max_width { bounds.width } else { self.max_width as u16 };
@@ -724,9 +723,9 @@ impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "name={}, instance={}, class={}, win={}, leader={}, \
             geom=(x={}, y={}, width={}, height={}), input={}, focus={}",
-            self.name, self.instance, self.klass, self.win, self.leader,
-            self.geom.x, self.geom.y, self.geom.width, self.geom.height,
-            self.flags.contains(Flags::INPUT), self.flags.contains(Flags::FOCUS))
+               self.name, self.instance, self.klass, self.win, self.leader,
+               self.geom.x, self.geom.y, self.geom.width, self.geom.height,
+               self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS))
     }
 }
 

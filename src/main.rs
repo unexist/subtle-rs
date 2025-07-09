@@ -34,7 +34,7 @@ use std::sync::{atomic, Arc};
 use anyhow::{anyhow, Context, Result};
 use log::{debug, error, info};
 use crate::config::Config;
-use crate::subtle::{Flags, Subtle};
+use crate::subtle::{SubtleFlags, Subtle};
 
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&subtle.exterminate))
@@ -88,7 +88,7 @@ fn main() -> Result<()> {
     display::finish(&mut subtle)?;
     
     // Restart if necessary
-    if subtle.flags.contains(Flags::RESTART) {
+    if subtle.flags.contains(SubtleFlags::RESTART) {
         info!("Restarting");
 
         // When this actually returns something went wrong

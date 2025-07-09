@@ -26,7 +26,7 @@ use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct SubtleFlags: u32 {
         const DEBUG = 1 << 0; // Debug enabled
         const CHECK = 1 << 1; // Check config
         const RUN = 1 << 2; // Run event loop
@@ -47,7 +47,7 @@ bitflags! {
 }
 
 pub(crate) struct Subtle {
-    pub(crate) flags: Flags,
+    pub(crate) flags: SubtleFlags,
     pub(crate) width: u16,
     pub(crate) height: u16,
 
@@ -101,7 +101,7 @@ impl Subtle {
 impl Default for Subtle {
     fn default() -> Self {
         Subtle {
-            flags: Flags::empty(),
+            flags: SubtleFlags::empty(),
             width: 0,
             height: 0,
 
@@ -140,7 +140,7 @@ impl From<&Config> for Subtle {
         let mut subtle = Self::default();
 
         if config.replace {
-            subtle.flags.insert(Flags::REPLACE);
+            subtle.flags.insert(SubtleFlags::REPLACE);
         }
        
         if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {

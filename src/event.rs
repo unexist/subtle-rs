@@ -15,7 +15,7 @@ use log::{debug, warn};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{DestroyNotifyEvent, DestroyWindowRequest, ExposeEvent, MapRequestEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
-use crate::subtle::{Flags, Subtle};
+use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::Client;
 use crate::screen;
 

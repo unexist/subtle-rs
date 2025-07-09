@@ -21,7 +21,7 @@ use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
 use crate::client::{Client};
 use crate::ewmh::AtomsCookie;
-use crate::subtle::Flags;
+use crate::subtle::SubtleFlags;
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
@@ -41,13 +41,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
-        subtle.flags.insert(Flags::XINERAMA);
+        subtle.flags.insert(SubtleFlags::XINERAMA);
         
         debug!("Found xinerama extension");
     }
     
     if conn.query_extension("RANDR".as_ref())?.reply()?.present {
-        subtle.flags.insert(Flags::XRANDR);
+        subtle.flags.insert(SubtleFlags::XRANDR);
 
         debug!("Found xrandr extension");
     }
@@ -72,7 +72,7 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     let owner = conn.get_selection_owner(session)?.reply()?.owner;
     
     if NONE != owner {
-        if !subtle.flags.contains(Flags::REPLACE) {
+        if !subtle.flags.contains(SubtleFlags::REPLACE) {
             return Err(anyhow!("Found a running window manager"))
         }
         

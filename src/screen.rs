@@ -21,14 +21,14 @@ use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
 use x11rb::protocol::xproto::{AtomEnum, MapState, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt;
 use crate::config::Config;
-use crate::subtle::Flags as SubtleFlags;
+use crate::subtle::SubtleFlags;
 use crate::subtle::Subtle;
-use crate::client::{Client, Flags as ClientFlags, WMState};
+use crate::client::{Client, ClientFlags, WMState};
 use crate::tagging::Tagging;
 
 bitflags! {
     #[derive(Default, Debug)]
-    pub(crate) struct Flags: u32 {
+    pub(crate) struct ScreenFlags: u32 {
         const PANEL1 = 1 << 0; // Screen panel1 enabled
         const PANEL2 = 1 << 1; // Screen panel2 enabled
         const VIRTUAL = 1 << 3; // Screen is virtual       
@@ -37,7 +37,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct Screen {
-    pub(crate) flags: Flags,
+    pub(crate) flags: ScreenFlags,
 
     pub(crate) view_id: usize,
 
@@ -48,7 +48,7 @@ pub(crate) struct Screen {
 impl Screen {
     pub(crate) fn new(subtle: &Subtle, x: i16, y: i16, width: u16, height: u16) -> Self {
         let screen = Self {
-            flags: Flags::empty(),
+            flags: ScreenFlags::empty(),
             geom: Rectangle {
                 x,
                 y,
@@ -201,9 +201,9 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
             workareas.push(screen.geom.width as u32);
             workareas.push(screen.geom.height as u32);
 
-            panels.push(if screen.flags.contains(Flags::PANEL1) {
+            panels.push(if screen.flags.contains(ScreenFlags::PANEL1) {
                 subtle.panel_height as u32 } else { 0 });
-            panels.push(if screen.flags.contains(Flags::PANEL2) {
+            panels.push(if screen.flags.contains(ScreenFlags::PANEL2) {
                 subtle.panel_height as u32 } else { 0 });
 
             viewports.push(0);
