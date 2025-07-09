@@ -82,15 +82,7 @@ pub(crate) struct Subtle {
 impl Subtle {
     pub(crate) fn find_client(&self, win: Window) -> Option<&Client> {
         self.clients.iter()
-            .find(|c| c.win == win)
-    }
-
-    pub(crate) fn find_screen(&self, idx: usize) -> Option<&Screen> {
-        self.screens.get(idx)
-    }
-
-    pub(crate) fn find_gravity(&self, idx: isize) -> Option<&Gravity> {
-        self.gravities.get(idx as usize)
+            .find(|client| client.win == win)
     }
 
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
