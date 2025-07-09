@@ -11,11 +11,11 @@
 
 use std::fmt;
 use std::ops::Div;
-use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, PropMode, Rectangle, SetMode, Window};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, PropMode, Rectangle, SetMode, Window};
 use bitflags::bitflags;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
-use log::debug;
+use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::NONE;
@@ -25,6 +25,7 @@ use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::Subtle;
 use crate::subtle::Flags as SubtleFlags;
+use crate::gravity::Flags as GravityFlags;
 use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
@@ -107,15 +108,17 @@ impl Client {
 
         conn.grab_server()?;
         conn.change_save_set(SetMode::INSERT, win)?;
-        
-        let geom_reply = conn.get_geometry(win)?.reply()?;
 
+        // Fetch name, instance, class and role
         let wm_name = conn.get_property(false, win,
                                         atoms.WM_NAME, AtomEnum::STRING,
-                                        0, 1024)?.reply()?.value;
+                                        0, u32::MAX)?.reply()?.value;
 
         let wm_klass = conn.get_property(false, win, atoms.WM_CLASS,
-                                         AtomEnum::STRING, 0, 1024)?.reply()?.value;
+                                         AtomEnum::STRING, 0, u32::MAX)?.reply()?.value;
+
+        let wm_role= conn.get_property(false, win, AtomEnum::STRING,
+                                       atoms.WM_WINDOW_ROLE, 0, u32::MAX)?.reply()?.value;
 
         let inst_klass = String::from_utf8(wm_klass)
             .expect("UTF-8 string should be valid UTF-8")
@@ -124,6 +127,22 @@ impl Client {
             .map(|s| s.to_string())
             .collect::<Vec<_>>();
 
+        // X Properties
+        let geom_reply = conn.get_geometry(win)?.reply()?;
+
+        let aux = ChangeWindowAttributesAux::default()
+            .border_pixel(Some(0)) // TODO Styles
+            .event_mask(EventMask::PROPERTY_CHANGE
+                | EventMask::ENTER_WINDOW
+                | EventMask::FOCUS_CHANGE);
+
+        conn.change_window_attributes(win, &aux)?.check()?;
+
+        let aux = ConfigureWindowAux::default()
+            .border_width(Some(0)); // TODO Styles
+
+        conn.configure_window(win, &aux)?.check()?;
+
         conn.ungrab_server()?;
 
         let mut client = Self {
@@ -131,6 +150,7 @@ impl Client {
             name: String::from_utf8(wm_name)?,
             instance: inst_klass[0].to_string(),
             klass: inst_klass[1].to_string(),
+            role: String::from_utf8(wm_role)?,
 
             screen_id: 0,
             gravity_id: -1,
@@ -184,10 +204,9 @@ impl Client {
         conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_WM_DESKTOP,
             AtomEnum::CARDINAL, &data)?.check()?;
 
-        // TODO
+        // TODO Struts
         //conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_FRAME_EXTENTS
         //                       AtomEnum::CARDINAL, &data)?.check()?;
-        
 
         debug!("{}: {}", function_name!(), client);
 
@@ -485,6 +504,27 @@ impl Client {
         Ok(())
     }
 
+    fn move_resize(&mut self, subtle: &Subtle, bounds: &Rectangle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        // Update margins, border and gap
+        //self.geom.x += subtle.client.margin.left as i16; // TODO Styles
+        //self.geom.y += subtle.client.margin.left as i16;
+        //self.geom.width -= (2 *
+
+        self.resize(subtle, bounds, true)?;
+
+        let aux = ConfigureWindowAux::default()
+            .x(Some(self.geom.x as i32))
+            .y(Some(self.geom.y as i32))
+            .width(Some(self.geom.width as u32))
+            .height(Some(self.geom.height as u32));
+
+        conn.configure_window(self.win, &aux)?.check()?;
+
+        Ok(())
+    }
+
     pub(crate) fn map(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -497,6 +537,114 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
 
         conn.unmap_window(self.win)?.check()?;
+
+        Ok(())
+    }
+
+    pub(crate) fn is_visible(&self, subtle: &Subtle) -> bool {
+        subtle.visible_tags.contains(self.tags)
+            || self.flags.contains(Flags::TYPE_DESKTOP | Flags::MODE_STICK)
+    }
+
+    pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        // Remove _NET_WM_STATE (see EWMH 1.3)
+        conn.delete_property(self.win, atoms._NET_WM_STATE)?.check()?;
+
+        // Ignore further events
+        let aux = ChangeWindowAttributesAux::default()
+            .event_mask(EventMask::NO_EVENT);
+
+        conn.change_window_attributes(self.win, &aux)?.check()?;
+
+        // Remove client tags from urgent tags
+        if self.flags.contains(Flags::MODE_URGENT) {
+            subtle.urgent_tags = subtle.urgent_tags.difference(self.tags);
+        }
+
+        // Tile remaining clients if necessary
+        if self.is_visible(subtle) {
+            if let Some(gravity) = subtle.gravities.get(self.gravity_id as usize) {
+               if subtle.flags.contains(SubtleFlags::TILING)
+                   || gravity.flags.contains(GravityFlags::HORZ | GravityFlags::VERT)
+               {
+                   self.gravity_tile(subtle, self.gravity_id, self.screen_id)?;
+               }
+            }
+        }
+
+        debug!("{}", function_name!());
+
+        Ok(())
+    }
+
+    fn gravity_tile(&self, subtle: &mut Subtle, gravity_id: isize, screen_id: usize) -> Result<()> {
+        let gravity = subtle.gravities.get(gravity_id as usize)
+            .ok_or(anyhow!("Gravity not found"))?;
+        let screen = subtle.screens.get(screen_id)
+            .ok_or(anyhow!("Screen not found"))?;
+
+        // Pass 1: Count clients with this gravity
+        let mut used = 0u16;
+
+        for client in subtle.clients.iter() {
+            if client.gravity_id == gravity_id && client.screen_id == screen_id
+                && subtle.visible_tags.contains(client.tags)
+                && !client.flags.contains(Flags::MODE_FLOAT | Flags::MODE_FULL)
+            {
+                used += 1;
+            }
+        }
+
+        if 0 == used {
+            return Ok(());
+        }
+
+        // Calculate tiled gravity value and rounding fix
+        let mut geom: Rectangle = Rectangle::default();
+
+        gravity.calculate_geometry(&screen.geom, &mut geom);
+
+        let mut calc = 0;
+        let mut round_fix = 0;
+
+        if gravity.flags.contains(GravityFlags::HORZ) {
+            calc = geom.width / used;
+            round_fix = geom.width - calc * used;
+        } else if gravity.flags.contains(GravityFlags::VERT) {
+            calc = geom.height / used;
+            round_fix = geom.height - calc * used;
+        }
+
+        // Pass 2: Update geometry of every client with this gravity
+        let mut pos = 0;
+
+        for client in subtle.clients.iter_mut() {
+            if client.gravity_id == gravity_id && client.screen_id == screen_id
+                && subtle.visible_tags.contains(client.tags)
+                && !client.flags.contains(Flags::MODE_FLOAT | Flags::MODE_FULL)
+            {
+                if gravity.flags.contains(GravityFlags::HORZ) {
+                    client.geom.x = geom.x + (pos * calc) as i16;
+                    client.geom.y = geom.y;
+                    client.geom.width = if pos == used { calc + round_fix } else { calc };
+                    client.geom.height = geom.height;
+
+                    pos += 1;
+                } else if gravity.flags.contains(GravityFlags::VERT) {
+                    client.geom.x = geom.x;
+                    client.geom.y = geom.y + (pos * calc) as i16;
+                    client.geom.width = geom.width;
+                    client.geom.height = if pos == used { calc + round_fix } else { calc };
+
+                    pos +=1;
+                }
+
+                //client.move_resize(subtle, &screen.geom)?
+            }
+        }
 
         Ok(())
     }
@@ -547,7 +695,6 @@ impl Client {
             // Adjust based on increment values (see ICCCM 4.1.2.3)
             let diff_width = (self.geom.width - self.base_width) % self.width_inc;
             let diff_height = (self.geom.height - self.base_height) % self.height_inc;
-
 
             // Adjust x and/or y
             if adjust_x {
