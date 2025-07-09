@@ -84,8 +84,16 @@ impl Subtle {
         self.clients.iter()
             .find(|c| c.win == win)
     }
-    
-    pub(crate) fn find_screen(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
+
+    pub(crate) fn find_screen(&self, idx: usize) -> Option<&Screen> {
+        self.screens.get(idx)
+    }
+
+    pub(crate) fn find_gravity(&self, idx: isize) -> Option<&Gravity> {
+        self.gravities.get(idx as usize)
+    }
+
+    pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
         for (idx, screen) in self.screens.iter().enumerate() {
             if x >= screen.base.x && x < screen.base.x + screen.base.width as i16
                 && y >= screen.base.y && y < screen.base.y + screen.base.height as i16
