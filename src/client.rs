@@ -108,24 +108,6 @@ impl Client {
         conn.grab_server()?;
         conn.change_save_set(SetMode::INSERT, win)?;
 
-        // Fetch name, instance, class and role
-        let wm_name = conn.get_property(false, win,
-                                        atoms.WM_NAME, AtomEnum::STRING,
-                                        0, u32::MAX)?.reply()?.value;
-
-        let wm_klass = conn.get_property(false, win, atoms.WM_CLASS,
-                                         AtomEnum::STRING, 0, u32::MAX)?.reply()?.value;
-
-        let wm_role= conn.get_property(false, win, AtomEnum::STRING,
-                                       atoms.WM_WINDOW_ROLE, 0, u32::MAX)?.reply()?.value;
-
-        let inst_klass = String::from_utf8(wm_klass)
-            .expect("UTF-8 string should be valid UTF-8")
-            .trim_matches('\0')
-            .split('\0')
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
-
         // X Properties
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
@@ -146,10 +128,6 @@ impl Client {
 
         let mut client = Self {
             win,
-            name: String::from_utf8(wm_name)?,
-            instance: inst_klass[0].to_string(),
-            klass: inst_klass[1].to_string(),
-            role: String::from_utf8(wm_role)?,
 
             screen_id: 0,
             gravity_id: -1,
@@ -167,6 +145,7 @@ impl Client {
         // Update client
         let mut mode_flags = ClientFlags::empty();
 
+        client.set_wm_name(subtle)?;
         //client.set_strut
         client.set_size_hints(subtle, &mut mode_flags)?;
         client.set_wm_state(subtle, WMState::WithdrawnState)?;
@@ -210,6 +189,36 @@ impl Client {
         debug!("{}: {}", function_name!(), client);
 
         Ok(client)
+    }
+
+    pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let wm_name = conn.get_property(false, self.win,
+                                        atoms.WM_NAME, AtomEnum::STRING,
+                                        0, u32::MAX)?.reply()?.value;
+
+        let wm_role= conn.get_property(false, self.win, AtomEnum::STRING,
+                                       atoms.WM_WINDOW_ROLE, 0, u32::MAX)?.reply()?.value;
+
+        let wm_klass = conn.get_property(false, self.win, atoms.WM_CLASS,
+                                         AtomEnum::STRING, 0, u32::MAX)?.reply()?.value;
+
+
+        let inst_klass = String::from_utf8(wm_klass)
+            .expect("UTF-8 string should be valid UTF-8")
+            .trim_matches('\0')
+            .split('\0')
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+
+        self.name = String::from_utf8(wm_name)?;
+        self.role = String::from_utf8(wm_role)?;
+        self.instance =  inst_klass[0].to_string();
+        self.klass = inst_klass[1].to_string();
+
+        Ok(())
     }
     
     pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
