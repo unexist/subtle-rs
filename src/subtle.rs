@@ -35,17 +35,20 @@ bitflags! {
         const CHECK = 1 << 1; // Check config
         const URGENT = 1 << 2; // Urgent transients
         const RESIZE = 1 << 3; // Respect size hints
+
         const XINERAMA = 1 << 4; // Using Xinerama
         const XRANDR = 1 << 5; // Using Xrandr
-        const EWMH = 1 << 6; // EWMH set
-        const REPLACE = 1 << 7; // Replace previous wm
-        const RESTART = 1 << 8; // Restart
-        const RELOAD = 1 << 9; // Reload config
-        const TRAY = 1 << 10; // Use tray
-        const GRAVITY_TILING = 1 << 11; // Enable gravity tiling
-        const FOCUS_CLICK = 1 << 12; // Click to focus
-        const SKIP_POINTER_WARP = 1 << 13; // Skip pointer warp
-        const SKIP_URGENT_WARP = 1 << 14; // Skip urgent warp
+        const XFT = 1 << 6; // Using XFT
+
+        const EWMH = 1 << 7; // EWMH set
+        const REPLACE = 1 << 8; // Replace previous wm
+        const RESTART = 1 << 9; // Restart
+        const RELOAD = 1 << 10; // Reload config
+        const TRAY = 1 << 11; // Use tray
+        const GRAVITY_TILING = 1 << 12; // Enable gravity tiling
+        const FOCUS_CLICK = 1 << 13; // Click to focus
+        const SKIP_POINTER_WARP = 1 << 14; // Skip pointer warp
+        const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
     }
 }
 
