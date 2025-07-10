@@ -24,6 +24,7 @@ use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::screen::Screen;
+use crate::style::Style;
 use crate::tagging::Tagging;
 
 const HISTORY_SIZE: usize = 5;
@@ -51,6 +52,17 @@ bitflags! {
         const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
     }
 }
+#[derive(Default)]
+pub(crate) struct SubtleStyles {
+   pub(crate) all: Style,
+    pub(crate) views: Style,
+    pub(crate) title: Style,
+    pub(crate) sublets: Style,
+    pub(crate) separator: Style,
+    pub(crate) clients: Style,
+    pub(crate) panel_top: Style,
+    pub(crate) panel_bottom: Style,
+}
 
 pub(crate) struct Subtle {
     pub(crate) flags: SubtleFlags,
@@ -76,6 +88,8 @@ pub(crate) struct Subtle {
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
     pub(crate) focus_history: VecCell<Window>,
+
+    pub(crate) styles: SubtleStyles,
 
     pub(crate) screens: Vec<Screen>,
     pub(crate) clients: VecCell<Client>,
@@ -140,6 +154,8 @@ impl Default for Subtle {
             support_win: Window::default(),
             tray_win: Window::default(),
             focus_history: VecCell::with_capacity(HISTORY_SIZE),
+
+            styles: SubtleStyles::default(),
 
             screens: Vec::new(),
             clients: VecCell::new(),
