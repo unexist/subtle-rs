@@ -22,7 +22,7 @@ use crate::client::Client;
 use crate::screen;
 
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
-    if let Some(mut client) = subtle.find_client_mut(event.child) {
+    if let Some(mut client) = subtle.find_client_mut(event.event) {
         if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
             client.focus(subtle, false);
         }
@@ -32,7 +32,7 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
 
     }
 
-    debug!("{}: win={}", function_name!(), event.child);
+    debug!("{}: win={}, root={}", function_name!(), event.event, event.root);
 }
 
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
