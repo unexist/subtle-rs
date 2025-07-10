@@ -145,13 +145,13 @@ impl Client {
         // Update client
         let mut mode_flags = ClientFlags::empty();
 
-        client.set_wm_name(subtle)?;
-        //client.set_strut
+        client.set_strut(subtle)?;
         client.set_size_hints(subtle, &mut mode_flags)?;
+        client.set_wm_name(subtle)?;
         client.set_wm_state(subtle, WMState::WithdrawnState)?;
         client.set_wm_protocols(subtle)?;
         client.set_wm_type(subtle, &mut mode_flags)?;
-        //client.set_wm_hints
+        client.set_wm_hints(subtle, &mut mode_flags)?;
         client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         client.set_net_wm_state(subtle, &mut mode_flags)?;
         //client.set_transient
@@ -191,36 +191,12 @@ impl Client {
         Ok(client)
     }
 
-    pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
-        let conn = subtle.conn.get().unwrap();
-        let atoms = subtle.atoms.get().unwrap();
-
-        let wm_name = conn.get_property(false, self.win,
-                                        atoms.WM_NAME, AtomEnum::STRING,
-                                        0, u32::MAX)?.reply()?.value;
-
-        let wm_role= conn.get_property(false, self.win, AtomEnum::STRING,
-                                       atoms.WM_WINDOW_ROLE, 0, u32::MAX)?.reply()?.value;
-
-        let wm_klass = conn.get_property(false, self.win, atoms.WM_CLASS,
-                                         AtomEnum::STRING, 0, u32::MAX)?.reply()?.value;
-
-
-        let inst_klass = String::from_utf8(wm_klass)
-            .expect("UTF-8 string should be valid UTF-8")
-            .trim_matches('\0')
-            .split('\0')
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
-
-        self.name = String::from_utf8(wm_name)?;
-        self.role = String::from_utf8(wm_role)?;
-        self.instance =  inst_klass[0].to_string();
-        self.klass = inst_klass[1].to_string();
+    pub(crate) fn set_strut(&mut self, subtle: &Subtle) -> Result<()> {
+        debug!("{}: {}", function_name!(), self);
 
         Ok(())
     }
-    
+
     pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -328,6 +304,39 @@ impl Client {
         Ok(())
     }
 
+    pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let wm_name = conn.get_property(false, self.win,
+                                        atoms.WM_NAME, AtomEnum::STRING,
+                                        0, u32::MAX)?.reply()?.value;
+
+        let wm_role= conn.get_property(false, self.win, AtomEnum::STRING,
+                                       atoms.WM_WINDOW_ROLE, 0, u32::MAX)?.reply()?.value;
+
+        let wm_klass = conn.get_property(false, self.win, atoms.WM_CLASS,
+                                         AtomEnum::STRING, 0, u32::MAX)?.reply()?.value;
+
+
+        let inst_klass = String::from_utf8(wm_klass)
+            .expect("UTF-8 string should be valid UTF-8")
+            .trim_matches('\0')
+            .split('\0')
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+
+        self.name = String::from_utf8(wm_name)?;
+        self.role = String::from_utf8(wm_role)?;
+        self.instance =  inst_klass[0].to_string();
+        self.klass = inst_klass[1].to_string();
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
+
+
     pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -336,6 +345,8 @@ impl Client {
 
         conn.change_property(PropMode::REPLACE,
                              self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
+
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -385,6 +396,12 @@ impl Client {
             }
         }
 
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_wm_hints(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
 
         Ok(())
