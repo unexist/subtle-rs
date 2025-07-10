@@ -33,20 +33,19 @@ bitflags! {
     pub(crate) struct SubtleFlags: u32 {
         const DEBUG = 1 << 0; // Debug enabled
         const CHECK = 1 << 1; // Check config
-        const RUN = 1 << 2; // Run event loop
-        const URGENT = 1 << 3; // Urgent transients
-        const RESIZE = 1 << 4; // Respect size
-        const XINERAMA = 1 << 5; // Using Xinerama
-        const XRANDR = 1 << 6; // Using Xrandr
-        const EWMH = 1 << 7; // EWMH set
-        const REPLACE = 1 << 8; // Replace previous wm
-        const RESTART = 1 << 9; // Restart
-        const RELOAD = 1 << 10; // Reload config
-        const TRAY = 1 << 11; // Use tray
-        const TILING = 1 << 12; // Enable tiling
-        const FOCUS_CLICK = 1 << 13; // Click to focus
-        const SKIP_WARP = 1 << 14; // Skip pointer warp
-        const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
+        const URGENT = 1 << 2; // Urgent transients
+        const RESIZE = 1 << 3; // Respect size hints
+        const XINERAMA = 1 << 4; // Using Xinerama
+        const XRANDR = 1 << 5; // Using Xrandr
+        const EWMH = 1 << 6; // EWMH set
+        const REPLACE = 1 << 7; // Replace previous wm
+        const RESTART = 1 << 8; // Restart
+        const RELOAD = 1 << 9; // Reload config
+        const TRAY = 1 << 10; // Use tray
+        const GRAVITY_TILING = 1 << 11; // Enable gravity tiling
+        const FOCUS_CLICK = 1 << 12; // Click to focus
+        const SKIP_POINTER_WARP = 1 << 13; // Skip pointer warp
+        const SKIP_URGENT_WARP = 1 << 14; // Skip urgent warp
     }
 }
 
@@ -149,17 +148,43 @@ impl Default for Subtle {
     }
 }
 
+
 impl From<&Config> for Subtle {
     fn from(config: &Config) -> Self {
         let mut subtle = Self::default();
 
+        // CLI options
         if config.replace {
             subtle.flags.insert(SubtleFlags::REPLACE);
         }
-       
+
+        // Config options
+        if let Some(MixedConfigVal::I(step_size)) = config.subtle.get("increase_step") {
+            subtle.step_size = *step_size as u16;
+        }
+
+        if let Some(MixedConfigVal::I(snap_size)) = config.subtle.get("border_snap") {
+            subtle.snap_size = *snap_size as u16;
+        }
+
         if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {
             subtle.default_gravity = grav_id.clone() as isize;
         }
+
+        macro_rules! apply_config_flag {
+            ($config_key:expr, $subtle_flag:path) => {
+                if let Some(MixedConfigVal::B(value)) = config.subtle.get($config_key) && *value {
+                    subtle.flags.insert($subtle_flag);
+                }
+            };
+        }
+
+        apply_config_flag!("urgent_dialogs", SubtleFlags::URGENT);
+        apply_config_flag!("honor_size_hints", SubtleFlags::RESIZE);
+        apply_config_flag!("gravity_tiling", SubtleFlags::GRAVITY_TILING);
+        apply_config_flag!("click_to_focus", SubtleFlags::FOCUS_CLICK);
+        apply_config_flag!("skip_pointer_warp", SubtleFlags::SKIP_POINTER_WARP);
+        apply_config_flag!("skip_urgent_warp", SubtleFlags::SKIP_URGENT_WARP);
 
         subtle
     }

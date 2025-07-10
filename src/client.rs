@@ -585,7 +585,7 @@ impl Client {
         // Tile remaining clients if necessary
         if self.is_visible(subtle) {
             if let Some(gravity) = subtle.gravities.get(self.gravity_id as usize) {
-               if subtle.flags.contains(SubtleFlags::TILING)
+               if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
                    || gravity.flags.contains(GravityFlags::HORZ | GravityFlags::VERT)
                {
                    self.gravity_tile(subtle, self.gravity_id, self.screen_id)?;
