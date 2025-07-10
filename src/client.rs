@@ -38,7 +38,7 @@ pub(crate) enum WMState {
 }
 
 bitflags! {
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct ClientFlags: u32 {
         const DEAD = 1 << 0;  // Dead window
         const FOCUS = 1 << 1; // Send focus message
@@ -445,7 +445,11 @@ impl Client {
                 //subGrabUnset
             }
         }
+    }
 
+    pub(crate) fn toggle(&self, mode_flags: &ClientFlags, set_gravity: bool) {
+        debug!("{}: client={}, mode_flags={:?}, gravity={}", function_name!(),
+            self, mode_flags, set_gravity);
     }
 
     pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut ClientFlags) {
