@@ -15,12 +15,26 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{DestroyNotifyEvent, DestroyWindowRequest, ExposeEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{DestroyNotifyEvent, DestroyWindowRequest, EnterNotifyEvent, ExposeEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
-use x11rb::protocol::xinput::PropertyEvent;
+use x11rb::protocol::xinput::{EnterEvent, PropertyEvent};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::Client;
 use crate::screen;
+
+fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
+    if let Some(mut client) = subtle.find_client_mut(event.child) {
+        if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
+            client.focus(subtle, false);
+        }
+    }
+
+    if let Some(client) = subtle.focus_history.borrow_mut(0) {
+
+    }
+
+    debug!("{}: win={}", function_name!(), event.child);
+}
 
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
     if 0 == event.count {
@@ -75,6 +89,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         if let Some(event) = conn.poll_for_event()? {
             match event {
+                Event::EnterNotify(evt) => handle_enter(subtle, evt),
                 Event::Expose(evt) => handle_expose(subtle, evt),
                 Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
                 Event::MapRequest(evt) => handle_map_request(subtle, evt),

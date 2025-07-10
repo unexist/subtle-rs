@@ -16,13 +16,17 @@ use crate::tag::Tag;
 use crate::view::View;
 use bitflags::bitflags;
 use std::cell::OnceCell;
+use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use veccell::{VecCell, VecRef, VecRefMut};
 use x11rb::protocol::xproto::{Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::screen::Screen;
 use crate::tagging::Tagging;
+
+const HISTORY_SIZE: usize = 5;
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -69,10 +73,10 @@ pub(crate) struct Subtle {
     
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
-    pub(crate) focus_win: Window,
+    pub(crate) focus_history: VecCell<Window>,
 
     pub(crate) screens: Vec<Screen>,
-    pub(crate) clients: Vec<Client>,
+    pub(crate) clients: VecCell<Client>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
     pub(crate) tags: Vec<Tag>,
@@ -80,9 +84,19 @@ pub(crate) struct Subtle {
 }
 
 impl Subtle {
-    pub(crate) fn find_client(&self, win: Window) -> Option<&Client> {
+    pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<Client>> {
         self.clients.iter()
             .find(|client| client.win == win)
+    }
+
+    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<Client>> {
+        let maybe_idx = self.clients.iter()
+            .position(|client| client.win == win);
+
+        match maybe_idx {
+            Some(idx) => self.clients.borrow_mut(idx),
+            None => None,
+        }
     }
 
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
@@ -123,10 +137,10 @@ impl Default for Subtle {
 
             support_win: Window::default(),
             tray_win: Window::default(),
-            focus_win: Window::default(),
+            focus_history: VecCell::with_capacity(HISTORY_SIZE),
 
             screens: Vec::new(),
-            clients: Vec::new(),
+            clients: VecCell::new(),
             gravities: Vec::new(),
             grabs: Vec::new(),
             tags: Vec::new(),
