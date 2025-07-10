@@ -68,7 +68,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
             let _ = client.set_size_hints(subtle, &mut mode_flags);
 
             let enable_only = client.flags.complement().intersection(mode_flags);
-            let _ = client.toggle(&enable_only, true);
+            let _ = client.toggle(subtle, &enable_only, true);
 
             if client.is_visible(subtle) {
                 screen::update(subtle);
@@ -84,7 +84,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
             let _ = client.set_wm_hints(subtle, &mut mode_flags);
 
             let enable_only = client.flags.complement().intersection(mode_flags);
-            let _ = client.toggle(&enable_only, true);
+            let _ = client.toggle(subtle, &enable_only, true);
 
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
                 screen::update(subtle);
@@ -102,7 +102,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
             let mut mode_flags = ClientFlags::empty();
 
             let enable_only = client.flags.complement().intersection(mode_flags);
-            client.toggle(&enable_only, true);
+            let _ = client.toggle(subtle, &enable_only, true);
 
             let _= client.set_motif_wm_hints(subtle, &mut mode_flags);
         }

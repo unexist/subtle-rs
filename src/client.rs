@@ -156,7 +156,7 @@ impl Client {
         client.set_net_wm_state(subtle, &mut mode_flags)?;
         //client.set_transient
         client.retag(subtle, &mut mode_flags)?;
-        //client.toggle(mode_flags
+        client.toggle(subtle, &mode_flags, false)?;
 
         // Set leader window
         let leader = conn.get_property(false, client.win, AtomEnum::WINDOW,
@@ -464,9 +464,11 @@ impl Client {
         }
     }
 
-    pub(crate) fn toggle(&mut self, mode_flags: &ClientFlags, set_gravity: bool) {
+    pub(crate) fn toggle(&mut self, subtle: &Subtle, mode_flags: &ClientFlags, set_gravity: bool) -> Result<()> {
         debug!("{}: client={}, mode_flags={:?}, gravity={}", function_name!(),
             self, mode_flags, set_gravity);
+
+        Ok(())
     }
 
     pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut ClientFlags) {
