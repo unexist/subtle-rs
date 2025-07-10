@@ -464,7 +464,7 @@ impl Client {
         }
     }
 
-    pub(crate) fn toggle(&self, mode_flags: &ClientFlags, set_gravity: bool) {
+    pub(crate) fn toggle(&mut self, mode_flags: &ClientFlags, set_gravity: bool) {
         debug!("{}: client={}, mode_flags={:?}, gravity={}", function_name!(),
             self, mode_flags, set_gravity);
     }
