@@ -178,11 +178,14 @@ pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn update(subtle: &Subtle) {
+    debug!("{}", function_name!());
+}
+
 
 pub(crate) fn render(subtle: &Subtle) {
     debug!("{}", function_name!());
 }
-
 
 pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
