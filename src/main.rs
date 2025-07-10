@@ -27,6 +27,8 @@ mod config;
 mod grab;
 mod ewmh;
 mod tagging;
+mod style;
+mod font;
 
 use std::env;
 use std::env::current_exe;
@@ -84,7 +86,8 @@ fn main() -> Result<()> {
 
     // Run event handler
     event::event_loop(&mut subtle)?;
-    
+
+    ewmh::finish(&subtle)?;
     display::finish(&mut subtle)?;
     
     // Restart if necessary
@@ -101,4 +104,3 @@ fn main() -> Result<()> {
     
     Ok(())
 }
-
