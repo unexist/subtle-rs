@@ -12,7 +12,7 @@
 use std::fmt;
 use std::ops::Div;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, PropMode, Rectangle, SetMode, Window};
-use bitflags::bitflags;
+use bitflags::{bitflags, Flags};
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::{debug, warn};
@@ -419,6 +419,25 @@ impl Client {
         Ok(())
     }
 
+    pub(crate) fn focus(&mut self, subtle: &Subtle, warp_pointer: bool) {
+        if !self.is_visible(subtle) {
+            return;
+        }
+
+        // Remove urgent after getting focus
+        if self.flags.contains(ClientFlags::MODE_URGENT) {
+            self.flags.remove(ClientFlags::MODE_URGENT);
+            //subtle.urgent_tags.remove(self.tags);
+        }
+
+        // Unset current focus
+        if let Some(win) = subtle.focus_history.borrow(0) {
+            if let Some(focus) = subtle.find_client(*win) {
+                //subGrabUnset
+            }
+        }
+
+    }
 
     pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut ClientFlags) {
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
@@ -653,8 +672,10 @@ impl Client {
 
         if -1 == grav_id {
             // Copy gravity from current client
-            if let Some(client) = subtle.find_client(subtle.focus_win) {
-                grav_id = client.gravity_id;
+            if let Some(win) = subtle.focus_history.borrow(0) {
+                if let Some(client) = subtle.find_client(*win) {
+                    grav_id = client.gravity_id;
+                }
             }
         } else {
             grav_id = subtle.default_gravity;
@@ -738,7 +759,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.len());
 
     // Sort clients from top to bottom
-    for (idx, client) in subtle.clients.iter().enumerate().rev() {
+    for (idx, client) in subtle.clients.iter().enumerate() {
         wins.push(client.win);
     }
 
