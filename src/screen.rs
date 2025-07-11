@@ -35,7 +35,7 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Screen {
     pub(crate) flags: ScreenFlags,
 
