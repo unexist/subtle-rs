@@ -21,10 +21,12 @@ use x11rb::connection::Connection;
 use x11rb::NONE;
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use x11rb::protocol::randr::ModeFlag;
+use x11rb::protocol::Request::ChangeWindowAttributes;
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
+use crate::screen::ScreenFlags;
 use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
@@ -35,6 +37,13 @@ const MIN_HEIGHT: u16 = 1;
 pub(crate) enum WMState {
     WithdrawnState = 0,
     NormalState = 1,
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum RestackOrder {
+    RestackDown = 0,
+    RestackUp = 1,
 }
 
 bitflags! {
@@ -156,7 +165,7 @@ impl Client {
         client.set_net_wm_state(subtle, &mut mode_flags)?;
         //client.set_transient
         client.retag(subtle, &mut mode_flags)?;
-        client.toggle(subtle, &mode_flags, false)?;
+        client.toggle(subtle, &mut mode_flags, false)?;
 
         // Set leader window
         let leader = conn.get_property(false, client.win, AtomEnum::WINDOW,
@@ -453,7 +462,7 @@ impl Client {
         // Remove urgent after getting focus
         if self.flags.contains(ClientFlags::MODE_URGENT) {
             self.flags.remove(ClientFlags::MODE_URGENT);
-            //subtle.urgent_tags.remove(self.tags);
+            //subtle.urgent_tags.remove(self.tags); // TODO urgent
         }
 
         // Unset current focus
@@ -464,7 +473,178 @@ impl Client {
         }
     }
 
-    pub(crate) fn toggle(&mut self, subtle: &Subtle, mode_flags: &ClientFlags, set_gravity: bool) -> Result<()> {
+    pub(crate) fn toggle(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags, set_gravity: bool) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        // Set arrange for certain modes
+        if mode_flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_STICK | ClientFlags::MODE_FULL
+            | ClientFlags::MODE_ZAPHOD | ClientFlags::MODE_BORDERLESS | ClientFlags::MODE_CENTER)
+        {
+            self.flags.insert(ClientFlags::ARRANGE);
+        }
+
+        // Handle sticky mode
+        if mode_flags.contains(ClientFlags::MODE_STICK) {
+            // Unset stick mode
+            if self.flags.contains(ClientFlags::MODE_STICK) {
+                if self.flags.contains(ClientFlags::MODE_URGENT) {
+                    //subtle.urgent_tags.remove(self.tags); // TODO urgent
+                }
+            } else {
+                if set_gravity {
+                    // Set gravity for untagged views
+                    for (idx, view) in subtle.views.iter().enumerate() {
+                        if !view.tags.contains(self.tags) && -1 != self.gravity_id {
+                            self.gravities[idx] = self.gravity_id as usize;
+                        }
+                    }
+                }
+
+                // Set screen when required
+                if !self.flags.contains(ClientFlags::MODE_STICK_SCREEN) {
+                    // Find screen: Prefer screen of current window
+                    if subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP)  {
+                        if let Some(win) = subtle.focus_history.borrow(0) {
+                            if let Some(focus) = subtle.find_client(*win) {
+                                if focus.is_visible(subtle) {
+                                    self.screen_id = focus.screen_id;
+                                }
+                            }
+                        }
+                    } else if let Some((idx, _)) = subtle.find_screen_by_pointer() {
+                        self.screen_id = idx;
+                    }
+                }
+            }
+        }
+
+        // Handle fullscreen mode
+        if mode_flags.contains(ClientFlags::MODE_FULL) {
+            if self.flags.contains(ClientFlags::MODE_FULL) {
+                if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
+                    let aux = ConfigureWindowAux::default()
+                        .border_width(Some(subtle.styles.clients.border.top as u32));
+
+                    conn.configure_window(self.win, &aux)?.check()?;
+                }
+            } else {
+                // Normally, you'd expect that a fixed size window wants to keep the size.
+                // Apparently, some broken clients just violate that, so we exclude fixed
+                // windows with min != screen size from fullscreen
+                if self.flags.contains(ClientFlags::MODE_FIXED) {
+                    if let Some(screen) = subtle.screens.get(self.screen_id) {
+                        if screen.base.width != self.min_width || screen.base.height != self.min_height {
+                            mode_flags.remove(ClientFlags::MODE_FULL);
+                        }
+                    }
+                }
+
+                let aux = ChangeWindowAttributesAux::default()
+                    .border_pixel(Some(0));
+
+                conn.change_window_attributes(self.win, &aux)?.check()?;
+            }
+        }
+
+        // Handle borderless
+        if mode_flags.contains(ClientFlags::MODE_BORDERLESS) {
+            let mut aux = ConfigureWindowAux::default();
+
+            // Unset borderless
+            if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
+                aux = aux.border_width(Some(subtle.styles.clients.border.top as u32));
+            } else {
+                aux = aux.border_width(Some(0));
+            }
+
+            conn.configure_window(self.win, &aux)?.check()?;
+        }
+
+        // Handle urgent
+        if mode_flags.contains(ClientFlags::MODE_URGENT) {
+            //subtle.urgent_tags.insert(self.tags) // TODO urgent
+        }
+
+        // Handle center mode
+        if mode_flags.contains(ClientFlags::MODE_CENTER) {
+            if self.flags.contains(ClientFlags::MODE_CENTER) {
+                self.flags.remove(ClientFlags::MODE_FLOAT);
+                self.flags.insert(ClientFlags::ARRANGE);
+            } else {
+                if let Some(screen) = subtle.screens.get(self.screen_id) {
+                    debug!("client={}, screen={}", self, screen);
+                    // Set to screen center
+                    self.geom.x = screen.geom.x + (screen.geom.width as i16 - self.geom.width as i16 - 2 * 1) / 2; // TODO BORDER
+                    self.geom.y = screen.geom.y + (screen.geom.height as i16 - self.geom.height as i16 - 2 * 1) / 2; // TODO BORDER
+
+                    mode_flags.insert(ClientFlags::MODE_FLOAT);
+                    self.flags.insert(ClientFlags::ARRANGE);
+                }
+            }
+        }
+
+        // Handle desktop and dock type (one way)
+        if mode_flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
+            let aux = ConfigureWindowAux::default()
+                .border_width(Some(0));
+
+            conn.configure_window(self.win, &aux)?.check()?;
+
+            // Special treatment
+            if mode_flags.contains(ClientFlags::TYPE_DESKTOP) {
+                if let Some(screen) = subtle.screens.get(self.screen_id) {
+                    self.geom = screen.base;
+
+                    // Add panel heights without struts
+                    if screen.flags.contains(ScreenFlags::PANEL1) {
+                        self.geom.y += subtle.panel_height as i16;
+                        self.geom.height -= subtle.panel_height;
+                    }
+
+                    if screen.flags.contains(ScreenFlags::PANEL2) {
+                        self.geom.height -= subtle.panel_height;
+                    }
+                }
+            }
+        }
+
+        // Finally toggle mode flags only
+        self.flags.insert(*mode_flags); // TODO  c->flags = ((c->flags & ~MODES_ALL) | ((c->flags & MODES_ALL) ^ (flags & MODES_ALL)));
+
+        // Sort for keeping stacking order
+        if self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL
+            | ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK)
+        {
+            restack_clients(RestackOrder::RestackUp)?;
+        }
+
+        // EWMH: State and flags
+        let mut states: Vec<Atom> = Vec::default();
+
+        if self.flags.contains(ClientFlags::MODE_FULL) {
+            states.push(atoms._NET_WM_STATE_FULLSCREEN);
+        }
+
+        if self.flags.contains(ClientFlags::MODE_FLOAT) {
+            states.push(atoms._NET_WM_STATE_ABOVE);
+        }
+
+        if self.flags.contains(ClientFlags::MODE_STICK) {
+            states.push(atoms._NET_WM_STATE_STICKY);
+        }
+
+        if self.flags.contains(ClientFlags::MODE_URGENT) {
+            states.push(atoms._NET_WM_STATE_DEMANDS_ATTENTION);
+        }
+
+        conn.change_property32(PropMode::REPLACE, self.win, atoms._NET_WM_STATE,
+                               AtomEnum::ATOM, states.as_slice())?.check()?;
+
+        // subEwmhTranslateClientMode(c->flags, &flags); // TODO
+
+        conn.flush()?;
+
         debug!("{}: client={}, mode_flags={:?}, gravity={}", function_name!(),
             self, mode_flags, set_gravity);
 
@@ -721,11 +901,13 @@ impl Client {
             && (self.flags.contains(ClientFlags::MODE_RESIZE)
             || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE))
         {
-            let border_width = if self.flags.contains(ClientFlags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO
+            let border_width = if self.flags.contains(ClientFlags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO BORDER
 
             // Calculate max width and max height for bounds
-            let max_width = if -1 == self.max_width { bounds.width } else { self.max_width as u16 };
-            let max_height = if -1 == self.max_height { bounds.height } else { self.max_height as u16 };
+            let max_width = if -1 == self.max_width {
+                bounds.width - border_width } else { self.max_width as u16 };
+            let max_height = if -1 == self.max_height {
+                bounds.height - border_width } else { self.max_height as u16 };
 
             // Limit width and height
             if self.geom.width < self.min_width {
@@ -774,12 +956,18 @@ impl Client {
 
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, instance={}, class={}, win={}, leader={}, \
+        write!(f, "name={}, instance={}, class={}, role={}, win={}, leader={}, \
             geom=(x={}, y={}, width={}, height={}), input={}, focus={}",
-               self.name, self.instance, self.klass, self.win, self.leader,
+               self.name, self.instance, self.klass, self.role, self.win, self.leader,
                self.geom.x, self.geom.y, self.geom.width, self.geom.height,
                self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS))
     }
+}
+
+pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
+    debug!("{}: restack={:?}", function_name!(), order);
+
+    Ok(())
 }
 
 pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
