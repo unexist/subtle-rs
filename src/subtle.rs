@@ -20,7 +20,8 @@ use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use veccell::{VecCell, VecRef, VecRefMut};
-use x11rb::protocol::xproto::{Grab, Window};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{ConnectionExt, Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::screen::Screen;
@@ -124,6 +125,25 @@ impl Subtle {
             }
         }
         
+        None
+    }
+
+    pub(crate) fn find_screen_by_pointer(&self) -> Option<(usize, &Screen)> {
+        // Check if there is only one screen
+        if 1 == self.screens.len() {
+            return self.screens.first().map(|screen| (0, screen))
+        } else {
+            let conn = self.conn.get().unwrap();
+
+            let screen = &conn.setup().roots[self.screen_num];
+
+            if let Ok(cookie) = conn.query_pointer(screen.root) {
+                if let Ok(reply) = cookie.reply() {
+                    return self.find_screen_by_xy(reply.root_x, reply.root_y)
+                }
+            }
+        }
+
         None
     }
 }
