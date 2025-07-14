@@ -169,9 +169,9 @@ pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
         }
     }
 
-    subtle.visible_tags = visible_tags;
-    subtle.visible_views = visible_views;
-    subtle.client_tags = client_tags;
+    subtle.visible_tags.replace(visible_tags);
+    subtle.visible_views.replace(visible_views);
+    subtle.client_tags.replace(client_tags);
 
     debug!("{}", function_name!());
     

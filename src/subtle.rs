@@ -15,7 +15,7 @@ use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
 use bitflags::bitflags;
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -75,10 +75,10 @@ pub(crate) struct Subtle {
     pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
     
-    pub(crate) visible_tags: Tagging,
-    pub(crate) visible_views: Tagging,
-    pub(crate) client_tags: Tagging,
-    pub(crate) urgent_tags: Tagging,
+    pub(crate) visible_tags: Cell<Tagging>,
+    pub(crate) visible_views: Cell<Tagging>,
+    pub(crate) client_tags: Cell<Tagging>,
+    pub(crate) urgent_tags: Cell<Tagging>,
     
     pub(crate) exterminate: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
@@ -160,10 +160,10 @@ impl Default for Subtle {
             snap_size: 0,
             default_gravity: 0,
             
-            visible_tags: Tagging::empty(),
-            visible_views: Tagging::empty(),
-            client_tags: Tagging::empty(),
-            urgent_tags: Tagging::empty(),
+            visible_tags: Cell::new(Tagging::empty()),
+            visible_views: Cell::new(Tagging::empty()),
+            client_tags: Cell::new(Tagging::empty()),
+            urgent_tags: Cell::new(Tagging::empty()),
             
             exterminate: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),

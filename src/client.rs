@@ -772,7 +772,7 @@ impl Client {
     }
 
     pub(crate) fn is_visible(&self, subtle: &Subtle) -> bool {
-        subtle.visible_tags.contains(self.tags)
+        subtle.visible_tags.get().contains(self.tags)
             || self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
     }
 
@@ -791,7 +791,7 @@ impl Client {
 
         // Remove client tags from urgent tags
         if self.flags.contains(ClientFlags::MODE_URGENT) {
-            subtle.urgent_tags = subtle.urgent_tags.difference(self.tags);
+            subtle.urgent_tags.replace(subtle.urgent_tags.get().difference(self.tags));
         }
 
         // Tile remaining clients if necessary
@@ -821,7 +821,7 @@ impl Client {
 
         for client in subtle.clients.iter() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
-                && subtle.visible_tags.contains(client.tags)
+                && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
                 used += 1;
@@ -853,7 +853,7 @@ impl Client {
 
         for client in subtle.clients.iter_mut() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
-                && subtle.visible_tags.contains(client.tags)
+                && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
                 if gravity.flags.contains(GravityFlags::HORZ) {
