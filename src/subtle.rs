@@ -53,9 +53,10 @@ bitflags! {
         const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
     }
 }
+
 #[derive(Default)]
 pub(crate) struct SubtleStyles {
-   pub(crate) all: Style,
+    pub(crate) all: Style,
     pub(crate) views: Style,
     pub(crate) title: Style,
     pub(crate) sublets: Style,
@@ -74,18 +75,18 @@ pub(crate) struct Subtle {
     pub(crate) step_size: u16,
     pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
-    
+
     pub(crate) visible_tags: Cell<Tagging>,
     pub(crate) visible_views: Cell<Tagging>,
     pub(crate) client_tags: Cell<Tagging>,
     pub(crate) urgent_tags: Cell<Tagging>,
-    
+
     pub(crate) exterminate: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
 
     pub(crate) atoms: OnceCell<Atoms>,
-    
+
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
     pub(crate) focus_history: VecCell<Window>,
