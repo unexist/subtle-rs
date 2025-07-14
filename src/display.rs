@@ -16,7 +16,7 @@ use stdext::function_name;
 use struct_iterable::Iterable;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
-use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, CreateWindowAux, EventMask, MapState, PropMode, Time, WindowClass};
+use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
 use crate::client::{Client};
@@ -51,6 +51,27 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         debug!("Found xrandr extension");
     }
+
+    // Create GCs
+    let aux = CreateGCAux::default()
+        .function(Some(GX::INVERT))
+        .subwindow_mode(Some(SubwindowMode::INCLUDE_INFERIORS))
+        .line_width(Some(3));
+
+    subtle.invert_gc = conn.generate_id()?;
+
+    conn.create_gc(subtle.invert_gc, screen.root, &aux)?.check()?;
+
+    subtle.draw_gc = conn.generate_id()?;
+
+    let aux = CreateGCAux::default()
+        .line_width(Some(1))
+        .line_style(Some(LineStyle::SOLID))
+        .join_style(Some(JoinStyle::MITER))
+        .cap_style(Some(CapStyle::BUTT))
+        .fill_style(Some(FillStyle::SOLID));
+
+    conn.create_gc(subtle.draw_gc, screen.root, &aux)?.check()?;
 
     conn.flush()?;
 
