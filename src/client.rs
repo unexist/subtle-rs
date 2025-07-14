@@ -122,9 +122,9 @@ impl Client {
 
         let aux = ChangeWindowAttributesAux::default()
             .border_pixel(Some(0)) // TODO Styles
-            .event_mask(EventMask::PROPERTY_CHANGE
+            .event_mask(Some(EventMask::PROPERTY_CHANGE
                 | EventMask::ENTER_WINDOW
-                | EventMask::FOCUS_CHANGE);
+                | EventMask::FOCUS_CHANGE));
 
         conn.change_window_attributes(win, &aux)?.check()?;
 
@@ -785,7 +785,7 @@ impl Client {
 
         // Ignore further events
         let aux = ChangeWindowAttributesAux::default()
-            .event_mask(EventMask::NO_EVENT);
+            .event_mask(Some(EventMask::NO_EVENT));
 
         conn.change_window_attributes(self.win, &aux)?.check()?;
 
