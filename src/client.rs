@@ -810,6 +810,23 @@ impl Client {
         Ok(())
     }
 
+    fn draw_mask(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        let screen = &conn.setup().roots[subtle.screen_num];
+
+        let geom: [Rectangle; 1] = [Rectangle {
+            x: self.geom.x - 1,
+            y: self.geom.y - 1,
+            width: self.geom.width + 1,
+            height: self.geom.height + 1
+        }];
+
+        conn.poly_rectangle(screen.root, subtle.invert_gc, &geom)?.check()?;
+
+        Ok(())
+    }
+
     fn gravity_tile(&self, subtle: &mut Subtle, gravity_id: isize, screen_id: usize) -> Result<()> {
         let gravity = subtle.gravities.get(gravity_id as usize)
             .ok_or(anyhow!("Gravity not found"))?;
