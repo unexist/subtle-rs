@@ -1,4 +1,3 @@
-use std::process;
 ///
 /// @package subtle-rs
 ///
@@ -10,6 +9,7 @@ use std::process;
 /// See the file LICENSE for details.
 ///
 
+use std::process;
 use anyhow::{anyhow, Context, Result};
 use log::{debug, info};
 use stdext::function_name;
@@ -83,17 +83,17 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     subtle.arrow_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.arrow_cursor, font_wrapper.font(), font_wrapper.font(),
-                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
                              u16::MAX, u16::MAX, u16::MAX)?;
 
     subtle.move_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.move_cursor, font_wrapper.font(), font_wrapper.font(),
-                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
                              u16::MAX, u16::MAX, u16::MAX)?;
 
     subtle.resize_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.resize_cursor, font_wrapper.font(), font_wrapper.font(),
-                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
                              u16::MAX, u16::MAX, u16::MAX)?;
 
     drop(font_wrapper);
