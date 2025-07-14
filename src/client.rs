@@ -121,15 +121,15 @@ impl Client {
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
-            .border_pixel(Some(0)) // TODO Styles
-            .event_mask(Some(EventMask::PROPERTY_CHANGE
+            .border_pixel(0) // TODO Styles
+            .event_mask(EventMask::PROPERTY_CHANGE
                 | EventMask::ENTER_WINDOW
-                | EventMask::FOCUS_CHANGE));
+                | EventMask::FOCUS_CHANGE);
 
         conn.change_window_attributes(win, &aux)?.check()?;
 
         let aux = ConfigureWindowAux::default()
-            .border_width(Some(0)); // TODO Styles
+            .border_width(0); // TODO Styles
 
         conn.configure_window(win, &aux)?.check()?;
 
@@ -524,7 +524,7 @@ impl Client {
             if self.flags.contains(ClientFlags::MODE_FULL) {
                 if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
                     let aux = ConfigureWindowAux::default()
-                        .border_width(Some(subtle.styles.clients.border.top as u32));
+                        .border_width(subtle.styles.clients.border.top as u32);
 
                     conn.configure_window(self.win, &aux)?.check()?;
                 }
@@ -541,7 +541,7 @@ impl Client {
                 }
 
                 let aux = ChangeWindowAttributesAux::default()
-                    .border_pixel(Some(0));
+                    .border_pixel(0);
 
                 conn.change_window_attributes(self.win, &aux)?.check()?;
             }
@@ -553,9 +553,9 @@ impl Client {
 
             // Unset borderless
             if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
-                aux = aux.border_width(Some(subtle.styles.clients.border.top as u32));
+                aux = aux.border_width(subtle.styles.clients.border.top as u32);
             } else {
-                aux = aux.border_width(Some(0));
+                aux = aux.border_width(0);
             }
 
             conn.configure_window(self.win, &aux)?.check()?;
@@ -587,7 +587,7 @@ impl Client {
         // Handle desktop and dock type (one way)
         if mode_flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
             let aux = ConfigureWindowAux::default()
-                .border_width(Some(0));
+                .border_width(0);
 
             conn.configure_window(self.win, &aux)?.check()?;
 
@@ -745,10 +745,10 @@ impl Client {
         self.resize(subtle, bounds, true)?;
 
         let aux = ConfigureWindowAux::default()
-            .x(Some(self.geom.x as i32))
-            .y(Some(self.geom.y as i32))
-            .width(Some(self.geom.width as u32))
-            .height(Some(self.geom.height as u32));
+            .x(self.geom.x as i32)
+            .y(self.geom.y as i32)
+            .width(self.geom.width as u32)
+            .height(self.geom.height as u32);
 
         conn.configure_window(self.win, &aux)?.check()?;
 
@@ -785,7 +785,7 @@ impl Client {
 
         // Ignore further events
         let aux = ChangeWindowAttributesAux::default()
-            .event_mask(Some(EventMask::NO_EVENT));
+            .event_mask(EventMask::NO_EVENT);
 
         conn.change_window_attributes(self.win, &aux)?.check()?;
 

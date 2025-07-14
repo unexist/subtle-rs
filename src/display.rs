@@ -11,7 +11,6 @@ use std::process;
 ///
 
 use anyhow::{anyhow, Context, Result};
-use clap::ValueHint::EmailAddress;
 use log::{debug, info};
 use stdext::function_name;
 use struct_iterable::Iterable;
@@ -60,9 +59,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Create GCs
     let aux = CreateGCAux::default()
-        .function(Some(GX::INVERT))
-        .subwindow_mode(Some(SubwindowMode::INCLUDE_INFERIORS))
-        .line_width(Some(3));
+        .function(GX::INVERT)
+        .subwindow_mode(SubwindowMode::INCLUDE_INFERIORS)
+        .line_width(3);
 
     subtle.invert_gc = conn.generate_id()?;
 
@@ -71,11 +70,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.draw_gc = conn.generate_id()?;
 
     let aux = CreateGCAux::default()
-        .line_width(Some(1))
-        .line_style(Some(LineStyle::SOLID))
-        .join_style(Some(JoinStyle::MITER))
-        .cap_style(Some(CapStyle::BUTT))
-        .fill_style(Some(FillStyle::SOLID));
+        .line_width(1)
+        .line_style(LineStyle::SOLID)
+        .join_style(JoinStyle::MITER)
+        .cap_style(CapStyle::BUTT)
+        .fill_style(FillStyle::SOLID);
 
     conn.create_gc(subtle.draw_gc, screen.root, &aux)?.check()?;
 
@@ -101,11 +100,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Update root window
     let aux = ChangeWindowAttributesAux::default()
-        .cursor(Some(subtle.arrow_cursor))
-        .event_mask(Some(EventMask::STRUCTURE_NOTIFY
+        .cursor(subtle.arrow_cursor)
+        .event_mask(EventMask::STRUCTURE_NOTIFY
             | EventMask::SUBSTRUCTURE_NOTIFY
             | EventMask::SUBSTRUCTURE_REDIRECT
-            | EventMask::PROPERTY_CHANGE));
+            | EventMask::PROPERTY_CHANGE);
 
     conn.change_window_attributes(screen.root, &aux)?.check()?;
 
