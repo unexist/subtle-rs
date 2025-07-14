@@ -11,17 +11,23 @@ use std::process;
 ///
 
 use anyhow::{anyhow, Context, Result};
+use clap::ValueHint::EmailAddress;
 use log::{debug, info};
 use stdext::function_name;
 use struct_iterable::Iterable;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
-use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
+use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, FontWrapper, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
 use crate::client::{Client};
 use crate::ewmh::AtomsCookie;
 use crate::subtle::SubtleFlags;
+
+// Taken from /usr/include/X11/cursorfont.h
+const XC_LEFT_PTR: u16 = 68;
+const XC_DOTBOX: u16 = 40;
+const XC_SIZING: u16 = 120;
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
@@ -72,6 +78,36 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         .fill_style(Some(FillStyle::SOLID));
 
     conn.create_gc(subtle.draw_gc, screen.root, &aux)?.check()?;
+
+    // Create cursors
+    let font_wrapper = FontWrapper::open_font(&conn, "cursor".as_bytes())?;
+
+    subtle.arrow_cursor = conn.generate_id()?;
+    conn.create_glyph_cursor(subtle.arrow_cursor, font_wrapper.font(), font_wrapper.font(),
+                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             u16::MAX, u16::MAX, u16::MAX)?;
+
+    subtle.move_cursor = conn.generate_id()?;
+    conn.create_glyph_cursor(subtle.move_cursor, font_wrapper.font(), font_wrapper.font(),
+                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             u16::MAX, u16::MAX, u16::MAX)?;
+
+    subtle.resize_cursor = conn.generate_id()?;
+    conn.create_glyph_cursor(subtle.resize_cursor, font_wrapper.font(), font_wrapper.font(),
+                             XC_LEFT_PTR, XC_LEFT_PTR, 0, 0, 0,
+                             u16::MAX, u16::MAX, u16::MAX)?;
+
+    drop(font_wrapper);
+
+    // Update root window
+    let aux = ChangeWindowAttributesAux::default()
+        .cursor(Some(subtle.arrow_cursor))
+        .event_mask(Some(EventMask::STRUCTURE_NOTIFY
+            | EventMask::SUBSTRUCTURE_NOTIFY
+            | EventMask::SUBSTRUCTURE_REDIRECT
+            | EventMask::PROPERTY_CHANGE));
+
+    conn.change_window_attributes(screen.root, &aux)?.check()?;
 
     conn.flush()?;
 
@@ -206,6 +242,15 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     
     conn.destroy_window(subtle.support_win)?;
+
+    // Free GCs
+    conn.free_gc(subtle.invert_gc)?;
+    conn.free_gc(subtle.draw_gc)?;
+
+    // Free cursors
+    conn.free_cursor(subtle.arrow_cursor)?;
+    conn.free_cursor(subtle.move_cursor)?;
+    conn.free_cursor(subtle.resize_cursor)?;
 
     debug!("{}", function_name!());
 

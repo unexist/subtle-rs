@@ -21,7 +21,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use veccell::{VecCell, VecRef, VecRefMut};
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConnectionExt, Gcontext, Grab, Window};
+use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::screen::Screen;
@@ -92,6 +92,10 @@ pub(crate) struct Subtle {
 
     pub(crate) invert_gc: Gcontext,
     pub(crate) draw_gc: Gcontext,
+
+    pub(crate) arrow_cursor: Cursor,
+    pub(crate) move_cursor: Cursor,
+    pub(crate) resize_cursor: Cursor,
 
     pub(crate) styles: SubtleStyles,
 
@@ -180,6 +184,10 @@ impl Default for Subtle {
 
             invert_gc: Gcontext::default(),
             draw_gc: Gcontext::default(),
+
+            arrow_cursor: Cursor::default(),
+            move_cursor: Cursor::default(),
+            resize_cursor: Cursor::default(),
 
             styles: SubtleStyles::default(),
 
