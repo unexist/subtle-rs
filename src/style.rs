@@ -23,7 +23,14 @@ bitflags! {
     }
 }
 
-#[derive(Default, Debug)]
+pub(crate) enum CalcSide {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+#[derive(Default, Debug, Copy, Clone)]
 pub(crate) struct Side {
     pub(crate) top: i16,
     pub(crate) right: i16,
@@ -31,7 +38,7 @@ pub(crate) struct Side {
     pub(crate) left: i16,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct Separator {
     pub(crate) string: String,
     pub(crate) width: u16,
@@ -61,7 +68,16 @@ pub(crate) struct Style {
     pub(crate) separator: Separator,
 }
 
-
+impl Style {
+    pub(crate) fn calc_side(&self, side: CalcSide) -> i16 {
+        match side {
+            CalcSide::Top => self.border.top + self.padding.top + self.margin.top,
+            CalcSide::Right => self.border.right + self.padding.right + self.margin.right,
+            CalcSide::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
+            CalcSide::Left => self.border.left + self.padding.left + self.margin.left,
+        }
+    }
+}
 
 impl fmt::Display for Side {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
