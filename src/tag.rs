@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -45,7 +45,11 @@ pub(crate) struct Tag {
 }
 
 impl Tag {
-    pub(crate) fn new(name: &str) -> Self {
+    pub(crate) fn new(name: &str) -> Result<Self> {
+        if name.is_empty() {
+            return Err(anyhow!("Empty tag name"))
+        }
+
         let tag = Self {
             name: name.into(),
             ..Default::default()
@@ -53,7 +57,7 @@ impl Tag {
 
         debug!("{}: {}", function_name!(), tag);
         
-        tag
+        Ok(tag)
     }
     
     pub(crate) fn matches(&self, client: &Client) -> bool {
@@ -69,7 +73,7 @@ impl fmt::Display for Tag {
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.tags.iter() {
-        let mut tag = Tag::new(name);
+        let mut tag = Tag::new(name)?;
 
         if values.contains_key("match") {
             if let Some(MixedConfigVal::S(value)) = values.get("match") {
@@ -82,7 +86,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     
     // Sanity check
     if subtle.tags.is_empty() {
-        let tag = Tag::new("default");
+        let tag = Tag::new("default")?;
         
         subtle.tags.push(tag);
     }

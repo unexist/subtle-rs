@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -42,7 +42,11 @@ pub(crate) struct View {
 }
 
 impl View {
-    pub(crate) fn new(name: &str) -> Self {
+    pub(crate) fn new(name: &str) -> Result<Self> {
+        if name.is_empty() {
+            return Err(anyhow!("Empty view name"))
+        }
+
         let view = Self {
             name: name.into(),
             ..Default::default()
@@ -50,7 +54,7 @@ impl View {
 
         debug!("{}: {}", function_name!(), view);
 
-        view
+        Ok(view)
     }
 }
 
@@ -62,7 +66,7 @@ impl fmt::Display for View {
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.views.iter() {
-        let mut view = View::new(name);
+        let mut view = View::new(name)?;
 
         if values.contains_key("match") {
             if let Some(MixedConfigVal::S(value)) = values.get("match") {
@@ -75,7 +79,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Sanity check
     if subtle.views.is_empty() {
-        let view = View::new("default");
+        let view = View::new("default")?;
 
         subtle.views.push(view);
     }

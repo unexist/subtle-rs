@@ -18,6 +18,13 @@ proptest! {
     fn should_create_view(s in "[a-zA-Z]*") {
         let view = View::new(&*s);
 
-        assert!(!view.name.is_empty());
+        match View::new(&*s) {
+            Ok(view) => assert!(!view.name.is_empty()),
+            Err(err) => {
+                if !s.is_empty() {
+                    panic!("Expected valid view");
+                }
+            }
+        }
     }
 }

@@ -16,8 +16,13 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn should_create_tag(s in "[a-zA-Z]*") {
-        let tag = Tag::new(&*s);
-        
-        assert!(!tag.name.is_empty());
+        match Tag::new(&*s) {
+            Ok(tag) => assert!(!tag.name.is_empty()),
+            Err(err) => {
+                if !s.is_empty() {
+                    panic!("Expected valid tag");
+                }
+            }
+        }
     }
 }
