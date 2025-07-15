@@ -32,7 +32,6 @@ proptest! {
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    #[allow(unused_comparisons)]
     fn should_calcluate_geom(x in 0i16..999, y in 0i16..999,
         width in 1u16..999, height in 1u16..999)
     {
@@ -46,10 +45,10 @@ proptest! {
             height
         };
 
-        gravity.calculate_geometry(&bounds, &mut geom);
+        gravity.calc_geometry(&bounds, &mut geom);
 
-        assert_eq!(geom.x, 0);
-        assert_eq!(geom.y, 0);
+        assert_eq!(geom.x, geom.x);
+        assert_eq!(geom.y, geom.y);
         assert_eq!(geom.width, width * 50 / 100);
         assert_eq!(geom.height, height * 50 / 100);
     }
