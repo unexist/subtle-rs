@@ -27,7 +27,7 @@ use crate::client::{Client, ClientFlags, WMState};
 use crate::tagging::Tagging;
 
 bitflags! {
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct ScreenFlags: u32 {
         const PANEL1 = 1 << 0; // Screen panel1 enabled
         const PANEL2 = 1 << 1; // Screen panel2 enabled
