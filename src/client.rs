@@ -26,11 +26,17 @@ use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
-use crate::screen::ScreenFlags;
+use crate::screen::{Screen, ScreenFlags};
 use crate::tagging::Tagging;
 
 const MIN_WIDTH: u16 = 1;
 const MIN_HEIGHT: u16 = 1;
+
+macro_rules! ignore_if_dead {
+    ($client:tt) => {
+        if $client.flags.contains(ClientFlags::DEAD) { return Ok(()); }
+    };
+}
 
 #[repr(u8)]
 #[derive(Copy, Clone)]
@@ -755,6 +761,30 @@ impl Client {
         Ok(())
     }
 
+    pub(crate) fn snap(&self, subtle: &Subtle, screen: &Screen, geom: &mut Rectangle) -> Result<()> {
+        ignore_if_dead!(self);
+
+        // Snap to screen border when value is in snap margin - X axis
+        if (screen.geom.x - geom.x).abs() <= subtle.snap_size as i16 {
+            geom.x = screen.geom.x + self.border_width(subtle);
+        } else if ((screen.geom.x + screen.geom.width as i16)
+            - (geom.x + geom.width as i16 + self.border_width(subtle))).abs() <= subtle.snap_size as i16
+        {
+            geom.x = screen.geom.x + (screen.geom.width - geom.width) as i16 - self.border_width(subtle);
+        }
+
+        // Snap to screen border when value is in snap margin - > Y Axis
+        if (screen.geom.y - geom.y).abs() <= subtle.snap_size as i16 {
+            geom.y = screen.geom.y + self.border_width(subtle);
+        } else if ((screen.geom.y + screen.geom.height as i16)
+            - (geom.y + geom.height as i16 + self.border_width(subtle))).abs() <= subtle.snap_size as i16
+        {
+             geom.y = screen.geom.y + (screen.geom.height - geom.height) as i16 - self.border_width(subtle);
+        }
+
+        Ok(())
+    }
+
     pub(crate) fn map(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -852,7 +882,7 @@ impl Client {
         // Calculate tiled gravity value and rounding fix
         let mut geom: Rectangle = Rectangle::default();
 
-        gravity.calculate_geometry(&screen.geom, &mut geom);
+        gravity.calc_geometry(&screen.geom, &mut geom);
 
         let mut calc = 0;
         let mut round_fix = 0;
@@ -911,6 +941,14 @@ impl Client {
         }
 
         grav_id
+    }
+
+    fn border_width(&self, subtle: &Subtle) -> i16 {
+        if self.flags.contains(ClientFlags::MODE_BORDERLESS) {
+            0
+        } else {
+            subtle.styles.clients.border.top
+        }
     }
 
     fn check_bounds(&mut self, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
