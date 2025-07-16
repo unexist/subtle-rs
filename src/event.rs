@@ -24,7 +24,7 @@ use crate::screen;
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
     if let Some(mut client) = subtle.find_client_mut(event.event) {
         if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
-            client.focus(subtle, false);
+            let _ = client.focus(subtle, false);
         }
     }
 
@@ -143,7 +143,21 @@ fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
 
 pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
-    
+
+    // Update screen and panels
+    screen::configure(subtle)?;
+    screen::update(subtle);
+    screen::render(subtle);
+
+    conn.flush()?;
+
+    // Set grabs and focus first client if any
+    //sub_GrabSet(ROOT, SUB_GRAB_KEY) // TODO grabs
+
+    if let Some(client) = client::find_next(0, false)) {
+        client.focus(subtle)?;
+    }
+
     while !subtle.exterminate.load(atomic::Ordering::SeqCst) {
         conn.flush()?;
 
