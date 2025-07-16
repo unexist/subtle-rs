@@ -117,7 +117,7 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn configure(subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     let mut visible_tags = Tagging::empty();
     let mut visible_views = Tagging::empty();
     let mut client_tags = Tagging::empty();
