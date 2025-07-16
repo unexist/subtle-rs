@@ -14,39 +14,45 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ConfigureRequestEvent, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
 
-fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) {
-    debug!("{}: win={}", function_name!(), event.window);
+fn handle_configure(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()> {
+    Ok(())
 }
 
-fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
+fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
+    debug!("{}: win={}", function_name!(), event.window);
+
+    Ok(())
+}
+
+fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     if let Some(client) = subtle.find_client_mut(event.event) {
         if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
-            let _ = client.focus(subtle, false);
+            client.focus(subtle, false)?;
         }
     }
 
-    if let Some(client) = subtle.focus_history.borrow_mut(0) {
-
-    }
-
     debug!("{}: win={}, root={}", function_name!(), event.event, event.root);
+
+    Ok(())
 }
 
-fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
+fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     if 0 == event.count {
         screen::render(subtle);    
     }
     
     debug!("{}: win={}, count={}", function_name!(), event.window, event.count);
+
+    Ok(())
 }
 
-fn handle_focus(subtle: &Subtle, event: FocusInEvent) {
+fn handle_focus(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
 
     // Remove urgent after getting focus
     if let Some(mut client) = subtle.find_client_mut(event.event) {
@@ -57,14 +63,16 @@ fn handle_focus(subtle: &Subtle, event: FocusInEvent) {
     }
 
     debug!("{}: win={}", function_name!(), event.event);
+
+    Ok(())
 }
 
-fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
+fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
 
     if atoms.WM_NAME == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
-            let _ = client.set_wm_name(subtle);
+            client.set_wm_name(subtle)?;
 
             if let Some(win) = subtle.focus_history.borrow(0)
                 && event.window == *win
@@ -77,10 +85,11 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             let mut mode_flags = ClientFlags::empty();
 
-            let _ = client.set_size_hints(subtle, &mut mode_flags);
+            client.set_size_hints(subtle, &mut mode_flags)?;
 
             let mut enable_only = client.flags.complement().intersection(mode_flags);
-            let _ = client.toggle(subtle, &mut enable_only, true);
+
+            client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) {
                 screen::update(subtle);
@@ -93,10 +102,11 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             let mut mode_flags = ClientFlags::empty();
 
-            let _ = client.set_wm_hints(subtle, &mut mode_flags);
+            client.set_wm_hints(subtle, &mut mode_flags)?;
 
             let mut enable_only = client.flags.complement().intersection(mode_flags);
-            let _ = client.toggle(subtle, &mut enable_only, true);
+
+            client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
                 screen::update(subtle);
@@ -105,32 +115,33 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
         }
     } else if atoms._NET_WM_STRUT == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
-            let _ = client.set_strut(subtle);
+            client.set_strut(subtle)?;
 
             screen::update(subtle);
         }
     } else if atoms._MOTIF_WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             let mut mode_flags = ClientFlags::empty();
-
             let mut enable_only = client.flags.complement().intersection(mode_flags);
-            let _ = client.toggle(subtle, &mut enable_only, true);
 
-            let _= client.set_motif_wm_hints(subtle, &mut mode_flags);
+            client.toggle(subtle, &mut enable_only, true)?;
+            client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         }
     }
     // TODO tray
 
     debug!("{}: win={}, atom={}", function_name!(), event.window, event.atom);
+
+    Ok(())
 }
 
-fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
+fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
         client.flags.remove(ClientFlags::DEAD);
         client.flags.insert(ClientFlags::ARRANGE);
 
-        let _ = screen::configure(subtle);
+        screen::configure(subtle)?;
         screen::update(subtle);
         screen::render(subtle);
     } else if let Ok(client) = Client::new(subtle, event.window) {
@@ -139,9 +150,11 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
     }
 
     debug!("{}: win={}", function_name!(), event.window);
+
+    Ok(())
 }
 
-fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) {
+fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
         // Set withdrawn state (see ICCCM 4.1.4)
@@ -151,24 +164,26 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) {
         if client.flags.contains(ClientFlags::UNMAP) {
             client.flags.remove(ClientFlags::UNMAP);
 
-            return;
+            return Ok(());
         }
 
         // Kill client
         //subtle.clients.pop(client);
         //client.kill(subtle);
 
-        let _ = client::publish(subtle, false);
+        client::publish(subtle, false)?;
 
-        let _ = screen::configure(subtle);
+        screen::configure(subtle)?;
         screen::update(subtle);
         screen::render(subtle);
     }
 
     debug!("{}: win={}", function_name!(), event.window);
+
+    Ok(())
 }
 
-fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
+fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
     if event.owner == subtle.tray_win {
         debug!("Tray not supported yet");
     } else if event.owner == subtle.support_win {
@@ -178,6 +193,8 @@ fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) {
     
     debug!("{}: win={}, tray={}, support={}",
         function_name!(), event.owner, subtle.tray_win, subtle.support_win);
+
+    Ok(())
 }
 
 pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
@@ -202,14 +219,15 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         if let Some(event) = conn.poll_for_event()? {
             match event {
-                Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
-                Event::EnterNotify(evt) => handle_enter(subtle, evt),
-                Event::Expose(evt) => handle_expose(subtle, evt),
-                Event::FocusIn(evt) => handle_focus(subtle, evt),
-                Event::MapRequest(evt) => handle_map_request(subtle, evt),
-                Event::PropertyNotify(evt) => handle_property(subtle, evt),
-                Event::SelectionClear(evt) => handle_selection(subtle, evt),
-                Event::UnmapNotify(evt) => handle_unmap(subtle, evt),
+                Event::ConfigureRequest(evt) => handle_configure(subtle, evt)?,
+                Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
+                Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
+                Event::Expose(evt) => handle_expose(subtle, evt)?,
+                Event::FocusIn(evt) => handle_focus(subtle, evt)?,
+                Event::MapRequest(evt) => handle_map_request(subtle, evt)?,
+                Event::PropertyNotify(evt) => handle_property(subtle, evt)?,
+                Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
+                Event::UnmapNotify(evt) => handle_unmap(subtle, evt)?,
 
                 _ => println!("Unhandled event: {:?}", event),
             }
