@@ -14,15 +14,18 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{DestroyNotifyEvent, DestroyWindowRequest, EnterNotifyEvent, ExposeEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
-use x11rb::protocol::xinput::{EnterEvent, PropertyEvent};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags};
 use crate::{client, screen};
 
+fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) {
+    debug!("{}: win={}", function_name!(), event.window);
+}
+
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
-    if let Some(mut client) = subtle.find_client_mut(event.event) {
+    if let Some(client) = subtle.find_client_mut(event.event) {
         if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
             let _ = client.focus(subtle, false);
         }
@@ -43,8 +46,17 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) {
     debug!("{}: win={}, count={}", function_name!(), event.window, event.count);
 }
 
-fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) {
-    debug!("{}: win={}", function_name!(), event.window);
+fn handle_focus(subtle: &Subtle, event: FocusInEvent) {
+
+    // Remove urgent after getting focus
+    if let Some(mut client) = subtle.find_client_mut(event.event) {
+        if client.flags.contains(ClientFlags::MODE_URGENT) {
+            client.flags.remove(ClientFlags::MODE_URGENT);
+            subtle.urgent_tags.replace(subtle.urgent_tags.get() - client.tags);
+        }
+    }
+
+    debug!("{}: win={}", function_name!(), event.event);
 }
 
 fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
@@ -154,7 +166,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     // Set grabs and focus first client if any
     //sub_GrabSet(ROOT, SUB_GRAB_KEY) // TODO grabs
 
-    if let Some(mut client) = client::find_next(subtle, 0, false) {
+    if let Some(client) = client::find_next(subtle, 0, false) {
         client.focus(subtle, true)?;
     }
 
@@ -163,9 +175,10 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         if let Some(event) = conn.poll_for_event()? {
             match event {
+                Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
                 Event::EnterNotify(evt) => handle_enter(subtle, evt),
                 Event::Expose(evt) => handle_expose(subtle, evt),
-                Event::DestroyNotify(evt) => handle_destroy(subtle, evt),
+                Event::FocusIn(evt) => handle_focus(subtle, evt),
                 Event::MapRequest(evt) => handle_map_request(subtle, evt),
                 Event::PropertyNotify(evt) => handle_property(subtle, evt),
                 Event::SelectionClear(evt) => handle_selection(subtle, evt),

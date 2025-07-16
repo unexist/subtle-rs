@@ -10,21 +10,17 @@
 ///
 
 use std::fmt;
-use std::ops::Div;
-use x11rb::protocol::xproto::{change_window_attributes, Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, InputFocus, PropMode, Rectangle, SetMode, Window, CLIENT_MESSAGE_EVENT};
-use bitflags::{bitflags, Flags};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, Window, CLIENT_MESSAGE_EVENT};
+use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
-use log::{debug, warn};
+use log::debug;
 use stdext::function_name;
+use veccell::VecRef;
 use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
-use x11rb::protocol::Event::ClientMessage;
-use x11rb::protocol::randr::ModeFlag;
-use x11rb::protocol::Request::ChangeWindowAttributes;
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::ewmh::{Atoms, AtomsCookie};
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
 use crate::screen::{Screen, ScreenFlags};
@@ -468,19 +464,13 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn focus(&mut self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
+    pub(crate) fn focus(&self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
         if !self.is_visible(subtle) {
             return Ok(());
         }
 
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
-
-        // Remove urgent after getting focus
-        if self.flags.contains(ClientFlags::MODE_URGENT) {
-            self.flags.remove(ClientFlags::MODE_URGENT);
-            subtle.urgent_tags.replace(subtle.urgent_tags.get() - self.tags);
-        }
 
         // Unset current focus
         if let Some(win) = subtle.focus_history.borrow(0) {
@@ -864,6 +854,10 @@ impl Client {
             || self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
     }
 
+    pub(crate) fn is_alive(&self) -> bool {
+        self.flags.contains(ClientFlags::DEAD)
+    }
+
     pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -1121,7 +1115,35 @@ fn default_gravity(subtle: &Subtle) -> isize {
     grav
 }
 
-pub(crate) fn find_next(subtle: &Subtle, screen_id: usize, jump_to_win: bool) -> Option<Client> {
+pub(crate) fn find_next(subtle: &Subtle, screen_id: usize, jump_to_win: bool) -> Option<VecRef<Client>> {
+    // Pass 1: Check focus history of current screen
+    for win in subtle.focus_history.iter() {
+        if let Some(client) = subtle.find_client(*win) {
+            if client.screen_id == screen_id && client.is_alive() && client.is_visible(subtle)
+                && subtle.find_focus_win() != client.win
+            {
+                return Some(client)
+            }
+        }
+    }
+
+    // Pass 2: Check client stacking list backwards of current screen
+    for client in subtle.clients.iter() {
+        if client.screen_id == screen_id && client.is_alive() && client.is_visible(subtle)
+            && subtle.find_focus_win() != client.win
+        {
+            return Some(client)
+        }
+    }
+
+    // Pass 3: Check client stacking list backwards of any visible screen
+    for idx in (0..subtle.clients.len() - 1).rev() {
+        if let Some(client) = subtle.clients.borrow(idx) {
+
+        }
+    }
+
+
     debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
 
     None
