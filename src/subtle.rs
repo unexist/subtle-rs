@@ -124,6 +124,16 @@ impl Subtle {
         }
     }
 
+    pub(crate) fn find_focus_client(&self) -> Option<VecRef<Client>> {
+        if let Some(win) = self.focus_history.borrow(0) {
+            if let Some(focus) = self.find_client(*win) {
+                return self.find_client(*win)
+            }
+        }
+
+        None
+    }
+
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
         for (idx, screen) in self.screens.iter().enumerate() {
             if x >= screen.base.x && x < screen.base.x + screen.base.width as i16
