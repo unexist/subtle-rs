@@ -117,60 +117,102 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
 }
 
 pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
     let mut visible_tags = Tagging::empty();
     let mut visible_views = Tagging::empty();
     let mut client_tags = Tagging::empty();
 
-    // Check each client
-    for client in subtle.clients.iter() {
-        let mut gravity_id: usize = 0;
-        let mut screen_id: usize = 0;
-        let mut view_id: usize = 0;
-        let mut visible = 0;
+    // Either check each client or just get visible clients
+    if 0 < subtle.clients.len() {
+        // Check each client
+        for client in subtle.clients.iter() {
+            let mut gravity_id: isize = 0;
+            let mut screen_id: usize = 0;
+            let mut view_id: usize = 0;
+            let mut visible = 0;
 
-        if client.flags.contains(ClientFlags::DEAD) {
-            continue;
-        }
+            // Ignore dead or just iconified clients
+            if client.flags.contains(ClientFlags::DEAD) {
+                continue;
+            }
 
-        // Set available client tags to ease lookups
-        client_tags.insert(client.tags);
+            // Set available client tags to ease lookups
+            client_tags.insert(client.tags);
 
-        for (j, screen) in subtle.screens.iter().enumerate() {
-            let view = &subtle.views[screen.view_id];
+            for (idx, screen) in subtle.screens.iter().enumerate() {
+                let view = &subtle.views[screen.view_id];
 
-            // Set visible tags and views tgo ease lookups
-            visible_tags.insert(view.tags);
-            visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
+                // Set visible tags and views tgo ease lookups
+                visible_tags.insert(view.tags);
+                visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
 
-            if visible_tags.contains(view.tags) {
-                // Keep screen when sticky
-                if client.flags.contains(ClientFlags::MODE_STICK) {
-                    let screen = &subtle.screens[client.screen_id];
+                if visible_tags.contains(view.tags) {
+                    // Keep screen when sticky
+                    if client.flags.contains(ClientFlags::MODE_STICK) {
+                        let screen = &subtle.screens[client.screen_id];
 
-                    screen_id = client.screen_id;
-                } else {
-                    screen_id = j;
+                        screen_id = client.screen_id;
+                    } else {
+                        screen_id = idx;
+                    }
+
+                    view_id = screen.view_id;
+                    gravity_id = client.gravities[screen.view_id] as isize;
+                    visible += 1;
                 }
-                
-                view_id = screen.view_id;
-                gravity_id = client.gravities[screen.view_id];
-                visible += 1;
+            }
+
+            // After all screens are checked..
+            if 0 < visible {
+                client.arrange(subtle, gravity_id, screen_id)?;
+                client.set_wm_state(subtle, WMState::NormalState)?;
+                client.map(subtle)?;
+
+                // Warp after gravity and screen have been set if not disabled
+                if client.flags.contains(ClientFlags::MODE_URGENT)
+                    && !subtle.flags.contains(SubtleFlags::SKIP_URGENT_WARP)
+                    && !subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP) {
+                    client.warp(subtle)?;
+                }
+
+                // EWMH: Desktop, screen
+                conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_WM_DESKTOP,
+                                       AtomEnum::CARDINAL, &[view_id as u32])?.check()?;
+
+                conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
+                                       AtomEnum::CARDINAL, &[screen_id as u32])?.check()?;
+            } else {
+                //client.flags.insert(ClientFlags::UNMAP); // TODO
+
+                client.set_wm_state(subtle, WMState::WithdrawnState)?;
+                client.unmap(subtle)?;
             }
         }
-        
-        // After all screens are checked..
-        if 0 < visible {
-            client.set_wm_state(subtle, WMState::NormalState)?;
-            client.map(subtle)?;
-        } else {
-            client.set_wm_state(subtle, WMState::WithdrawnState)?;
-            client.unmap(subtle)?;
+    } else {
+        // Check views of each screen
+        for screen in subtle.screens.iter() {
+            if let Some(view) = subtle.views.get(screen.view_id) {
+                visible_tags |= view.tags;
+                visible_views |= Tagging::from_bits_retain(1 << (screen.view_id + 1));
+            }
         }
     }
 
     subtle.visible_tags.replace(visible_tags);
     subtle.visible_views.replace(visible_views);
     subtle.client_tags.replace(client_tags);
+
+    // EWMH: Visible tags, views
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_TAGS,
+                           AtomEnum::CARDINAL, &[visible_tags.bits()])?.check()?;
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_TAGS,
+                           AtomEnum::CARDINAL, &[visible_views.bits()])?.check()?;
+
+    conn.flush()?;
 
     debug!("{}", function_name!());
     
