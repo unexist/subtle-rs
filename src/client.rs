@@ -744,6 +744,12 @@ impl Client {
         Ok(())
     }
 
+    pub(crate) fn arrange(&self, subtle: &Subtle, gravity_id: isize, screen_id: usize) -> Result<()> {
+        debug!("{}", function_name!());
+
+        Ok(())
+    }
+
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
         if use_size_hints {
             self.check_bounds(bounds, false, false);
@@ -833,10 +839,18 @@ impl Client {
         Ok(())
     }
 
+    pub(crate) fn warp(&self, subtle: &Subtle) -> Result<()> {
+        debug!("{}", function_name!());
+
+        Ok(())
+    }
+
     pub(crate) fn map(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
         conn.map_window(self.win)?.check()?;
+
+        debug!("{}", function_name!());
 
         Ok(())
     }
@@ -845,6 +859,8 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
 
         conn.unmap_window(self.win)?.check()?;
+
+        debug!("{}", function_name!());
 
         Ok(())
     }
@@ -1137,12 +1153,18 @@ pub(crate) fn find_next(subtle: &Subtle, screen_id: usize, jump_to_win: bool) ->
     }
 
     // Pass 3: Check client stacking list backwards of any visible screen
-    for idx in (0..subtle.clients.len() - 1).rev() {
-        if let Some(client) = subtle.clients.borrow(idx) {
+    if 1 < subtle.clients.len() && jump_to_win {
+        for idx in (0..subtle.clients.len() - 1).rev() {
+            if let Some(client) = subtle.clients.borrow(idx) {
+                if client.is_alive() && client.is_visible(subtle)
+                    && subtle.find_focus_win() != client.win
+                {
+                    return Some(client)
 
+                }
+            }
         }
     }
-
 
     debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
 
