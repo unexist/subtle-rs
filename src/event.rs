@@ -17,7 +17,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
-use crate::client::{Client, ClientFlags};
+use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
 
 fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) {
@@ -126,18 +126,45 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) {
 
 fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) {
     // Check if we know the window
-    let client = subtle.find_client(event.window);
+    if let Some(mut client) = subtle.find_client_mut(event.window) {
+        client.flags.remove(ClientFlags::DEAD);
+        client.flags.insert(ClientFlags::ARRANGE);
 
-    if client.is_some() {
+        let _ = screen::configure(subtle);
+        screen::update(subtle);
         screen::render(subtle);
-    } else {
-        let _map_client = Client::new(subtle, event.window);
+    } else if let Ok(client) = Client::new(subtle, event.window) {
+        //subtle.clients.push(client);
+
     }
 
     debug!("{}: win={}", function_name!(), event.window);
 }
 
 fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) {
+    // Check if we know the window
+    if let Some(mut client) = subtle.find_client_mut(event.window) {
+        // Set withdrawn state (see ICCCM 4.1.4)
+        let _ = client.set_wm_state(subtle, WMState::WithdrawnState);
+
+        // Ignore our generated unmap events
+        if client.flags.contains(ClientFlags::UNMAP) {
+            client.flags.remove(ClientFlags::UNMAP);
+
+            return;
+        }
+
+        // Kill client
+        //subtle.clients.pop(client);
+        //client.kill(subtle);
+
+        let _ = client::publish(subtle, false);
+
+        let _ = screen::configure(subtle);
+        screen::update(subtle);
+        screen::render(subtle);
+    }
+
     debug!("{}: win={}", function_name!(), event.window);
 }
 
