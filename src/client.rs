@@ -11,15 +11,16 @@
 
 use std::fmt;
 use std::ops::Div;
-use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, PropMode, Rectangle, SetMode, Window};
+use x11rb::protocol::xproto::{change_window_attributes, Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, InputFocus, PropMode, Rectangle, SetMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::{bitflags, Flags};
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::NONE;
+use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
+use x11rb::protocol::Event::ClientMessage;
 use x11rb::protocol::randr::ModeFlag;
 use x11rb::protocol::Request::ChangeWindowAttributes;
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
@@ -460,23 +461,73 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn focus(&mut self, subtle: &Subtle, warp_pointer: bool) {
+    pub(crate) fn focus(&mut self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
         if !self.is_visible(subtle) {
-            return;
+            return Ok(());
         }
+
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
 
         // Remove urgent after getting focus
         if self.flags.contains(ClientFlags::MODE_URGENT) {
             self.flags.remove(ClientFlags::MODE_URGENT);
-            //subtle.urgent_tags.remove(self.tags); // TODO urgent
+            subtle.urgent_tags.replace(subtle.urgent_tags.get() - self.tags);
         }
 
         // Unset current focus
         if let Some(win) = subtle.focus_history.borrow(0) {
             if let Some(focus) = subtle.find_client(*win) {
-                //subGrabUnset
+                //subGrabUnset // TODO Grabs
+
+                // Reorder focus history
+                // TODO
+
+                if !focus.flags.contains(ClientFlags::TYPE_DESKTOP) {
+                    let aux = ChangeWindowAttributesAux::default()
+                        .border_pixel(subtle.styles.clients.bg);
+
+                    conn.change_window_attributes(focus.win, &aux)?.check()?;
+                }
             }
         }
+
+        // Check client input focus type (see ICCCM 4.1.7, 4.1.2.7, 4.2.8)
+        if !self.flags.contains(ClientFlags::INPUT) && self.flags.contains(ClientFlags::FOCUS) {
+            conn.send_event(false, self.win, EventMask::NO_EVENT, ClientMessageEvent {
+                response_type: CLIENT_MESSAGE_EVENT,
+                format: 32,
+                sequence: 0,
+                window: self.win,
+                type_: atoms.WM_PROTOCOLS,
+                data: [atoms.WM_TAKE_FOCUS, CURRENT_TIME, 0, 0, 0].try_into()?,
+            })?.check()?;
+        } else if self.flags.contains(ClientFlags::INPUT) {
+            conn.set_input_focus(InputFocus::POINTER_ROOT, self.win, CURRENT_TIME)?.check()?;
+        }
+
+        // Update focus
+        //subtle.focus_history.remove()
+        //subGrabSet // TODO Grabs
+
+        // Exclude desktop and dock type windows
+        if !self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
+            let aux = ChangeWindowAttributesAux::default()
+                .border_pixel(subtle.styles.clients.fg);
+
+            conn.change_window_attributes(self.win, &aux)?.check()?;
+        }
+
+        // EWMH: Active window
+        let screen = &conn.setup().roots[subtle.screen_num];
+
+        let list = subtle.focus_history.inner().iter()
+            .map(|elem| elem.get() as u32).collect::<Vec<_>>();
+
+        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_ACTIVE_WINDOW,
+                               AtomEnum::WINDOW, list.as_slice())?.check()?;
+
+        Ok(())
     }
 
     pub(crate) fn toggle(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags, set_gravity: bool) -> Result<()> {
@@ -821,7 +872,7 @@ impl Client {
 
         // Remove client tags from urgent tags
         if self.flags.contains(ClientFlags::MODE_URGENT) {
-            subtle.urgent_tags.replace(subtle.urgent_tags.get().difference(self.tags));
+            subtle.urgent_tags.replace(subtle.urgent_tags.get() - self.tags);
         }
 
         // Tile remaining clients if necessary
