@@ -11,9 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use x11rb::protocol::render::Color;
 use crate::font::Font;
-use crate::screen::Screen;
 
 bitflags! {
     #[derive(Default, Debug)]

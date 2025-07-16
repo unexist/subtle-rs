@@ -1,4 +1,4 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables, unused_assignments))]
+#![cfg_attr(debug_assertions, allow(dead_code, unused_variables, unused_assignments))]
 
 ///
 /// @package subtle-rs
@@ -32,8 +32,8 @@ mod font;
 
 use std::env;
 use std::env::current_exe;
-use std::sync::{atomic, Arc};
-use anyhow::{anyhow, Context, Result};
+use std::sync::Arc;
+use anyhow::{anyhow, Result};
 use log::{debug, error, info};
 use crate::config::Config;
 use crate::subtle::{SubtleFlags, Subtle};

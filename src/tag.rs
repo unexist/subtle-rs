@@ -16,11 +16,10 @@ use anyhow::{anyhow, Result};
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, PropMode, Rectangle};
+use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::client::Client;
 use crate::config::{Config, MixedConfigVal};
-use crate::gravity::Gravity;
 use crate::subtle::Subtle;
 
 bitflags! {

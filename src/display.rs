@@ -19,8 +19,7 @@ use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
 use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, FontWrapper, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
-use crate::client::{Client};
-use crate::ewmh::AtomsCookie;
+use crate::client::Client;
 use crate::subtle::SubtleFlags;
 
 // Taken from /usr/include/X11/cursorfont.h

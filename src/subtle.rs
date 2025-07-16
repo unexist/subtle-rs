@@ -16,11 +16,11 @@ use crate::tag::Tag;
 use crate::view::View;
 use bitflags::bitflags;
 use std::cell::{Cell, OnceCell};
-use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use veccell::{VecCell, VecRef, VecRefMut};
 use x11rb::connection::Connection;
+use x11rb::NONE;
 use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Grab, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
@@ -132,6 +132,14 @@ impl Subtle {
         }
 
         None
+    }
+
+    pub(crate) fn find_focus_win(&self) -> Window {
+        if let Some(win) = self.focus_history.borrow(0) {
+            return *win
+        }
+
+        NONE
     }
 
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {

@@ -18,12 +18,11 @@ use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{AtomEnum, MapState, PropMode, Rectangle};
+use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt;
 use crate::config::Config;
-use crate::subtle::SubtleFlags;
-use crate::subtle::Subtle;
-use crate::client::{Client, ClientFlags, WMState};
+use crate::subtle::{SubtleFlags, Subtle};
+use crate::client::{ClientFlags, WMState};
 use crate::tagging::Tagging;
 
 bitflags! {
