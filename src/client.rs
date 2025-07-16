@@ -158,6 +158,13 @@ impl Client {
             ..Self::default()
         };
 
+        // Init gravities
+        let grav = default_gravity(subtle);
+
+        for i in 0..subtle.views.len() {
+            client.gravities.push(grav as usize);
+        }
+
         // Update client
         let mut mode_flags = ClientFlags::empty();
 
@@ -1098,6 +1105,26 @@ impl fmt::Display for Client {
                self.geom.x, self.geom.y, self.geom.width, self.geom.height,
                self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS))
     }
+}
+
+fn default_gravity(subtle: &Subtle) -> isize {
+    let mut grav: isize = 0;
+
+    if -1 == subtle.default_gravity {
+        if let Some(focus) = subtle.find_focus_client() {
+            grav = focus.gravity_id;
+        }
+    } else {
+        grav = subtle.default_gravity;
+    }
+
+    grav
+}
+
+pub(crate) fn find_next(subtle: &Subtle, screen_id: usize, jump_to_win: bool) -> Option<Client> {
+    debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
+
+    None
 }
 
 pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
