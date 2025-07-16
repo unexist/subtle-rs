@@ -19,7 +19,7 @@ use x11rb::protocol::Event;
 use x11rb::protocol::xinput::{EnterEvent, PropertyEvent};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags};
-use crate::screen;
+use crate::{client, screen};
 
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) {
     if let Some(mut client) = subtle.find_client_mut(event.event) {
@@ -154,8 +154,8 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     // Set grabs and focus first client if any
     //sub_GrabSet(ROOT, SUB_GRAB_KEY) // TODO grabs
 
-    if let Some(client) = client::find_next(0, false)) {
-        client.focus(subtle)?;
+    if let Some(mut client) = client::find_next(subtle, 0, false) {
+        client.focus(subtle, true)?;
     }
 
     while !subtle.exterminate.load(atomic::Ordering::SeqCst) {
