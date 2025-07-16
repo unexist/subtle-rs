@@ -103,6 +103,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         .event_mask(EventMask::STRUCTURE_NOTIFY
             | EventMask::SUBSTRUCTURE_NOTIFY
             | EventMask::SUBSTRUCTURE_REDIRECT
+            | EventMask::FOCUS_CHANGE
             | EventMask::PROPERTY_CHANGE);
 
     conn.change_window_attributes(screen.root, &aux)?.check()?;
