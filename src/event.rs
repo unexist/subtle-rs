@@ -14,13 +14,46 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureRequestEvent, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt,
+                              DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent,
+                              MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent,
+                              UnmapNotifyEvent
+};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
 
 fn handle_configure(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    // Complicated request! (see ICCCM 4.1.5)
+    // No change    -> Synthetic ConfigureNotify
+    // Move/restack -> Synthetic + real ConfigureNotify
+    // Resize       -> Real ConfigureNotify
+
+    if let Some(client) = subtle.find_client_mut(event.window) {
+        // Check flags if the request is important
+        if !client.flags.contains(ClientFlags::MODE_FULL)
+            && subtle.flags.contains(SubtleFlags::RESIZE)
+            || client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE)
+        {
+            let screen = subtle.screens.get(client.screen_id);
+        }
+    // Unmanaged window
+    } else {
+        let aux = ConfigureWindowAux::default()
+            .x(event.x as i32)
+            .y(event.y as i32)
+            .width(event.width as u32)
+            .height(event.height as u32)
+            .border_width(0)
+            .sibling(event.sibling)
+            .stack_mode(event.stack_mode);
+
+        conn.configure_window(event.window, &aux)?.check()?;
+    }
+
     Ok(())
 }
 
