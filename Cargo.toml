@@ -28,6 +28,7 @@ veccell = "0.4.0"
 exec = "0.3.1"
 stdext = "0.3.3"
 struct_iterable = "0.1.1"
+hex_color = "3.0.0"
 
 [dev-dependencies]
 proptest = "1.7.0"
