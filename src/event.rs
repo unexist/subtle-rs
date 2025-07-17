@@ -38,7 +38,7 @@ fn handle_configure(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()>
             && subtle.flags.contains(SubtleFlags::RESIZE)
             || client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE)
         {
-            let screen = subtle.screens.get(client.screen_id);
+            let screen = subtle.screens.get(client.screen_id as usize);
         }
     // Unmanaged window
     } else {
