@@ -127,7 +127,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     // Either check each client or just get visible clients
     if 0 < subtle.clients.len() {
         // Check each client
-        for client in subtle.clients.iter() {
+        for (client_idx, client) in subtle.clients.iter().enumerate() {
             let mut gravity_id: isize = 0;
             let mut screen_id: usize = 0;
             let mut view_id: usize = 0;
@@ -141,7 +141,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             // Set available client tags to ease lookups
             client_tags.insert(client.tags);
 
-            for (idx, screen) in subtle.screens.iter().enumerate() {
+            for (screen_idx, screen) in subtle.screens.iter().enumerate() {
                 let view = &subtle.views[screen.view_id];
 
                 // Set visible tags and views tgo ease lookups
@@ -151,11 +151,11 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 if visible_tags.contains(view.tags) {
                     // Keep screen when sticky
                     if client.flags.contains(ClientFlags::MODE_STICK) {
-                        let screen = &subtle.screens[client.screen_id];
+                        let screen = &subtle.screens[client.screen_id as usize];
 
-                        screen_id = client.screen_id;
+                        screen_id = client.screen_id as usize;
                     } else {
-                        screen_id = idx;
+                        screen_id = screen_idx;
                     }
 
                     view_id = screen.view_id;
@@ -166,7 +166,10 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
             // After all screens are checked..
             if 0 < visible {
-                client.arrange(subtle, gravity_id, screen_id)?;
+                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
+                    mut_client.arrange(subtle, gravity_id, screen_id as isize)?;
+                }
+                
                 client.set_wm_state(subtle, WMState::NormalState)?;
                 client.map(subtle)?;
 
