@@ -841,11 +841,11 @@ impl Client {
             {
                 self.gravity_tile(subtle, gravity_id, if -1 == screen_id { 0 } else { screen_id })?;
             } else {
-                let mut bounds = Rectangle::default();
+                let mut bounds = screen.geom;
 
                 // Set size for bounds
                 if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
-                    // ClientZaphod(c, &bounds); // TODO zaphod
+                    calc_zaphod(subtle, &mut bounds)?;
                 }
 
                 if maybe_gravity.is_some() {
@@ -862,7 +862,7 @@ impl Client {
 
         conn.flush()?;
 
-        debug!("{}", function_name!());
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -909,6 +909,8 @@ impl Client {
             }
         }
 
+        debug!("{}: client={}", function_name!(), self);
+
         Ok(())
     }
 
@@ -929,6 +931,8 @@ impl Client {
             .height(self.geom.height as u32);
 
         conn.configure_window(self.win, &aux)?.check()?;
+
+        debug!("{}", function_name!());
 
         Ok(())
     }
@@ -1188,10 +1192,11 @@ impl Client {
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "name={}, instance={}, class={}, role={}, win={}, leader={}, \
-            geom=(x={}, y={}, width={}, height={}), input={}, focus={}",
+            geom=(x={}, y={}, width={}, height={}), input={}, focus={}, tags={:?}",
                self.name, self.instance, self.klass, self.role, self.win, self.leader,
                self.geom.x, self.geom.y, self.geom.width, self.geom.height,
-               self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS))
+               self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS),
+               self.tags)
     }
 }
 
