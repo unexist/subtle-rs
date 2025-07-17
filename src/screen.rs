@@ -142,41 +142,40 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             client_tags.insert(client.tags);
 
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
-                let view = &subtle.views[screen.view_id];
+                if let Some(view) = subtle.views.get(screen.view_id) {
 
-                // Set visible tags and views tgo ease lookups
-                visible_tags.insert(view.tags);
-                visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
+                    // Set visible tags and views tgo ease lookups
+                    visible_tags.insert(view.tags);
+                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
 
-                if visible_tags.contains(view.tags) {
-                    // Keep screen when sticky
-                    if client.flags.contains(ClientFlags::MODE_STICK) {
-                        let screen = &subtle.screens[client.screen_id as usize];
+                    if visible_tags.contains(view.tags) {
+                        // Keep screen when sticky
+                        if client.flags.contains(ClientFlags::MODE_STICK)
+                            && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
+                        {
+                            view_id = client_screen.view_id;
+                            screen_id = client.screen_id as usize;
+                        } else {
+                            view_id = screen.view_id;
+                            screen_id = screen_idx;
+                        }
 
-                        screen_id = client.screen_id as usize;
-                    } else {
-                        screen_id = screen_idx;
+                        gravity_id = client.gravities[screen.view_id] as isize;
+                        visible += 1;
                     }
-
-                    view_id = screen.view_id;
-                    gravity_id = client.gravities[screen.view_id] as isize;
-                    visible += 1;
                 }
             }
 
             // After all screens are checked..
             if 0 < visible {
-                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
-                    mut_client.arrange(subtle, gravity_id, screen_id as isize)?;
-                }
-                
                 client.set_wm_state(subtle, WMState::NormalState)?;
                 client.map(subtle)?;
 
                 // Warp after gravity and screen have been set if not disabled
                 if client.flags.contains(ClientFlags::MODE_URGENT)
                     && !subtle.flags.contains(SubtleFlags::SKIP_URGENT_WARP)
-                    && !subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP) {
+                    && !subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP)
+                {
                     client.warp(subtle)?;
                 }
 
@@ -186,11 +185,24 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
                 conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
                                        AtomEnum::CARDINAL, &[screen_id as u32])?.check()?;
-            } else {
-                //client.flags.insert(ClientFlags::UNMAP); // TODO
 
+                // Drop and re-borrow mut this time
+                drop(client);
+
+                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
+                    println!("??");
+                    mut_client.arrange(subtle, gravity_id, screen_id as isize)?;
+                }
+            } else {
                 client.set_wm_state(subtle, WMState::WithdrawnState)?;
                 client.unmap(subtle)?;
+
+                // Drop and re-borrow mut this time
+                drop(client);
+
+                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
+                    mut_client.flags.insert(ClientFlags::UNMAP);
+                }
             }
         }
     } else {
