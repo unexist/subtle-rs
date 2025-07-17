@@ -122,10 +122,11 @@ foreground = "#fecf35"
 
 # Style for active/inactive windows
 [styles.clients]
-active = ["#303030", 2]
-inactive = ["#202020", 2]
+active = "#303030"
+inactive = "#202020"
 margin = 0
 width = 50
+border_width = 2
 
 # Style for tray
 #[styles.tray]
@@ -568,7 +569,7 @@ window_kill = "W-S-k"
 
 # Simple tags
 [tags.terms]
-match = "xterm|[u]?rxvt"
+match = "xterm|[u]?rxvt|alacritty"
 
 [tags.browser]
 match = "opera|firefox|(google-)?chrom[e|ium]"
