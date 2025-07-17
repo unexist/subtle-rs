@@ -869,7 +869,7 @@ impl Client {
 
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
         if use_size_hints {
-            self.check_bounds(bounds, false, false);
+            self.check_bounds(subtle, bounds, false, false);
         }
 
         if !self.flags.contains(ClientFlags::MODE_FULL | ClientFlags::TYPE_DOCK) {
@@ -1131,12 +1131,14 @@ impl Client {
         }
     }
 
-    fn check_bounds(&mut self, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
+    fn check_bounds(&mut self, subtle: &Subtle, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
         if !self.flags.contains(ClientFlags::MODE_FIXED)
             && (self.flags.contains(ClientFlags::MODE_RESIZE)
             || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE))
         {
-            let border_width = if self.flags.contains(ClientFlags::MODE_BORDERLESS) { 0 } else { 1 }; // TODO BORDER
+            let border_width = (2 * self.get_border_width(subtle)
+                + subtle.styles.clients.margin.left
+                + subtle.styles.clients.margin.right) as u16;
 
             // Calculate max width and max height for bounds
             let max_width = if -1 == self.max_width {
