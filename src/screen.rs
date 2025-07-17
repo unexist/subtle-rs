@@ -190,7 +190,6 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 drop(client);
 
                 if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
-                    println!("??");
                     mut_client.arrange(subtle, gravity_id, screen_id as isize)?;
                 }
             } else {
