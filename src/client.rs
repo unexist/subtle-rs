@@ -104,7 +104,7 @@ pub(crate) struct Client {
     pub(crate) base_width: u16,
     pub(crate) base_height: u16,
 
-    pub(crate) screen_id: usize,
+    pub(crate) screen_id: isize,
     pub(crate) gravity_id: isize,
     
     pub(crate) geom: Rectangle,
@@ -155,7 +155,7 @@ impl Client {
         };
 
         // Init gravities
-        let grav = default_gravity(subtle);
+        let grav = get_default_gravity(subtle);
 
         for i in 0..subtle.views.len() {
             client.gravities.push(grav as usize);
@@ -567,7 +567,7 @@ impl Client {
                             }
                         }
                     } else if let Some((idx, _)) = subtle.find_screen_by_pointer() {
-                        self.screen_id = idx;
+                        self.screen_id = idx as isize;
                     }
                 }
             }
@@ -587,7 +587,7 @@ impl Client {
                 // Apparently, some broken clients just violate that, so we exclude fixed
                 // windows with min != screen size from fullscreen
                 if self.flags.contains(ClientFlags::MODE_FIXED) {
-                    if let Some(screen) = subtle.screens.get(self.screen_id) {
+                    if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
                         if screen.base.width != self.min_width || screen.base.height != self.min_height {
                             mode_flags.remove(ClientFlags::MODE_FULL);
                         }
@@ -626,7 +626,7 @@ impl Client {
                 self.flags.remove(ClientFlags::MODE_FLOAT);
                 self.flags.insert(ClientFlags::ARRANGE);
             } else {
-                if let Some(screen) = subtle.screens.get(self.screen_id) {
+                if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
                     debug!("client={}, screen={}", self, screen);
                     // Set to screen center
                     self.geom.x = screen.geom.x + (screen.geom.width as i16 - self.geom.width as i16 - 2 * 1) / 2; // TODO BORDER
@@ -647,7 +647,7 @@ impl Client {
 
             // Special treatment
             if mode_flags.contains(ClientFlags::TYPE_DESKTOP) {
-                if let Some(screen) = subtle.screens.get(self.screen_id) {
+                if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
                     self.geom = screen.base;
 
                     // Add panel heights without struts
@@ -744,7 +744,124 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn arrange(&self, subtle: &Subtle, gravity_id: isize, screen_id: usize) -> Result<()> {
+    pub(crate) fn arrange(&mut self, subtle: &Subtle, gravity_id: isize, screen_id: isize) -> Result<()> {
+        ignore_if_dead!(self);
+
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let screen = subtle.screens.get(screen_id as usize).unwrap();
+
+        // Check flags
+        if self.flags.contains(ClientFlags::MODE_FULL) {
+            let mut aux = ConfigureWindowAux::default();
+
+            // Use all screens in zaphod mode
+            if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
+                aux = aux.x(0)
+                    .y(0)
+                    .width(subtle.width as u32)
+                    .height(subtle.height as u32);
+            } else if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
+                aux = aux.x(screen.base.x as i32)
+                    .y(screen.base.y as i32)
+                    .width(screen.base.width as u32)
+                    .height(screen.base.height as u32);
+            }
+
+            conn.configure_window(self.win, &aux)?.check()?;
+
+            //XRaiseWindow(subtle->dpy, c->win); // TODO
+        } else if self.flags.contains(ClientFlags::MODE_FLOAT) {
+            if self.flags.contains(ClientFlags::ARRANGE)
+                || (-1 != screen_id && self.screen_id != screen_id)
+            {
+                if let Some(old_screen) = subtle.screens.get(
+                    (if -1 != self.screen_id { self.screen_id } else { 0 }) as usize)
+                {
+                    if screen_id != self.screen_id {
+                        self.geom.x = self.geom.x - old_screen.geom.x + screen.geom.x;
+                        self.geom.y = self.geom.y - old_screen.geom.y + screen.geom.y;
+                        self.screen_id = screen_id;
+                    }
+                }
+
+                // Finally resize window
+                self.resize(subtle, &screen.geom, true)?;
+
+                conn.configure_window(self.win, &ConfigureWindowAux::default()
+                    .x(self.geom.x as i32)
+                    .y(self.geom.y as i32)
+                    .width(self.geom.width as u32)
+                    .height(self.geom.height as u32))?.check()?;
+            }
+        } else if self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
+            if self.flags.contains(ClientFlags::TYPE_DESKTOP) {
+                self.geom = screen.geom;
+            }
+
+            // Just use screen size for desktop windows
+            conn.configure_window(self.win, &ConfigureWindowAux::default()
+                .x(self.geom.x as i32)
+                .y(self.geom.y as i32)
+                .width(self.geom.width as u32)
+                .height(self.geom.height as u32))?.check()?;
+
+            //XLowerWindow() // TODO
+        } else if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_id != gravity_id
+            || self.screen_id != screen_id
+        {
+            let old_gravity_id = self.gravity_id;
+            let old_screen_id = self.screen_id;
+
+            // Set values
+            if -1 != screen_id {
+                self.screen_id = screen_id;
+            }
+
+            if -1 != gravity_id {
+                self.gravity_id = gravity_id;
+            }
+
+            // Gravity tiling
+            let maybe_old_gravity = subtle.gravities.get(old_gravity_id as usize);
+
+            if -1 != old_screen_id && (subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
+                || maybe_old_gravity.is_some() &&
+                    maybe_old_gravity.unwrap().flags.contains(GravityFlags::HORZ | GravityFlags::VERT))
+            {
+                self.gravity_tile(subtle, old_gravity_id, old_screen_id)?;
+            }
+
+            let maybe_gravity = subtle.gravities.get(gravity_id as usize);
+
+            if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
+                && (maybe_gravity.is_some()
+                    && maybe_gravity.unwrap().flags.contains(GravityFlags::HORZ | GravityFlags::VERT))
+            {
+                self.gravity_tile(subtle, gravity_id, if -1 == screen_id { 0 } else { screen_id })?;
+            } else {
+                let mut bounds = Rectangle::default();
+
+                // Set size for bounds
+                if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
+                    // ClientZaphod(c, &bounds); // TODO zaphod
+                }
+
+                if maybe_gravity.is_some() {
+                    maybe_gravity.unwrap().calc_geometry(&bounds, &mut self.geom);
+                }
+
+                self.move_resize(subtle, &bounds)?;
+            }
+        }
+
+        // EWMH: Gravity
+        conn.change_property32(PropMode::REPLACE, self.win, atoms.SUBTLE_CLIENT_GRAVITY,
+                               AtomEnum::CARDINAL,&[self.gravity_id as u32])?.check()?;
+
+        conn.flush()?;
+
         debug!("{}", function_name!());
 
         Ok(())
@@ -791,6 +908,7 @@ impl Client {
                 }
             }
         }
+
         Ok(())
     }
 
@@ -820,20 +938,20 @@ impl Client {
 
         // Snap to screen border when value is in snap margin - X axis
         if (screen.geom.x - geom.x).abs() <= subtle.snap_size as i16 {
-            geom.x = screen.geom.x + self.border_width(subtle);
+            geom.x = screen.geom.x + self.get_border_width(subtle);
         } else if ((screen.geom.x + screen.geom.width as i16)
-            - (geom.x + geom.width as i16 + self.border_width(subtle))).abs() <= subtle.snap_size as i16
+            - (geom.x + geom.width as i16 + self.get_border_width(subtle))).abs() <= subtle.snap_size as i16
         {
-            geom.x = screen.geom.x + (screen.geom.width - geom.width) as i16 - self.border_width(subtle);
+            geom.x = screen.geom.x + (screen.geom.width - geom.width) as i16 - self.get_border_width(subtle);
         }
 
         // Snap to screen border when value is in snap margin - > Y Axis
         if (screen.geom.y - geom.y).abs() <= subtle.snap_size as i16 {
-            geom.y = screen.geom.y + self.border_width(subtle);
+            geom.y = screen.geom.y + self.get_border_width(subtle);
         } else if ((screen.geom.y + screen.geom.height as i16)
-            - (geom.y + geom.height as i16 + self.border_width(subtle))).abs() <= subtle.snap_size as i16
+            - (geom.y + geom.height as i16 + self.get_border_width(subtle))).abs() <= subtle.snap_size as i16
         {
-             geom.y = screen.geom.y + (screen.geom.height - geom.height) as i16 - self.border_width(subtle);
+             geom.y = screen.geom.y + (screen.geom.height - geom.height) as i16 - self.get_border_width(subtle);
         }
 
         Ok(())
@@ -925,10 +1043,10 @@ impl Client {
         Ok(())
     }
 
-    fn gravity_tile(&self, subtle: &mut Subtle, gravity_id: isize, screen_id: usize) -> Result<()> {
+    fn gravity_tile(&self, subtle: &Subtle, gravity_id: isize, screen_id: isize) -> Result<()> {
         let gravity = subtle.gravities.get(gravity_id as usize)
             .ok_or(anyhow!("Gravity not found"))?;
-        let screen = subtle.screens.get(screen_id)
+        let screen = subtle.screens.get(screen_id as usize)
             .ok_or(anyhow!("Screen not found"))?;
 
         // Pass 1: Count clients with this gravity
@@ -966,82 +1084,42 @@ impl Client {
         // Pass 2: Update geometry of every client with this gravity
         let mut pos = 0;
 
-        for client in subtle.clients.iter_mut() {
+        for (idx, client) in subtle.clients.iter().enumerate() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
+                let mut geom = Rectangle::default();
+
                 if gravity.flags.contains(GravityFlags::HORZ) {
-                    client.geom.x = geom.x + (pos * calc) as i16;
-                    client.geom.y = geom.y;
-                    client.geom.width = if pos == used { calc + round_fix } else { calc };
-                    client.geom.height = geom.height;
+                    geom.x = geom.x + (pos * calc) as i16;
+                    geom.y = geom.y;
+                    geom.width = if pos == used { calc + round_fix } else { calc };
+                    geom.height = geom.height;
 
                     pos += 1;
                 } else if gravity.flags.contains(GravityFlags::VERT) {
-                    client.geom.x = geom.x;
-                    client.geom.y = geom.y + (pos * calc) as i16;
-                    client.geom.width = geom.width;
-                    client.geom.height = if pos == used { calc + round_fix } else { calc };
+                    geom.x = geom.x;
+                    geom.y = geom.y + (pos * calc) as i16;
+                    geom.width = geom.width;
+                    geom.height = if pos == used { calc + round_fix } else { calc };
 
                     pos +=1;
                 }
 
-                //client.move_resize(subtle, &screen.geom)?
+                // Finally update client
+                if let Some(mut mut_client) = subtle.clients.borrow_mut(idx) {
+                    mut_client.geom = geom;
+
+                    mut_client.move_resize(subtle, &screen.geom)?;
+                }
             }
         }
 
         Ok(())
     }
 
-    fn get_gravity(&self, subtle: &Subtle) -> isize {
-        let mut grav_id= 0;
-
-        if -1 == grav_id {
-            // Copy gravity from current client
-            if let Some(win) = subtle.focus_history.borrow(0) {
-                if let Some(client) = subtle.find_client(*win) {
-                    grav_id = client.gravity_id;
-                }
-            }
-        } else {
-            grav_id = subtle.default_gravity;
-        }
-
-        grav_id
-    }
-
-    fn set_zaphod(&self, subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
-        let mut flags = ScreenFlags::PANEL1 | ScreenFlags::PANEL2;
-
-        // Update bounds according to styles
-        bounds.x = subtle.styles.clients.padding.left;
-        bounds.y = subtle.styles.clients.padding.top;
-        bounds.width = subtle.width - (subtle.styles.clients.padding.left -
-            subtle.styles.clients.padding.right) as u16;
-        bounds.height = subtle.height - (subtle.styles.clients.padding.top -
-            subtle.styles.clients.padding.bottom) as u16;
-
-        // Iterate over screens to find fitting square
-        for screen in subtle.screens.iter() {
-            if screen.flags.contains(flags) {
-                if screen.flags.contains(ScreenFlags::PANEL1) {
-                    bounds.y += subtle.panel_height as i16;
-                    bounds.height -= subtle.panel_height;
-                }
-
-                if screen.flags.contains(ScreenFlags::PANEL2) {
-                    bounds.height -= subtle.panel_height;
-                }
-
-                flags &= !(screen.flags & (ScreenFlags::PANEL1 | ScreenFlags::PANEL2));
-            }
-        }
-
-        Ok(())
-    }
-
-    fn border_width(&self, subtle: &Subtle) -> i16 {
+    fn get_border_width(&self, subtle: &Subtle) -> i16 {
         if self.flags.contains(ClientFlags::MODE_BORDERLESS) {
             0
         } else {
@@ -1117,21 +1195,48 @@ impl fmt::Display for Client {
     }
 }
 
-fn default_gravity(subtle: &Subtle) -> isize {
-    let mut grav: isize = 0;
+fn get_default_gravity(subtle: &Subtle) -> isize {
+    let mut grav: isize = subtle.default_gravity;
 
-    if -1 == subtle.default_gravity {
-        if let Some(focus) = subtle.find_focus_client() {
-            grav = focus.gravity_id;
-        }
-    } else {
-        grav = subtle.default_gravity;
+    // Get gravity from focus client
+    if -1 == subtle.default_gravity && let Some(focus) = subtle.find_focus_client() {
+        grav = focus.gravity_id;
     }
 
     grav
 }
 
-pub(crate) fn find_next(subtle: &Subtle, screen_id: usize, jump_to_win: bool) -> Option<VecRef<Client>> {
+fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
+    let mut flags = ScreenFlags::PANEL1 | ScreenFlags::PANEL2;
+
+    // Update bounds according to styles
+    bounds.x = subtle.styles.clients.padding.left;
+    bounds.y = subtle.styles.clients.padding.top;
+    bounds.width = subtle.width - (subtle.styles.clients.padding.left -
+        subtle.styles.clients.padding.right) as u16;
+    bounds.height = subtle.height - (subtle.styles.clients.padding.top -
+        subtle.styles.clients.padding.bottom) as u16;
+
+    // Iterate over screens to find fitting square
+    for screen in subtle.screens.iter() {
+        if screen.flags.contains(flags) {
+            if screen.flags.contains(ScreenFlags::PANEL1) {
+                bounds.y += subtle.panel_height as i16;
+                bounds.height -= subtle.panel_height;
+            }
+
+            if screen.flags.contains(ScreenFlags::PANEL2) {
+                bounds.height -= subtle.panel_height;
+            }
+
+            flags &= !(screen.flags & (ScreenFlags::PANEL1 | ScreenFlags::PANEL2));
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn find_next(subtle: &Subtle, screen_id: isize, jump_to_win: bool) -> Option<VecRef<Client>> {
     // Pass 1: Check focus history of current screen
     for win in subtle.focus_history.iter() {
         if let Some(client) = subtle.find_client(*win) {
