@@ -89,6 +89,8 @@ skip_urgent_warp = false
 # https://subtle.rs/projects/subtle/wiki/Multihead
 # https://subtle.rs/projects/subtle/wiki/Panel
 
+[styles]
+
 # Style for all style elements
 [styles.all]
 foreground = "#757575"
