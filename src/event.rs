@@ -14,17 +14,19 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt,
-                              DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent,
-                              MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent,
-                              UnmapNotifyEvent
-};
+use x11rb::protocol::xproto::{ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
 
-fn handle_configure(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()> {
+fn handle_configure(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
+    debug!("{}: win={}", function_name!(), event.window);
+
+    Ok(())
+}
+
+fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     // Complicated request! (see ICCCM 4.1.5)
@@ -32,13 +34,14 @@ fn handle_configure(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()>
     // Move/restack -> Synthetic + real ConfigureNotify
     // Resize       -> Real ConfigureNotify
 
+    // Check window
     if let Some(client) = subtle.find_client_mut(event.window) {
         // Check flags if the request is important
         if !client.flags.contains(ClientFlags::MODE_FULL)
             && subtle.flags.contains(SubtleFlags::RESIZE)
             || client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE)
         {
-            let screen = subtle.screens.get(client.screen_id as usize);
+            let maybe_screen = subtle.screens.get(client.screen_id as usize);
         }
     // Unmanaged window
     } else {
@@ -252,7 +255,8 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         if let Some(event) = conn.poll_for_event()? {
             match event {
-                Event::ConfigureRequest(evt) => handle_configure(subtle, evt)?,
+                Event::ConfigureNotify(evt) => handle_configure(subtle, evt)?,
+                Event::ConfigureRequest(evt) => handle_configure_request(subtle, evt)?,
                 Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
                 Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
                 Event::Expose(evt) => handle_expose(subtle, evt)?,
