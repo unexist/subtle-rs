@@ -266,7 +266,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
                 Event::UnmapNotify(evt) => handle_unmap(subtle, evt)?,
 
-                _ => println!("Unhandled event: {:?}", event),
+                _ => warn!("Unhandled event: {:?}", event),
             }
         }
     }
