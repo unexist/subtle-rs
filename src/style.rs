@@ -102,8 +102,6 @@ impl fmt::Display for Separator {
 fn parse_color(conn: &RustConnection, color: &str, cmap: Colormap) -> Result<u32> {
     let hex_color = HexColor::parse(color)?;
 
-    println!("{:?}", hex_color);
-
     Ok(conn.alloc_color(cmap, hex_color.r as u16, hex_color.g as u16, hex_color.b as u16)?.reply()?.pixel)
 }
 
@@ -117,8 +115,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             "clients" => {
                 if let Some(MixedConfigVal::S(color)) = values.get("active") {
                     subtle.styles.clients.fg = parse_color(conn, color, screen.default_colormap)?;
-                } else if let Some(MixedConfigVal::S(color)) = values.get("inactive") {
+                }
+
+                if let Some(MixedConfigVal::S(color)) = values.get("inactive") {
                     subtle.styles.clients.bg = parse_color(conn, color, screen.default_colormap)?;
+                }
+
+                if let Some(MixedConfigVal::I(bw)) = values.get("border_width") {
+                    subtle.styles.clients.border.top = *bw as i16;
                 }
             }
             _ => warn!("Unhandled style: {}", name),

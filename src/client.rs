@@ -124,7 +124,7 @@ impl Client {
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
-            .border_pixel(0) // TODO Styles
+            .border_pixel(subtle.styles.clients.bg)
             .event_mask(EventMask::PROPERTY_CHANGE
                 | EventMask::ENTER_WINDOW
                 | EventMask::FOCUS_CHANGE);
@@ -132,7 +132,7 @@ impl Client {
         conn.change_window_attributes(win, &aux)?.check()?;
 
         let aux = ConfigureWindowAux::default()
-            .border_width(0); // TODO Styles
+            .border_width(subtle.styles.clients.border.top as u32);
 
         conn.configure_window(win, &aux)?.check()?;
 
