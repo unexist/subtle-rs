@@ -99,10 +99,23 @@ impl fmt::Display for Separator {
     }
 }
 
-fn parse_color(conn: &RustConnection, color: &str, cmap: Colormap) -> Result<u32> {
-    let hex_color = HexColor::parse(color)?;
+macro_rules! scale {
+    ($val:expr, $div:expr, $mul:expr) => {
+        if 0 < $val {
+            (($val as f32 / $div as f32) * $mul as f32) as u16
+        } else {
+            0
+        }
+    };
+}
 
-    Ok(conn.alloc_color(cmap, hex_color.r as u16, hex_color.g as u16, hex_color.b as u16)?.reply()?.pixel)
+fn parse_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<u32> {
+    let hex_color = HexColor::parse(color_str)?;
+
+    Ok(conn.alloc_color(cmap,
+                        scale!(hex_color.r, 255, 65535),
+                        scale!(hex_color.g, 255, 65535),
+                        scale!(hex_color.b, 255, 65535))?.reply()?.pixel)
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
@@ -113,12 +126,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.styles.iter() {
         match name.as_str() {
             "clients" => {
-                if let Some(MixedConfigVal::S(color)) = values.get("active") {
-                    subtle.styles.clients.fg = parse_color(conn, color, screen.default_colormap)?;
+                if let Some(MixedConfigVal::S(color_str)) = values.get("active") {
+                    subtle.styles.clients.fg = parse_color(conn, color_str, screen.default_colormap)?;
                 }
 
-                if let Some(MixedConfigVal::S(color)) = values.get("inactive") {
-                    subtle.styles.clients.bg = parse_color(conn, color, screen.default_colormap)?;
+                if let Some(MixedConfigVal::S(color_str)) = values.get("inactive") {
+                    subtle.styles.clients.bg = parse_color(conn, color_str, screen.default_colormap)?;
                 }
 
                 if let Some(MixedConfigVal::I(bw)) = values.get("border_width") {
