@@ -1244,6 +1244,8 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
 }
 
 pub(crate) fn find_next(subtle: &Subtle, screen_id: isize, jump_to_win: bool) -> Option<VecRef<Client>> {
+    debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
+
     // Pass 1: Check focus history of current screen
     for win in subtle.focus_history.iter() {
         if let Some(client) = subtle.find_client(*win) {
@@ -1272,15 +1274,13 @@ pub(crate) fn find_next(subtle: &Subtle, screen_id: isize, jump_to_win: bool) ->
                     && subtle.find_focus_win() != client.win
                 {
                     return Some(client)
-
                 }
             }
         }
     }
 
-    debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
-
-    None
+    // TODO pick any
+    subtle.clients.borrow(0)
 }
 
 pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
