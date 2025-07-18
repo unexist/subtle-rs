@@ -15,8 +15,8 @@ use log::{debug, info};
 use stdext::function_name;
 use struct_iterable::Iterable;
 use x11rb::connection::Connection;
-use x11rb::{COPY_DEPTH_FROM_PARENT, NONE};
-use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, FontWrapper, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
+use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME, NONE};
+use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, FontWrapper, InputFocus, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, Config, Subtle};
 use crate::client::Client;
@@ -239,8 +239,10 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
-    
-    conn.destroy_window(subtle.support_win)?;
+
+    let screen = &conn.setup().roots[subtle.screen_num];
+
+    conn.flush()?;
 
     // Free GCs
     conn.free_gc(subtle.invert_gc)?;
@@ -250,6 +252,11 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     conn.free_cursor(subtle.arrow_cursor)?;
     conn.free_cursor(subtle.move_cursor)?;
     conn.free_cursor(subtle.resize_cursor)?;
+
+    // Destroy windows
+    conn.destroy_window(subtle.support_win)?;
+
+    conn.set_input_focus(InputFocus::POINTER_ROOT, screen.root, CURRENT_TIME)?.check()?;
 
     debug!("{}", function_name!());
 
