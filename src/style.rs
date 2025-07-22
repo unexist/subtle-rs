@@ -118,6 +118,41 @@ fn parse_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
                         scale!(hex_color.b, 255, 65535))?.reply()?.pixel)
 }
 
+fn parse_side(mixed_val: &MixedConfigVal, side: &mut Side) {
+    match mixed_val {
+        MixedConfigVal::I(val) => {
+            side.top = *val as i16;
+            side.right = *val as i16;
+            side.left = *val as i16;
+            side.bottom = *val as i16;
+        },
+        MixedConfigVal::VI(val) => {
+            match val.len() {
+                2 => {
+                    side.top = val[0] as i16;
+                    side.right = val[1] as i16;
+                    side.left = val[1] as i16;
+                    side.bottom = val[0] as i16;
+                },
+                3 => {
+                    side.top = val[0] as i16;
+                    side.right = val[1] as i16;
+                    side.left = val[1] as i16;
+                    side.bottom = val[2] as i16;
+                }
+                4 => {
+                    side.top = val[0] as i16;
+                    side.right = val[1] as i16;
+                    side.left = val[2] as i16;
+                    side.bottom = val[3] as i16;
+                }
+                _ => warn!("Too many values for style"),
+            }
+        }
+        _ => warn!("Invalid type for style"),
+    }
+}
+
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
@@ -126,6 +161,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.styles.iter() {
         match name.as_str() {
             "clients" => {
+                // We exploit some unused style variables here:
+                // border-top <-> client border
+                // border-right <-> title length
+                // margin <-> client gap
+                // padding <-> client strut
+
+                // Set border color and width
                 if let Some(MixedConfigVal::S(color_str)) = values.get("active") {
                     subtle.styles.clients.fg = parse_color(conn, color_str, screen.default_colormap)?;
                 }
@@ -134,9 +176,29 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                     subtle.styles.clients.bg = parse_color(conn, color_str, screen.default_colormap)?;
                 }
 
-                if let Some(MixedConfigVal::I(bw)) = values.get("border_width") {
-                    subtle.styles.clients.border.top = *bw as i16;
+                if let Some(MixedConfigVal::I(width)) = values.get("border_width") {
+                    subtle.styles.clients.border.top = *width as i16;
                 }
+
+                // Set client margin
+                if let Some(val) = values.get("margin") {
+                    parse_side(val, &mut subtle.styles.clients.margin);
+                }
+
+                // Set client strut
+                if let Some(val) = values.get("strut") {
+                    parse_side(val, &mut subtle.styles.clients.padding);
+                }
+
+                if let Some(val) = values.get("padding") {
+                    parse_side(val, &mut subtle.styles.clients.padding);
+                }
+            },
+            "title" => {
+                if let Some(MixedConfigVal::I(width)) = values.get("title_width") {
+                    subtle.title_width = *width as i16;
+                }
+
             }
             _ => warn!("Unhandled style: {}", name),
         }
