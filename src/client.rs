@@ -252,7 +252,7 @@ impl Client {
                     screen.geom.width as i16 } else { max_width as i16 };
 
                 self.max_height = if max_height > screen.geom.height as i32 {
-                    (screen.geom.height - subtle.panel_height) as i16
+                    screen.geom.height as i16 - subtle.panel_height
                 } else { max_height as i16 };
             }
 
@@ -653,11 +653,11 @@ impl Client {
                     // Add panel heights without struts
                     if screen.flags.contains(ScreenFlags::PANEL1) {
                         self.geom.y += subtle.panel_height as i16;
-                        self.geom.height -= subtle.panel_height;
+                        self.geom.height -= subtle.panel_height as u16;
                     }
 
                     if screen.flags.contains(ScreenFlags::PANEL2) {
-                        self.geom.height -= subtle.panel_height;
+                        self.geom.height -= subtle.panel_height as u16;
                     }
                 }
             }
@@ -705,17 +705,26 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn tag(&self, tag_idx: usize, mode_flags: &mut ClientFlags) {
+    pub(crate) fn tag(&mut self, subtle: &Subtle, tag_idx: usize, mode_flags: &mut ClientFlags) -> Result<()> {
+        ignore_if_dead!(self);
+
+        // Update flags and tags
+        if let Some(tag) = subtle.tags.get(tag_idx) {
+            self.tags = Tagging::from_bits_retain(1 << tag_idx);
+        }
+
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
     }
 
-    pub(crate) fn retag(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
+    pub(crate) fn retag(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        for (idx, tag) in subtle.tags.iter().enumerate() {
+        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if tag.matches(self) {
-                self.tag(idx, mode_flags);
+                self.tag(subtle, tag_idx, mode_flags)?;
             }
         }
 
@@ -729,7 +738,7 @@ impl Client {
             }
 
             if 0 == visible {
-                self.tag(0, mode_flags);
+                self.tag(subtle,0, mode_flags)?;
             }
         }
 
@@ -914,29 +923,6 @@ impl Client {
         Ok(())
     }
 
-    fn move_resize(&mut self, subtle: &Subtle, bounds: &Rectangle) -> Result<()> {
-        let conn = subtle.conn.get().unwrap();
-
-        // Update margins, border and gap
-        //self.geom.x += subtle.client.margin.left as i16; // TODO Styles
-        //self.geom.y += subtle.client.margin.left as i16;
-        //self.geom.width -= (2 *
-
-        self.resize(subtle, bounds, true)?;
-
-        let aux = ConfigureWindowAux::default()
-            .x(self.geom.x as i32)
-            .y(self.geom.y as i32)
-            .width(self.geom.width as u32)
-            .height(self.geom.height as u32);
-
-        conn.configure_window(self.win, &aux)?.check()?;
-
-        debug!("{}", function_name!());
-
-        Ok(())
-    }
-
     pub(crate) fn snap(&self, subtle: &Subtle, screen: &Screen, geom: &mut Rectangle) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -972,7 +958,7 @@ impl Client {
 
         conn.map_window(self.win)?.check()?;
 
-        debug!("{}", function_name!());
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -982,7 +968,7 @@ impl Client {
 
         conn.unmap_window(self.win)?.check()?;
 
-        debug!("{}", function_name!());
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -1026,6 +1012,32 @@ impl Client {
         }
 
         debug!("{}", function_name!());
+
+        Ok(())
+    }
+
+    fn move_resize(&mut self, subtle: &Subtle, bounds: &Rectangle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        // Update border and gap
+        self.geom.x += subtle.styles.clients.margin.left;
+        self.geom.y += subtle.styles.clients.margin.left;
+        self.geom.width -= (2 * self.get_border_width(subtle) + subtle.styles.clients.margin.left
+            + subtle.styles.clients.margin.right) as u16;
+        self.geom.height -= (2 * self.get_border_width(subtle) + subtle.styles.clients.margin.top
+            + subtle.styles.clients.margin.bottom) as u16;
+
+        self.resize(subtle, bounds, true)?;
+
+        let aux = ConfigureWindowAux::default()
+            .x(self.geom.x as i32)
+            .y(self.geom.y as i32)
+            .width(self.geom.width as u32)
+            .height(self.geom.height as u32);
+
+        conn.configure_window(self.win, &aux)?.check()?;
+
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -1229,11 +1241,11 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
         if screen.flags.contains(flags) {
             if screen.flags.contains(ScreenFlags::PANEL1) {
                 bounds.y += subtle.panel_height as i16;
-                bounds.height -= subtle.panel_height;
+                bounds.height -= subtle.panel_height as u16;
             }
 
             if screen.flags.contains(ScreenFlags::PANEL2) {
-                bounds.height -= subtle.panel_height;
+                bounds.height -= subtle.panel_height as u16;
             }
 
             flags &= !(screen.flags & (ScreenFlags::PANEL1 | ScreenFlags::PANEL2));
