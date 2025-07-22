@@ -55,6 +55,29 @@ fn print_version() {
     info!("Compiled for X11");
 }
 
+fn sanity_check(subtle: &mut Subtle) -> Result<()> {
+    // Check and update grabs // TODO
+
+    // Check gravities
+    if 0 == subtle.gravities.len() {
+        return Err(anyhow!("No gravities found"));
+    }
+
+    gravity::publish(subtle)?;
+
+    // Check and update screens
+    for (screen_idx, mut screen) in subtle.screens.iter_mut().enumerate() {
+        screen.view_id = if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 };
+    }
+
+    // Check and update tags
+    for tag in subtle.tags.iter() {
+        // TODO
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     // Load config
     let (config, path, _format) = Config::parse_info();
@@ -79,6 +102,8 @@ fn main() -> Result<()> {
     view::init(&config, &mut subtle)?;
 
     drop(config);
+
+    sanity_check(&mut subtle)?;
 
     display::claim(&mut subtle)?;
     display::configure(&subtle)?;
