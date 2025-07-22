@@ -38,7 +38,7 @@ bitflags! {
 pub(crate) struct Screen {
     pub(crate) flags: ScreenFlags,
 
-    pub(crate) view_id: usize,
+    pub(crate) view_id: isize,
 
     pub(crate) geom: Rectangle,
     pub(crate) base: Rectangle,
@@ -142,7 +142,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             client_tags.insert(client.tags);
 
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
-                if let Some(view) = subtle.views.get(screen.view_id) {
+                if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
+
+                    println!("view={}", view);
 
                     // Set visible tags and views tgo ease lookups
                     visible_tags.insert(view.tags);
@@ -153,14 +155,14 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                         if client.flags.contains(ClientFlags::MODE_STICK)
                             && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
                         {
-                            view_id = client_screen.view_id;
+                            view_id = client_screen.view_id as usize;
                             screen_id = client.screen_id as usize;
                         } else {
-                            view_id = screen.view_id;
+                            view_id = screen.view_id as usize;
                             screen_id = screen_idx;
                         }
 
-                        gravity_id = client.gravities[screen.view_id] as isize;
+                        gravity_id = client.gravities[screen.view_id as usize] as isize;
                         visible += 1;
                     }
                 }
@@ -207,7 +209,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     } else {
         // Check views of each screen
         for screen in subtle.screens.iter() {
-            if let Some(view) = subtle.views.get(screen.view_id) {
+            if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
                 visible_tags |= view.tags;
                 visible_views |= Tagging::from_bits_retain(1 << (screen.view_id + 1));
             }
