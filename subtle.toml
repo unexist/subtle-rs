@@ -121,13 +121,13 @@ separator = "|"
 # Style for focus window title
 [styles.title]
 foreground = "#fecf35"
+width = 50
 
 # Style for active/inactive windows
 [styles.clients]
 active = "#303030"
 inactive = "#202020"
 margin = 0
-width = 50
 border_width = 2
 
 # Style for tray
