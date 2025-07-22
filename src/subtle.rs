@@ -71,9 +71,10 @@ pub(crate) struct Subtle {
     pub(crate) width: u16,
     pub(crate) height: u16,
 
-    pub(crate) panel_height: u16,
-    pub(crate) step_size: u16,
-    pub(crate) snap_size: u16,
+    pub(crate) panel_height: i16,
+    pub(crate) title_width: i16,
+    pub(crate) step_size: i16,
+    pub(crate) snap_size: i16,
     pub(crate) default_gravity: isize,
 
     pub(crate) visible_tags: Cell<Tagging>,
@@ -182,6 +183,7 @@ impl Default for Subtle {
             height: 0,
 
             panel_height: 0,
+            title_width: 50,
             step_size: 0,
             snap_size: 0,
             default_gravity: 0,
@@ -232,11 +234,11 @@ impl From<&Config> for Subtle {
 
         // Config options
         if let Some(MixedConfigVal::I(step_size)) = config.subtle.get("increase_step") {
-            subtle.step_size = *step_size as u16;
+            subtle.step_size = *step_size as i16;
         }
 
         if let Some(MixedConfigVal::I(snap_size)) = config.subtle.get("border_snap") {
-            subtle.snap_size = *snap_size as u16;
+            subtle.snap_size = *snap_size as i16;
         }
 
         if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {
