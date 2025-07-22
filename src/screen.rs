@@ -228,7 +228,8 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}", function_name!());
+    debug!("{}: visible_tags={:?}, visible_views={:?}, client_tags={:?}",
+        function_name!(), visible_tags, visible_views, client_tags);
     
     Ok(())
 }
