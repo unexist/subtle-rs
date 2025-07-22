@@ -14,7 +14,7 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{get_atom_name, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
@@ -163,6 +163,12 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
             client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         }
+    } else if subtle.flags.contains(SubtleFlags::DEBUG) {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let atom_name = conn.get_atom_name(event.atom)?.reply()?.name;
+
+        debug!("{}: property={}", function_name!(), String::from_utf8(atom_name)?);
     }
     // TODO tray
 
