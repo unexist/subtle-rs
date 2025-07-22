@@ -63,6 +63,8 @@ impl View {
                 self.tags = Tagging::from_bits_retain(1 << tag_idx);
             }
         }
+
+        debug!("{}: view={}", function_name!(), self);
     }
 }
 
