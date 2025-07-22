@@ -241,10 +241,6 @@ impl From<&Config> for Subtle {
             subtle.snap_size = *snap_size as i16;
         }
 
-        if let Some(MixedConfigVal::I(grav_id)) = config.subtle.get("default_gravity") {
-            subtle.default_gravity = grav_id.clone() as isize;
-        }
-
         macro_rules! apply_config_flag {
             ($config_key:expr, $subtle_flag:path) => {
                 if let Some(MixedConfigVal::B(value)) = config.subtle.get($config_key) && *value {
