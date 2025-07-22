@@ -232,6 +232,10 @@ impl From<&Config> for Subtle {
             subtle.flags.insert(SubtleFlags::REPLACE);
         }
 
+        if config.debug {
+            subtle.flags.insert(SubtleFlags::DEBUG);
+        }
+
         // Config options
         if let Some(MixedConfigVal::I(step_size)) = config.subtle.get("increase_step") {
             subtle.step_size = *step_size as i16;
