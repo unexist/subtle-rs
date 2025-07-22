@@ -465,6 +465,8 @@ impl Client {
     }
 
     pub(crate) fn focus(&self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
+        println!("is_visible={}", self.is_visible(subtle));
+
         if !self.is_visible(subtle) {
             return Ok(());
         }
@@ -491,6 +493,7 @@ impl Client {
 
         // Check client input focus type (see ICCCM 4.1.7, 4.1.2.7, 4.2.8)
         if !self.flags.contains(ClientFlags::INPUT) && self.flags.contains(ClientFlags::FOCUS) {
+            println!("{}: take focus={:?}", function_name!(), self);
             conn.send_event(false, self.win, EventMask::NO_EVENT, ClientMessageEvent {
                 response_type: CLIENT_MESSAGE_EVENT,
                 format: 32,
@@ -501,6 +504,8 @@ impl Client {
             })?.check()?;
         } else if self.flags.contains(ClientFlags::INPUT) {
             conn.set_input_focus(InputFocus::POINTER_ROOT, self.win, CURRENT_TIME)?.check()?;
+
+            println!("{}: set focus={:?}", function_name!(), self);
         }
 
         // Update focus
@@ -710,7 +715,7 @@ impl Client {
 
         // Update flags and tags
         if let Some(tag) = subtle.tags.get(tag_idx) {
-            self.tags = Tagging::from_bits_retain(1 << tag_idx);
+            self.tags |= Tagging::from_bits_retain(1 << tag_idx);
         }
 
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
