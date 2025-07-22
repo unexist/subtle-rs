@@ -56,11 +56,19 @@ impl View {
 
         Ok(view)
     }
+
+    fn retag(&mut self, subtle: &Subtle) {
+        for (tag_idx, tag) in subtle.tags.iter().enumerate() {
+            if let Some(regex) = &self.regex && regex.is_match(&*tag.name) {
+                self.tags = Tagging::from_bits_retain(1 << tag_idx);
+            }
+        }
+    }
 }
 
 impl fmt::Display for View {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}", self.name)
+        write!(f, "name={}, regex={:?}, tags={:?}", self.name, self.regex, self.tags)
     }
 }
 
@@ -68,10 +76,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for (name, values) in config.views.iter() {
         let mut view = View::new(name)?;
 
-        if values.contains_key("match") {
-            if let Some(MixedConfigVal::S(value)) = values.get("match") {
-                view.regex = Some(Regex::new(value)?);
-            }
+        // Handle match
+        if let Some(MixedConfigVal::S(value)) = values.get("match") {
+            view.regex = Some(Regex::new(value)?);
+
+            view.retag(subtle);
         }
 
         subtle.views.push(view)
