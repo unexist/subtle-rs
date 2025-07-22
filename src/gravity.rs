@@ -19,6 +19,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt;
 use crate::Config;
+use crate::config::MixedConfigVal;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -73,7 +74,16 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.gravities = config.gravities.iter()
         .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], 
                                  grav.1[2], grav.1[3])).collect();
-    
+
+    // Find default gravity
+    if let Some(MixedConfigVal::S(grav_name)) = config.subtle.get("default_gravity") {
+        if let Some(grav_id) = subtle.gravities.iter().position(|grav| grav.name.eq(grav_name)) {
+            subtle.default_gravity = grav_id as isize;
+        } else {
+            subtle.default_gravity = 0;
+        }
+    }
+
     publish(subtle)?;
 
     debug!("{}", function_name!());
