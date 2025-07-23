@@ -465,8 +465,6 @@ impl Client {
     }
 
     pub(crate) fn focus(&self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
-        println!("is_visible={}", self.is_visible(subtle));
-
         if !self.is_visible(subtle) {
             return Ok(());
         }
@@ -513,7 +511,7 @@ impl Client {
         //subGrabSet // TODO Grabs
 
         // Exclude desktop and dock type windows
-        if !self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
+        if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
             let aux = ChangeWindowAttributesAux::default()
                 .border_pixel(subtle.styles.clients.fg);
 
@@ -979,8 +977,8 @@ impl Client {
     }
 
     pub(crate) fn is_visible(&self, subtle: &Subtle) -> bool {
-        subtle.visible_tags.get().contains(self.tags)
-            || self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
+        subtle.visible_tags.get().intersects(self.tags)
+            || self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
     }
 
     pub(crate) fn is_alive(&self) -> bool {
