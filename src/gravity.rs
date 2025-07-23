@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use easy_min_max::{min, max, clamp};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -72,8 +72,9 @@ impl fmt::Display for Gravity {
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.gravities = config.gravities.iter()
-        .map(|grav| Gravity::new(String::from(grav.0), grav.1[0], grav.1[1], 
-                                 grav.1[2], grav.1[3])).collect();
+        .map(|grav|
+            Gravity::new(String::from(grav.0), grav.1[0], grav.1[1],
+                         grav.1[2], grav.1[3])).collect();
 
     // Find default gravity
     if let Some(MixedConfigVal::S(grav_name)) = config.subtle.get("default_gravity") {
@@ -82,6 +83,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         } else {
             subtle.default_gravity = 0;
         }
+    }
+
+    // Check gravities
+    if 0 == subtle.gravities.len() {
+        return Err(anyhow!("No gravities found"));
     }
 
     publish(subtle)?;
