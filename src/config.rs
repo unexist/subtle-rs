@@ -11,6 +11,7 @@
 
 use clap_config_file::ClapConfigFile;
 use std::collections::HashMap;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,5 +60,5 @@ pub(crate) struct Config {
     pub(crate) tags: HashMap<String, HashMap<String, MixedConfigVal>>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) views: HashMap<String, HashMap<String, MixedConfigVal>>,
+    pub(crate) views: IndexMap<String, HashMap<String, MixedConfigVal>>,
 }
