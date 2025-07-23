@@ -29,3 +29,7 @@ tasks:
   clean:
     cmds:
       - cargo clean
+
+  background:
+    cmds:
+      - xsetroot -d {{.DISPLAY}} -solid "#595959"
