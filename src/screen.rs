@@ -144,8 +144,6 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
                 if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
 
-                    println!("view={}", view);
-
                     // Set visible tags and views tgo ease lookups
                     visible_tags.insert(view.tags);
                     visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
@@ -225,7 +223,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
     conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_TAGS,
                            AtomEnum::CARDINAL, &[visible_tags.bits()])?.check()?;
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_TAGS,
+    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_VIEWS,
                            AtomEnum::CARDINAL, &[visible_views.bits()])?.check()?;
 
     conn.flush()?;
