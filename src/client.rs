@@ -19,7 +19,7 @@ use stdext::function_name;
 use veccell::VecRef;
 use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
-use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
+use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
@@ -139,6 +139,7 @@ impl Client {
         conn.ungrab_server()?;
 
         let mut client = Self {
+            flags: ClientFlags::INPUT,
             win,
 
             screen_id: 0,
@@ -234,11 +235,11 @@ impl Client {
         self.base_width = 0;
         self.base_height = 0;
 
-        let maybe_hints = WmSizeHints::get_normal_hints(conn, self.win)?.reply()?;
+        // Size hints - no idea why it's called normal hints
+        if let Some(size_hints) = WmSizeHints::get_normal_hints(conn, self.win)?.reply()? {
 
-        if let Some(hints) = maybe_hints {
             // Program min size - limit min size to screen size if larger
-           if let Some((min_width, min_height)) = hints.min_size {
+           if let Some((min_width, min_height)) = size_hints.min_size {
                self.min_width = if self.min_width > screen.geom.width {
                    screen.geom.width } else { max!(MIN_WIDTH, min_width as u16) };
 
@@ -247,7 +248,7 @@ impl Client {
            }
 
             // Program max size - limit max size to screen if larger
-            if let Some((max_width, max_height)) = hints.max_size {
+            if let Some((max_width, max_height)) = size_hints.max_size {
                 self.max_width = if max_width > screen.geom.width as i32 {
                     screen.geom.width as i16 } else { max_width as i16 };
 
@@ -257,8 +258,8 @@ impl Client {
             }
 
             // Set float when min == max size (EWMH: Fixed size windows)
-            if let Some((min_width, min_height)) = hints.min_size
-                && let Some((max_width, max_height)) = hints.max_size
+            if let Some((min_width, min_height)) = size_hints.min_size
+                && let Some((max_width, max_height)) = size_hints.max_size
             {
                 if min_width == max_width && min_height == max_height && !self.flags.contains(ClientFlags::TYPE_DESKTOP) {
                     mode_flags.insert(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FIXED);
@@ -266,20 +267,20 @@ impl Client {
             }
 
             // Aspect ratios
-            if let Some((min_aspect, max_aspect)) = hints.aspect {
+            if let Some((min_aspect, max_aspect)) = size_hints.aspect {
                 self.min_ratio = min_aspect.numerator as f32 / min_aspect.denominator as f32;
                 self.max_ratio = max_aspect.numerator as f32 / max_aspect.denominator as f32;
             }
 
             // Resize increment steps
-            if let Some((width_inc, height_inc)) = hints.size_increment {
+            if let Some((width_inc, height_inc)) = size_hints.size_increment {
                 self.width_inc = width_inc as u16;
                 self.height_inc = height_inc as u16;
 
             }
 
             // Base sizes
-            if let Some((base_width, base_height)) = hints.base_size {
+            if let Some((base_width, base_height)) = size_hints.base_size {
                 self.base_width = base_width as u16;
                 self.base_height = base_height as u16;
             }
@@ -289,7 +290,7 @@ impl Client {
                 || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE | ClientFlags::TYPE_DOCK)
             {
                 // User/program position
-                if let Some((hint_spec, x, y)) = hints.position {
+                if let Some((hint_spec, x, y)) = size_hints.position {
                     match hint_spec {
                         WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
                             self.geom.x = x as i16;
@@ -299,7 +300,7 @@ impl Client {
                 }
 
                 // User/program size
-                if let Some((hint_spec, x, y)) = hints.size {
+                if let Some((hint_spec, x, y)) = size_hints.size {
                     match hint_spec {
                         WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
                             self.geom.width = x as u16;
@@ -420,7 +421,35 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn set_wm_hints(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
+    pub(crate) fn set_wm_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        // Window manager hints (ICCCM 4.1.7)
+        if let Some(wm_hints) = WmHints::get(conn, self.win)?.reply()? {
+            // Handle urgency hint:
+            // Set urgency if window hasn't got focus and remove it after getting focus
+            if wm_hints.urgent && let Some(focus_win) = subtle.focus_history.borrow(0)
+                && focus_win != self.win
+            {
+                self.flags.remove(ClientFlags::MODE_URGENT);
+            }
+
+            // Handle window group hint
+            if wm_hints.window_group.is_some() {
+                if let Some(group_lead) = subtle.find_client(wm_hints.window_group.unwrap()) {
+                    self.flags = group_lead.flags; // TODO *flags |= (k->flags & MODES_ALL);
+                    self.tags = group_lead.tags;
+                    self.screen_id = group_lead.screen_id;
+                }
+            }
+
+            // Handle just false value of input hint since it is the default
+            match wm_hints.input {
+                Some(false) => self.flags.remove(ClientFlags::INPUT),
+                _ => {}
+            }
+        }
+
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
 
         Ok(())
@@ -491,7 +520,6 @@ impl Client {
 
         // Check client input focus type (see ICCCM 4.1.7, 4.1.2.7, 4.2.8)
         if !self.flags.contains(ClientFlags::INPUT) && self.flags.contains(ClientFlags::FOCUS) {
-            println!("{}: take focus={:?}", function_name!(), self);
             conn.send_event(false, self.win, EventMask::NO_EVENT, ClientMessageEvent {
                 response_type: CLIENT_MESSAGE_EVENT,
                 format: 32,
@@ -502,8 +530,6 @@ impl Client {
             })?.check()?;
         } else if self.flags.contains(ClientFlags::INPUT) {
             conn.set_input_focus(InputFocus::POINTER_ROOT, self.win, CURRENT_TIME)?.check()?;
-
-            println!("{}: set focus={:?}", function_name!(), self);
         }
 
         // Update focus
