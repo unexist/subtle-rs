@@ -56,23 +56,10 @@ fn print_version() {
 }
 
 fn sanity_check(subtle: &mut Subtle) -> Result<()> {
-    // Check and update grabs // TODO
-
-    // Check gravities
-    if 0 == subtle.gravities.len() {
-        return Err(anyhow!("No gravities found"));
-    }
-
-    gravity::publish(subtle)?;
 
     // Check and update screens
     for (screen_idx, mut screen) in subtle.screens.iter_mut().enumerate() {
         screen.view_id = if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 };
-    }
-
-    // Check and update tags
-    for tag in subtle.tags.iter() {
-        // TODO
     }
 
     Ok(())
@@ -100,6 +87,7 @@ fn main() -> Result<()> {
     gravity::init(&config, &mut subtle)?;
     tag::init(&config, &mut subtle)?;
     view::init(&config, &mut subtle)?;
+    grab::init(&config, &mut subtle)?;
 
     drop(config);
 
