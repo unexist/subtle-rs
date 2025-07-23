@@ -13,7 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
 use anyhow::{anyhow, Result};
-use log::debug;
+use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
@@ -79,6 +79,44 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             tag.regex = Some(Regex::new(value)?);
         }
 
+        // Handle gravity
+        if let Some(MixedConfigVal::S(value)) = values.get("gravity") {
+
+            // Enable gravity only when gravity can be found
+            if let Some(grav_id) = subtle.gravities.iter().position(|grav| grav.name.eq(value)) {
+                tag.gravity_id = grav_id;
+                tag.flags.insert(TagFlags::GRAVITY);
+            }
+        }
+
+        // Handle geometry
+        if let Some(MixedConfigVal::VI(value)) = values.get("geometry") {
+            if 4 == value.len() {
+                tag.flags.insert(TagFlags::GEOMETRY);
+                tag.geom = Rectangle {
+                    x: value[0] as i16,
+                    y: value[1] as i16,
+                    width: value[2] as u16,
+                    height: value[3] as u16,
+                };
+            }
+        }
+
+        // Handle geometry
+        if let Some(MixedConfigVal::VI(value)) = values.get("position") {
+            if tag.flags.contains(TagFlags::GEOMETRY) {
+                warn!("Tags cannot use both geometry and position");
+            } else if 2 == value.len() {
+                tag.flags.insert(TagFlags::POSITION);
+                tag.geom = Rectangle {
+                    x: value[0] as i16,
+                    y: value[1] as i16,
+                    ..Rectangle::default()
+                };
+            }
+        }
+
+
         subtle.tags.push(tag)
     }
     
@@ -88,7 +126,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         
         subtle.tags.push(tag);
     }
-    
+
     publish(subtle)?;
     
     debug!("{}", function_name!());
