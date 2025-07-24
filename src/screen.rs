@@ -18,11 +18,12 @@ use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME};
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, Window, WindowClass};
+use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, Window, WindowClass};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::Config;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{ClientFlags, WMState};
+use crate::style::Style;
 use crate::tagging::Tagging;
 
 bitflags! {
@@ -93,6 +94,21 @@ impl Screen {
         debug!("{}: {}", function_name!(), screen);
 
         Ok(screen)
+    }
+
+    pub(crate) fn clear(&self, subtle: &Subtle, style: &Style) -> Result<()> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg))?.check()?;
+
+        // Clear pixmap
+        conn.poly_fill_rectangle(self.drawable, subtle.draw_gc, &[Rectangle {
+            x: 0,
+            y: 0,
+            width: self.base.width,
+            height: subtle.panel_height}])?.check()?;
+
+        Ok(())
     }
 }
 
@@ -274,8 +290,26 @@ pub(crate) fn update(subtle: &Subtle) {
 }
 
 
-pub(crate) fn render(subtle: &Subtle) {
+pub(crate) fn render(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+
+    for screen in subtle.screens.iter() {
+        let panel = screen.panel_top_win;
+
+        screen.clear(subtle, &subtle.styles.panel_top)?;
+
+        // Render panel items
+        // TODO Panels
+
+        conn.copy_area(screen.drawable, panel, subtle.draw_gc, 0, 0, 0, 0,
+                       screen.base.width, subtle.panel_height)?.check()?;
+    }
+
+    conn.flush()?;
+
     debug!("{}", function_name!());
+
+    Ok(())
 }
 
 pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {

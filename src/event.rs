@@ -81,7 +81,7 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
 
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     if 0 == event.count {
-        screen::render(subtle);    
+        screen::render(subtle)?;
     }
     
     debug!("{}: win={}, count={}", function_name!(), event.window, event.count);
@@ -115,7 +115,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
                 && event.window == *win
             {
                 screen::update(subtle);
-                screen::render(subtle);
+                screen::render(subtle)?;
             }
         }
     } else if atoms.WM_NORMAL_HINTS == event.atom {
@@ -130,7 +130,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
 
             if client.is_visible(subtle) {
                 screen::update(subtle);
-                screen::render(subtle);
+                screen::render(subtle)?;
             }
 
         }
@@ -147,7 +147,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
 
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
                 screen::update(subtle);
-                screen::render(subtle);
+                screen::render(subtle)?;
             }
         }
     } else if atoms._NET_WM_STRUT == event.atom {
@@ -180,7 +180,7 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
 
         screen::configure(subtle)?;
         screen::update(subtle);
-        screen::render(subtle);
+        screen::render(subtle)?;
     } else if let Ok(client) = Client::new(subtle, event.window) {
         //subtle.clients.push(client);
 
@@ -212,7 +212,7 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
 
         screen::configure(subtle)?;
         screen::update(subtle);
-        screen::render(subtle);
+        screen::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.window);
@@ -240,7 +240,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     // Update screen and panels
     screen::configure(subtle)?;
     screen::update(subtle);
-    screen::render(subtle);
+    screen::render(subtle)?;
 
     conn.flush()?;
 
