@@ -1019,10 +1019,8 @@ impl Client {
         conn.delete_property(self.win, atoms._NET_WM_STATE)?.check()?;
 
         // Ignore further events
-        let aux = ChangeWindowAttributesAux::default()
-            .event_mask(EventMask::NO_EVENT);
-
-        conn.change_window_attributes(self.win, &aux)?.check()?;
+        conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()
+            .event_mask(EventMask::NO_EVENT))?.check()?;
 
         // Remove client tags from urgent tags
         if self.flags.contains(ClientFlags::MODE_URGENT) {
