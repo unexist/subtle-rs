@@ -57,7 +57,7 @@ pub(crate) struct Panel {
 #[doc(hidden)]
 fn format_client_modes(client: &Client) -> Result<String> {
     let mut x = 0;
-    let mut mode_str =  [0; 5];
+    let mut mode_str =  [0; 6];
 
     // Collect window modes
     if client.flags.contains(ClientFlags::MODE_FULL) {
