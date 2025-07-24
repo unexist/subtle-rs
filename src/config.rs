@@ -51,6 +51,9 @@ pub(crate) struct Config {
     pub(crate) styles: HashMap<String, HashMap<String, MixedConfigVal>>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
+    pub(crate) panels: HashMap<String, HashMap<String, MixedConfigVal>>,
+
+    #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) gravities: HashMap<String, Vec<u16>>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
