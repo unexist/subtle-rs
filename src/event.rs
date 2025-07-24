@@ -164,12 +164,6 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
             client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         }
-    } else if subtle.flags.contains(SubtleFlags::DEBUG) {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        let atom_name = conn.get_atom_name(event.atom)?.reply()?.name;
-
-        debug!("{}: property={}", function_name!(), String::from_utf8(atom_name)?);
     }
     // TODO tray
 
