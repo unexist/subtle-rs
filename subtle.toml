@@ -86,8 +86,6 @@ skip_urgent_warp = false
 # === Links
 #
 # https://subtle.rs/projects/subtle/wiki/Styles
-# https://subtle.rs/projects/subtle/wiki/Multihead
-# https://subtle.rs/projects/subtle/wiki/Panel
 
 [styles]
 
@@ -134,15 +132,49 @@ border_width = 2
 # Style for tray
 #[styles.tray]
 
-# Style for top panels
-[styles.panel_top]
-screen_1 = [ "views", "title", "spacer", "keychain", "spacer", "tray", "sublets" ]
-#screen_2, [ :views ]
+# == Panel
 
-# Style for bottom panels
-[styles.panel_bottom]
-screen_1 = [ ]
-#screen 2, [ ]
+# There are two possible # panels per screen in subtle. Each panel can be configured
+# with different # panel items and sublets screen wise. The default config uses a top
+# panel # on the first screen only, it's up to the user to enable the bottom panel or
+# disable either one # or both.
+#
+# Following items are available for the panels:
+#
+# [*:views*]     List of views with buttons
+# [*:title*]     Title of the current active window
+# [*:tray*]      Systray icons (Can be used only once)
+# [*:keychain*]  Display current chain (Can be used only once)
+# [*:sublets*]   Catch-all for installed sublets
+# [*:sublet*]    Name of a sublet for direct placement
+# [*:spacer*]    Variable spacer (free width / count of spacers)
+# [*:center*]    Enclose items with :center to center them on the panel
+# [*:separator*] Insert separator
+
+# Empty panels are hidden.
+#
+# === Links
+#
+# https://subtle.rs/projects/subtle/wiki/Panel
+# https://subtle.rs/projects/subtle/wiki/Multihead
+
+[panels]
+
+# Panel for screen 1
+[panels.screen1]
+top_panel = [ "tray", "views", "title", "spacer", "time" ]
+bottom_panel = [ "views" ]
+
+# Panel for screen 2
+[panels.screen2]
+top_panel = [ ]
+bottom_panel = [ ]
+
+# Time panel
+[panels.time]
+script = """
+print("12:00")
+"""
 
 #
 # == Gravities
