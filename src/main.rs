@@ -59,7 +59,7 @@ fn print_version() {
 fn sanity_check(subtle: &mut Subtle) -> Result<()> {
 
     // Check and update screens
-    for (screen_idx, mut screen) in subtle.screens.iter_mut().enumerate() {
+    for (screen_idx, screen) in subtle.screens.iter_mut().enumerate() {
         screen.view_id = if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 };
     }
 
@@ -94,6 +94,8 @@ fn main() -> Result<()> {
     drop(config);
 
     sanity_check(&mut subtle)?;
+
+    screen::resize(&mut subtle)?;
 
     display::claim(&mut subtle)?;
     display::configure(&subtle)?;
