@@ -65,7 +65,7 @@ impl Screen {
 
 impl fmt::Display for Screen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "geom=(x={}, y={}, width={}, height={})",
+        write!(f, "(geom=(x={}, y={}, width={}, height={}))",
                self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }

@@ -160,7 +160,7 @@ impl Grab {
 
 impl fmt::Display for Grab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "code={}, state={}, app={:?}", self.code, self.state, self.app)
+        write!(f, "(code={}, state={}, app={:?})", self.code, self.state, self.app)
     }
 }
 

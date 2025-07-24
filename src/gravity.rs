@@ -65,7 +65,7 @@ impl Gravity {
 
 impl fmt::Display for Gravity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, geom=(x={}, y={}, width={}, height={})",
+        write!(f, "(name={}, geom=(x={}, y={}, width={}, height={}))",
                self.name, self.geom.x, self.geom.y, self.geom.width, self.geom.height)
     }
 }

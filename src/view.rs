@@ -70,7 +70,7 @@ impl View {
 
 impl fmt::Display for View {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name={}, regex={:?}, tags={:?}", self.name, self.regex, self.tags)
+        write!(f, "(name={}, regex={:?}, tags={:?})", self.name, self.regex, self.tags)
     }
 }
 
