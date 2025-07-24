@@ -15,11 +15,11 @@ use log::debug;
 use anyhow::{Context, Result};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::CURRENT_TIME;
+use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME};
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
-use x11rb::wrapper::ConnectionExt;
+use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, Window, WindowClass};
+use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::Config;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{ClientFlags, WMState};
@@ -28,8 +28,8 @@ use crate::tagging::Tagging;
 bitflags! {
     #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct ScreenFlags: u32 {
-        const PANEL1 = 1 << 0; // Screen panel1 enabled
-        const PANEL2 = 1 << 1; // Screen panel2 enabled
+        const PANEL_TOP = 1 << 0; // Screen panel1 enabled
+        const PANEL_BOTTOM = 1 << 1; // Screen panel2 enabled
         const VIRTUAL = 1 << 3; // Screen is virtual       
     }
 }
@@ -40,26 +40,59 @@ pub(crate) struct Screen {
 
     pub(crate) view_id: isize,
 
+    pub(crate) panel_top_win: Window,
+    pub(crate) panel_bottom_win: Window,
+    pub(crate) drawable: Pixmap,
+
     pub(crate) geom: Rectangle,
     pub(crate) base: Rectangle,
 }
 
 impl Screen {
-    pub(crate) fn new(subtle: &Subtle, x: i16, y: i16, width: u16, height: u16) -> Self {
-        let screen = Self {
+    pub(crate) fn new(subtle: &Subtle, x: i16, y: i16, width: u16, height: u16) -> Result<Self> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let screen_size = Rectangle {
+            x,
+            y,
+            width,
+            height
+        };
+
+        let mut screen = Self {
             flags: ScreenFlags::empty(),
-            geom: Rectangle {
-                x,
-                y,
-                width,
-                height,
-            },
+            drawable: 0,
+            geom: screen_size,
+            base: screen_size,
             ..Self::default()
         };
 
+        // Create panel windows
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+
+        let aux = CreateWindowAux::default()
+            .event_mask(EventMask::BUTTON_PRESS
+                | EventMask::EXPOSURE
+                | EventMask::LEAVE_WINDOW
+                | EventMask::EXPOSURE)
+            .override_redirect(1)
+            .background_pixmap(BackPixmap::PARENT_RELATIVE);
+
+        screen.panel_top_win = conn.generate_id()?;
+
+        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.panel_top_win, default_screen.root,
+                           0, 0, 1, 1, 0,
+                           WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
+
+        screen.panel_bottom_win = conn.generate_id()?;
+
+        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.panel_bottom_win, default_screen.root,
+                           0, 0, 1, 1, 0,
+                           WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
+
         debug!("{}: {}", function_name!(), screen);
 
-        screen
+        Ok(screen)
     }
 }
 
@@ -75,16 +108,17 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Check both but prefer xrandr
     if subtle.flags.contains(SubtleFlags::XRANDR) {
-        let screen = &conn.setup().roots[subtle.screen_num];
-        let crtcs= conn.randr_get_screen_resources_current(screen.root)?.reply()?.crtcs;
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+        let crtcs= conn.randr_get_screen_resources_current(default_screen.root)?.reply()?.crtcs;
 
         for crtc in crtcs.iter() {
             let screen_size = conn.randr_get_crtc_info(*crtc, CURRENT_TIME)?.reply()?;
 
-            let screen = Screen::new(subtle, screen_size.x, screen_size.y, 
-                                     screen_size.width, screen_size.height);
-
-            subtle.screens.push(screen);
+            if let Ok(screen) = Screen::new(subtle, screen_size.x, screen_size.y,
+                                     screen_size.width, screen_size.height)
+            {
+                subtle.screens.push(screen);
+            }
         }
     }
 
@@ -93,10 +127,11 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
             let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
 
             for screen_info in screens.iter() {
-                let screen = Screen::new(subtle, screen_info.x_org, screen_info.y_org,
-                                         screen_info.width, screen_info.height);
-
-                subtle.screens.push(screen);
+                if let Ok(screen) = Screen::new(subtle, screen_info.x_org, screen_info.y_org,
+                                         screen_info.width, screen_info.height)
+                {
+                    subtle.screens.push(screen);
+                }
             }
 
         }
@@ -104,9 +139,9 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     
     // Create default screen
     if subtle.screens.is_empty() {
-        let screen = Screen::new(subtle, 0, 0, subtle.width, subtle.height);
-        
-        subtle.screens.push(screen);
+        if let Ok(screen) = Screen::new(subtle, 0, 0, subtle.width, subtle.height) {
+            subtle.screens.push(screen);
+        }
     }
 
     publish(subtle, true)?;
@@ -219,11 +254,11 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     subtle.client_tags.replace(client_tags);
 
     // EWMH: Visible tags, views
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_TAGS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_VISIBLE_TAGS,
                            AtomEnum::CARDINAL, &[visible_tags.bits()])?.check()?;
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VISIBLE_VIEWS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_VISIBLE_VIEWS,
                            AtomEnum::CARDINAL, &[visible_views.bits()])?.check()?;
 
     conn.flush()?;
@@ -243,11 +278,76 @@ pub(crate) fn render(subtle: &Subtle) {
     debug!("{}", function_name!());
 }
 
+pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    for screen in subtle.screens.iter_mut() {
+
+        // Add strut
+        screen.geom.x = screen.base.x + subtle.styles.clients.padding.left;
+        screen.geom.y = screen.base.y + subtle.styles.clients.padding.top;
+        screen.geom.width = screen.base.width - subtle.styles.clients.padding.left as u16
+            - subtle.styles.clients.padding.right as u16;
+        screen.geom.height = screen.base.height - subtle.styles.clients.padding.top as u16
+            - subtle.styles.clients.padding.bottom as u16;
+
+        // Update panels
+        if screen.flags.contains(ScreenFlags::PANEL_TOP) {
+            let aux = ConfigureWindowAux::default()
+                .x(screen.base.x as i32)
+                .y(screen.base.y as i32)
+                .width(screen.base.width as u32)
+                .height(subtle.panel_height as u32);
+
+            conn.configure_window(screen.panel_top_win, &aux)?.check()?;
+            conn.map_window(screen.panel_top_win)?.check()?;
+
+            // Update height
+            screen.geom.y += subtle.panel_height as i16;
+            screen.geom.height -= subtle.panel_height;
+        } else {
+            conn.unmap_window(screen.panel_top_win)?.check()?;
+        }
+
+        if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
+            let aux = ConfigureWindowAux::default()
+                .x(screen.base.x as i32)
+                .y(screen.base.y as i32 + screen.base.height as i32 - subtle.panel_height as i32)
+                .width(screen.base.width as u32)
+                .height(subtle.panel_height as u32);
+
+            conn.configure_window(screen.panel_bottom_win, &aux)?.check()?;
+            conn.map_window(screen.panel_bottom_win)?.check()?;
+
+            // Update height
+            screen.geom.height -= subtle.panel_height;
+        } else {
+            conn.unmap_window(screen.panel_top_win)?.check()?;
+        }
+
+        // Re-create double buffer
+        if 0 != screen.drawable {
+            conn.free_pixmap(screen.drawable)?.check()?;
+        }
+
+        screen.drawable = conn.generate_id()?;
+
+        conn.create_pixmap(default_screen.root_depth, screen.drawable, default_screen.root,
+                           screen.base.width, subtle.panel_height)?.check()?;
+    }
+
+    debug!("{}", function_name!());
+
+    Ok(())
+}
+
 pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     if publish_all {
         let mut workareas: Vec<u32> = Vec::with_capacity(4 * subtle.screens.len());
@@ -260,9 +360,9 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
             workareas.push(screen.geom.width as u32);
             workareas.push(screen.geom.height as u32);
 
-            panels.push(if screen.flags.contains(ScreenFlags::PANEL1) {
+            panels.push(if screen.flags.contains(ScreenFlags::PANEL_TOP) {
                 subtle.panel_height as u32 } else { 0 });
-            panels.push(if screen.flags.contains(ScreenFlags::PANEL2) {
+            panels.push(if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
                 subtle.panel_height as u32 } else { 0 });
 
             viewports.push(0);
@@ -270,15 +370,15 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
         }
 
         // EWMH: Workarea
-        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_WORKAREA,
+        conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_WORKAREA,
                                AtomEnum::CARDINAL, &workareas)?.check()?;
 
         // EWMH: Screen panels
-        conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_SCREEN_PANELS,
+        conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_SCREEN_PANELS,
                                AtomEnum::CARDINAL, &panels)?.check()?;
 
         // EWMH: Desktop viewport
-        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_VIEWPORT,
+        conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_DESKTOP_VIEWPORT,
                                AtomEnum::CARDINAL, &viewports)?.check()?;
     }
 
@@ -289,7 +389,7 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
     }
 
     // EWMH: Views per screen
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_SCREEN_VIEWS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_SCREEN_VIEWS,
                            AtomEnum::CARDINAL, &views)?.check()?;
 
     conn.flush()?;
