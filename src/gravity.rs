@@ -101,7 +101,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
     
     let mut gravities: Vec<String> = Vec::with_capacity(subtle.gravities.len());
 
@@ -110,7 +110,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
                                gravity.geom.width, gravity.geom.height, gravity.name));
     }
 
-    conn.change_property8(PropMode::REPLACE, screen.root, atoms.SUBTLE_GRAVITY_LIST,
+    conn.change_property8(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_GRAVITY_LIST,
                           AtomEnum::STRING, gravities.join("\0").as_bytes())?.check()?;
 
     debug!("{}: gravities={}", function_name!(), subtle.gravities.len());

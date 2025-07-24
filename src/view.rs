@@ -106,7 +106,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     let mut names: Vec<&str> = Vec::with_capacity(subtle.views.len());
     let mut tags: Vec<u32> = Vec::with_capacity(subtle.views.len());
@@ -119,26 +119,26 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     }
 
     // EWMH: Tags
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VIEW_TAGS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_VIEW_TAGS,
                            AtomEnum::CARDINAL, &tags)?.check()?;
 
     // EWMH: Icons
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms.SUBTLE_VIEW_ICONS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_VIEW_ICONS,
                            AtomEnum::CARDINAL, &icons)?.check()?;
 
     // EWMH: Desktops
     let data: [u32; 1] = [subtle.views.len() as u32];
 
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_NUMBER_OF_DESKTOPS,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_NUMBER_OF_DESKTOPS,
                            AtomEnum::CARDINAL, &data)?.check()?;
 
-    conn.change_property8(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_NAMES,
+    conn.change_property8(PropMode::REPLACE, default_screen.root, atoms._NET_DESKTOP_NAMES,
                           AtomEnum::STRING, names.join("\0").as_bytes())?.check()?;
     
     // EWMH: Current desktop
     let data: [u32; 1] = [0];
     
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CURRENT_DESKTOP,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_CURRENT_DESKTOP,
                            AtomEnum::CARDINAL, &data)?.check()?;
     
     conn.flush()?;

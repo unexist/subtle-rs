@@ -138,7 +138,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     let mut tags: Vec<&str> = Vec::with_capacity(subtle.tags.len());
 
@@ -146,7 +146,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
         tags.push(&*tag.name);
     }
 
-    conn.change_property8(PropMode::REPLACE, screen.root, atoms.SUBTLE_TAG_LIST,
+    conn.change_property8(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_TAG_LIST,
                           AtomEnum::STRING, tags.join("\0").as_bytes())?.check()?;
 
     conn.flush()?;

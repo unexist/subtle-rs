@@ -90,31 +90,31 @@ pub(crate) fn finish(subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        let screen = &conn.setup().roots[subtle.screen_num];
+        let default_screen = &conn.setup().roots[subtle.screen_num];
 
         // EWMH properties
-        conn.delete_property(screen.root, atoms._NET_SUPPORTED)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_SUPPORTING_WM_CHECK)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_ACTIVE_WINDOW)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_CURRENT_DESKTOP)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_DESKTOP_NAMES)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_NUMBER_OF_DESKTOPS)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_DESKTOP_VIEWPORT)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_DESKTOP_GEOMETRY)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_WORKAREA)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_CLIENT_LIST)?.check()?;
-        conn.delete_property(screen.root, atoms._NET_CLIENT_LIST_STACKING)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_SUPPORTED)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_SUPPORTING_WM_CHECK)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_ACTIVE_WINDOW)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_CURRENT_DESKTOP)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_DESKTOP_NAMES)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_NUMBER_OF_DESKTOPS)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_DESKTOP_VIEWPORT)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_DESKTOP_GEOMETRY)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_WORKAREA)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_CLIENT_LIST)?.check()?;
+        conn.delete_property(default_screen.root, atoms._NET_CLIENT_LIST_STACKING)?.check()?;
 
         // subtle extension
-        conn.delete_property(screen.root, atoms.SUBTLE_GRAVITY_LIST)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_TAG_LIST)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_TRAY_LIST)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_VIEW_TAGS)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_COLORS)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_SUBLET_LIST)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_SCREEN_VIEWS)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_VISIBLE_VIEWS)?.check()?;
-        conn.delete_property(screen.root, atoms.SUBTLE_VISIBLE_TAGS)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_GRAVITY_LIST)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_TAG_LIST)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_TRAY_LIST)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_VIEW_TAGS)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_COLORS)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_SUBLET_LIST)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_SCREEN_VIEWS)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_VISIBLE_VIEWS)?.check()?;
+        conn.delete_property(default_screen.root, atoms.SUBTLE_VISIBLE_TAGS)?.check()?;
     }
 
     debug!("{}", function_name!());

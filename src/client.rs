@@ -545,12 +545,12 @@ impl Client {
         }
 
         // EWMH: Active window
-        let screen = &conn.setup().roots[subtle.screen_num];
+        let default_screen = &conn.setup().roots[subtle.screen_num];
 
         let list = subtle.focus_history.inner().iter()
             .map(|elem| elem.get() as u32).collect::<Vec<_>>();
 
-        conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_ACTIVE_WINDOW,
+        conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_ACTIVE_WINDOW,
                                AtomEnum::WINDOW, list.as_slice())?.check()?;
 
         Ok(())
@@ -1074,7 +1074,7 @@ impl Client {
     fn draw_mask(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
-        let screen = &conn.setup().roots[subtle.screen_num];
+        let default_screen = &conn.setup().roots[subtle.screen_num];
 
         let geom: [Rectangle; 1] = [Rectangle {
             x: self.geom.x - 1,
@@ -1083,7 +1083,7 @@ impl Client {
             height: self.geom.height + 1
         }];
 
-        conn.poly_rectangle(screen.root, subtle.invert_gc, &geom)?.check()?;
+        conn.poly_rectangle(default_screen.root, subtle.invert_gc, &geom)?.check()?;
 
         Ok(())
     }
@@ -1334,7 +1334,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.len());
 
@@ -1344,9 +1344,9 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     }
 
     // EWMH: Client list and stacking list (same for us)
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CLIENT_LIST,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_CLIENT_LIST,
                            AtomEnum::WINDOW, &wins)?;
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_CLIENT_LIST_STACKING,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_CLIENT_LIST_STACKING,
                            AtomEnum::WINDOW, &wins)?;
 
     // Restack windows? We assembled the array anyway

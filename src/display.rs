@@ -31,7 +31,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
 
     // Create support window
-    let screen = &conn.setup().roots[screen_num];
+    let default_screen = &conn.setup().roots[screen_num];
 
     subtle.support_win = conn.generate_id()?;
 
@@ -39,9 +39,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         .event_mask(EventMask::PROPERTY_CHANGE)
         .override_redirect(1);
 
-    conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, screen.root,
+    conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, default_screen.root,
                        -100, -100, 1, 1, 0,
-                       WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?.check()?;
+                       WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
@@ -64,7 +64,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     subtle.invert_gc = conn.generate_id()?;
 
-    conn.create_gc(subtle.invert_gc, screen.root, &aux)?.check()?;
+    conn.create_gc(subtle.invert_gc, default_screen.root, &aux)?.check()?;
 
     subtle.draw_gc = conn.generate_id()?;
 
@@ -75,7 +75,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         .cap_style(CapStyle::BUTT)
         .fill_style(FillStyle::SOLID);
 
-    conn.create_gc(subtle.draw_gc, screen.root, &aux)?.check()?;
+    conn.create_gc(subtle.draw_gc, default_screen.root, &aux)?.check()?;
 
     // Create cursors
     let font_wrapper = FontWrapper::open_font(&conn, "cursor".as_bytes())?;
@@ -106,7 +106,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             | EventMask::FOCUS_CHANGE
             | EventMask::PROPERTY_CHANGE);
 
-    conn.change_window_attributes(screen.root, &aux)?.check()?;
+    conn.change_window_attributes(default_screen.root, &aux)?.check()?;
 
     conn.flush()?;
 
@@ -156,9 +156,9 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
 pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    for win in conn.query_tree(screen.root)?.reply()?.children {
+    for win in conn.query_tree(default_screen.root)?.reply()?.children {
         let attr = conn.get_window_attributes(win)?.reply()?;
 
         if !attr.override_redirect {
@@ -188,7 +188,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     // TODO Tray
 
@@ -203,13 +203,13 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
         }
     }
 
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_SUPPORTED,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_SUPPORTED,
                            AtomEnum::ATOM, &supported_atoms)?.check()?;
 
     // EWMH: Window manager information
     let data: [u32; 1] = [subtle.support_win];
 
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_SUPPORTING_WM_CHECK,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_SUPPORTING_WM_CHECK,
                            AtomEnum::WINDOW, &data)?.check()?;
     conn.change_property8(PropMode::REPLACE, subtle.support_win, atoms._NET_WM_NAME,
             AtomEnum::STRING, env!("CARGO_PKG_NAME").as_bytes())?.check()?;
@@ -227,7 +227,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     // EWMH: Desktop geometry
     let data: [u32; 2] = [subtle.width as u32, subtle.height as u32];
 
-    conn.change_property32(PropMode::REPLACE, screen.root, atoms._NET_DESKTOP_GEOMETRY,
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_DESKTOP_GEOMETRY,
                            AtomEnum::CARDINAL, &data)?.check()?;
 
     conn.flush()?;
@@ -240,7 +240,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     conn.flush()?;
 
@@ -256,7 +256,7 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     // Destroy windows
     conn.destroy_window(subtle.support_win)?;
 
-    conn.set_input_focus(InputFocus::POINTER_ROOT, screen.root, CURRENT_TIME)?.check()?;
+    conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 
     debug!("{}", function_name!());
 

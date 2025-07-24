@@ -156,7 +156,7 @@ fn parse_side(mixed_val: &MixedConfigVal, side: &mut Side) {
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
-    let screen = &conn.setup().roots[subtle.screen_num];
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     for (name, values) in config.styles.iter() {
         match name.as_str() {
@@ -169,11 +169,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                 // Set border color and width
                 if let Some(MixedConfigVal::S(color_str)) = values.get("active") {
-                    subtle.styles.clients.fg = parse_color(conn, color_str, screen.default_colormap)?;
+                    subtle.styles.clients.fg = parse_color(conn, color_str, default_screen.default_colormap)?;
                 }
 
                 if let Some(MixedConfigVal::S(color_str)) = values.get("inactive") {
-                    subtle.styles.clients.bg = parse_color(conn, color_str, screen.default_colormap)?;
+                    subtle.styles.clients.bg = parse_color(conn, color_str, default_screen.default_colormap)?;
                 }
 
                 if let Some(MixedConfigVal::I(width)) = values.get("border_width") {
