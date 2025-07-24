@@ -10,19 +10,44 @@
 ///
 
 use std::fmt;
+use anyhow::{Context, Result};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::ConnectionExt;
 use crate::subtle::Subtle;
 
 #[derive(Default, Debug)]
 pub(crate) struct Font {
+    pub(crate) font_id: u32,
     pub(crate) y: u16,
     pub(crate) height: u16,
 }
 
 impl Font {
-    pub(crate) fn new(subtle: &Subtle, name: &str) -> Self {
-        Self {
+    pub(crate) fn new(subtle: &Subtle, name: &str) -> Result<Self> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let mut font = Self {
+            font_id: conn.generate_id()?,
             ..Default::default()
-        }
+        };
+
+        // Open font and calculate specs
+        conn.open_font(font.font_id, name.as_ref())?.check()?;
+
+        let reply = conn.query_font(font.font_id)?.reply()?;
+
+        font.height = (reply.font_ascent + reply.font_descent + 2) as u16;
+        font.y = (font.height - 2 + reply.font_ascent as u16) / 2;
+
+        Ok(font)
+    }
+
+    pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        conn.close_font(self.font_id)?.check()?;
+
+        Ok(())
     }
 }
 
