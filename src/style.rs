@@ -196,7 +196,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             },
             "title" => {
                 if let Some(MixedConfigVal::I(width)) = values.get("title_width") {
-                    subtle.title_width = *width as i16;
+                    subtle.title_width = *width as u16;
                 }
 
             }

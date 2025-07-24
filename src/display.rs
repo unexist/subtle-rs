@@ -41,7 +41,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, screen.root,
                        -100, -100, 1, 1, 0,
-                       WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?;
+                       WindowClass::INPUT_OUTPUT, screen.root_visual, &aux)?.check()?;
 
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {

@@ -25,6 +25,7 @@ use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::grab::Grab;
+use crate::panel::Panel;
 use crate::screen::Screen;
 use crate::style::Style;
 use crate::tagging::Tagging;
@@ -72,10 +73,10 @@ pub(crate) struct Subtle {
     pub(crate) width: u16,
     pub(crate) height: u16,
 
-    pub(crate) panel_height: i16,
-    pub(crate) title_width: i16,
+    pub(crate) panel_height: u16,
+    pub(crate) title_width: u16,
     pub(crate) step_size: i16,
-    pub(crate) snap_size: i16,
+    pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
 
     pub(crate) visible_tags: Cell<Tagging>,
@@ -103,6 +104,7 @@ pub(crate) struct Subtle {
     pub(crate) styles: SubtleStyles,
 
     pub(crate) screens: Vec<Screen>,
+    pub(crate) panels: Vec<Panel>,
     pub(crate) clients: VecCell<Client>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
@@ -214,6 +216,7 @@ impl Default for Subtle {
             styles: SubtleStyles::default(),
 
             screens: Vec::new(),
+            panels: Vec::new(),
             clients: VecCell::new(),
             gravities: Vec::new(),
             grabs: Vec::new(),
@@ -243,7 +246,7 @@ impl From<&Config> for Subtle {
         }
 
         if let Some(MixedConfigVal::I(snap_size)) = config.subtle.get("border_snap") {
-            subtle.snap_size = *snap_size as i16;
+            subtle.snap_size = *snap_size as u16;
         }
 
         macro_rules! apply_config_flag {

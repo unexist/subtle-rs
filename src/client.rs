@@ -253,7 +253,7 @@ impl Client {
                     screen.geom.width as i16 } else { max_width as i16 };
 
                 self.max_height = if max_height > screen.geom.height as i32 {
-                    screen.geom.height as i16 - subtle.panel_height
+                    screen.geom.height as i16 - subtle.panel_height as i16
                 } else { max_height as i16 };
             }
 
@@ -680,12 +680,12 @@ impl Client {
                     self.geom = screen.base;
 
                     // Add panel heights without struts
-                    if screen.flags.contains(ScreenFlags::PANEL1) {
+                    if screen.flags.contains(ScreenFlags::PANEL_TOP) {
                         self.geom.y += subtle.panel_height as i16;
                         self.geom.height -= subtle.panel_height as u16;
                     }
 
-                    if screen.flags.contains(ScreenFlags::PANEL2) {
+                    if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
                         self.geom.height -= subtle.panel_height as u16;
                     }
                 }
@@ -1255,7 +1255,7 @@ fn get_default_gravity(subtle: &Subtle) -> isize {
 }
 
 fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
-    let mut flags = ScreenFlags::PANEL1 | ScreenFlags::PANEL2;
+    let mut flags = ScreenFlags::PANEL_TOP | ScreenFlags::PANEL_BOTTOM;
 
     // Update bounds according to styles
     bounds.x = subtle.styles.clients.padding.left;
@@ -1268,16 +1268,16 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     // Iterate over screens to find fitting square
     for screen in subtle.screens.iter() {
         if screen.flags.contains(flags) {
-            if screen.flags.contains(ScreenFlags::PANEL1) {
+            if screen.flags.contains(ScreenFlags::PANEL_TOP) {
                 bounds.y += subtle.panel_height as i16;
                 bounds.height -= subtle.panel_height as u16;
             }
 
-            if screen.flags.contains(ScreenFlags::PANEL2) {
+            if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
                 bounds.height -= subtle.panel_height as u16;
             }
 
-            flags &= !(screen.flags & (ScreenFlags::PANEL1 | ScreenFlags::PANEL2));
+            flags &= !(screen.flags & (ScreenFlags::PANEL_TOP | ScreenFlags::PANEL_BOTTOM));
         }
     }
 
