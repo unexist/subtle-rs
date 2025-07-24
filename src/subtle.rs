@@ -165,9 +165,9 @@ impl Subtle {
         } else {
             let conn = self.conn.get().unwrap();
 
-            let screen = &conn.setup().roots[self.screen_num];
+            let default_screen = &conn.setup().roots[self.screen_num];
 
-            if let Ok(cookie) = conn.query_pointer(screen.root) {
+            if let Ok(cookie) = conn.query_pointer(default_screen.root) {
                 if let Ok(reply) = cookie.reply() {
                     return self.find_screen_by_xy(reply.root_x, reply.root_y)
                 }
@@ -185,7 +185,7 @@ impl Default for Subtle {
             width: 0,
             height: 0,
 
-            panel_height: 0,
+            panel_height: 10, // TODO Style Inherit
             title_width: 50,
             step_size: 0,
             snap_size: 0,
