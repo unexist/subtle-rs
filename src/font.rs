@@ -15,7 +15,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::ConnectionExt;
 use crate::subtle::Subtle;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(crate) struct Font {
     pub(crate) font_id: u32,
     pub(crate) y: u16,
