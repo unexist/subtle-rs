@@ -95,6 +95,7 @@ fn main() -> Result<()> {
 
     sanity_check(&mut subtle)?;
 
+    style::update(&mut subtle);
     screen::resize(&mut subtle)?;
 
     display::claim(&mut subtle)?;
