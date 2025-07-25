@@ -124,7 +124,7 @@ impl Client {
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
-            .border_pixel(subtle.styles.clients.bg)
+            .border_pixel(subtle.styles.clients.bg as u32)
             .event_mask(EventMask::PROPERTY_CHANGE
                 | EventMask::ENTER_WINDOW
                 | EventMask::FOCUS_CHANGE);
@@ -511,7 +511,7 @@ impl Client {
 
                 if !focus.flags.contains(ClientFlags::TYPE_DESKTOP) {
                     let aux = ChangeWindowAttributesAux::default()
-                        .border_pixel(subtle.styles.clients.bg);
+                        .border_pixel(subtle.styles.clients.bg as u32);
 
                     conn.change_window_attributes(focus.win, &aux)?.check()?;
                 }
@@ -539,7 +539,7 @@ impl Client {
         // Exclude desktop and dock type windows
         if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
             let aux = ChangeWindowAttributesAux::default()
-                .border_pixel(subtle.styles.clients.fg);
+                .border_pixel(subtle.styles.clients.fg as u32);
 
             conn.change_window_attributes(self.win, &aux)?.check()?;
         }

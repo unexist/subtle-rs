@@ -99,7 +99,7 @@ impl Screen {
     pub(crate) fn clear(&self, subtle: &Subtle, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
-        conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg))?.check()?;
+        conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg as u32))?.check()?;
 
         // Clear pixmap
         conn.poly_fill_rectangle(self.drawable, subtle.draw_gc, &[Rectangle {
