@@ -45,6 +45,34 @@ pub(crate) struct Side {
     pub(crate) left: i16,
 }
 
+impl Side {
+    pub(crate) fn inherit(&mut self, other_side: &Side, merge: bool) {
+        if -1 == self.top || (merge && -1 != other_side.top) {
+            self.top = other_side.top;
+        }
+
+        if -1 == self.right || (merge && -1 != other_side.right) {
+            self.right = other_side.right;
+        }
+
+        if -1 == self.bottom || (merge && -1 != other_side.bottom) {
+            self.bottom = other_side.bottom;
+        }
+
+        if -1 == self.left || (merge && -1 != other_side.left) {
+            self.left = other_side.left;
+        }
+    }
+
+    pub(crate) fn reset(&mut self, default_value: i16) {
+        // Set values
+        self.top = default_value;
+        self.right = default_value;
+        self.bottom = default_value;
+        self.left = default_value;
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub(crate) struct Separator {
     pub(crate) string: String,
@@ -59,23 +87,36 @@ pub(crate) struct Style {
 
     pub(crate) min_width: i16,
 
-    pub(crate) fg: u32,
-    pub(crate) bg: u32,
-    pub(crate) icon: u32,
-    pub(crate) top: u32,
-    pub(crate) right: u32,
-    pub(crate) bottom: u32,
-    pub(crate) left: u32,
+    pub(crate) fg: i32,
+    pub(crate) bg: i32,
+    pub(crate) icon: i32,
+    pub(crate) top: i32,
+    pub(crate) right: i32,
+    pub(crate) bottom: i32,
+    pub(crate) left: i32,
 
     pub(crate) border: Side,
     pub(crate) padding: Side,
     pub(crate) margin: Side,
 
-    pub(crate) font: Font,
-    pub(crate) separator: Separator,
+    pub(crate) font: Option<Font>,
+    pub(crate) separator: Option<Separator>,
 }
 
 impl Style {
+    pub(crate) fn new() -> Self {
+        Style {
+            fg: -1,
+            bg: -1,
+            icon: -1,
+            top: -1,
+            right: -1,
+            bottom: -1,
+            left: -1,
+            ..Self::default()
+        }
+    }
+
     pub(crate) fn calc_side(&self, side: CalcSide) -> i16 {
         match side {
             CalcSide::Top => self.border.top + self.padding.top + self.margin.top,
@@ -83,6 +124,69 @@ impl Style {
             CalcSide::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
             CalcSide::Left => self.border.left + self.padding.left + self.margin.left,
         }
+    }
+
+    pub(crate) fn inherit(&mut self, other_style: &Style) {
+        // Inherit values if unset
+        if -1 == self.fg {
+            self.fg = other_style.fg;
+        }
+
+        if -1 == self.bg {
+            self.bg = other_style.bg;
+        }
+
+        if -1 == self.icon {
+            self.icon = other_style.icon;
+        }
+
+        if -1 == self.top {
+            self.top = other_style.top;
+        }
+
+        if -1 == self.right {
+            self.right = other_style.right;
+        }
+
+        if -1 == self.bottom {
+            self.bottom = other_style.bottom;
+        }
+
+        if -1 == self.left {
+            self.left = other_style.left;
+        }
+
+        // Inherit unset border, padding, margin
+        self.border.inherit(&other_style.border, false);
+        self.padding.inherit(&other_style.padding, false);
+        self.margin.inherit(&other_style.margin, false);
+
+        // Inherit font
+        if self.font.is_none() {
+            self.font = other_style.font.clone();
+        }
+
+        if self.font.is_some() {
+            if self.separator.is_some() {
+                // TODO font width
+            }
+        }
+    }
+
+    pub(crate) fn reset(&mut self, default_value: i32) {
+        // Set values
+        self.fg = default_value;
+        self.bg = default_value;
+        self.right = default_value;
+        self.bottom = default_value;
+        self.left = default_value;
+
+        self.border.reset(default_value as i16);
+        self.padding.reset(default_value as i16);
+        self.margin.reset(default_value as i16);
+
+        // Force value to prevent inheriting of 0 value from all
+        self.icon = -1;
     }
 }
 
@@ -109,13 +213,13 @@ macro_rules! scale {
     };
 }
 
-fn parse_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<u32> {
+fn parse_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<i32> {
     let hex_color = HexColor::parse(color_str)?;
 
     Ok(conn.alloc_color(cmap,
                         scale!(hex_color.r, 255, 65535),
                         scale!(hex_color.g, 255, 65535),
-                        scale!(hex_color.b, 255, 65535))?.reply()?.pixel)
+                        scale!(hex_color.b, 255, 65535))?.reply()?.pixel as i32)
 }
 
 fn parse_side(mixed_val: &MixedConfigVal, side: &mut Side) {
@@ -159,7 +263,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     for (name, values) in config.styles.iter() {
+        let mut style = &mut subtle.styles.all;
+
         match name.as_str() {
+            "all" => {
+                style = &mut subtle.styles.all;
+            }
             "clients" => {
                 // We exploit some unused style variables here:
                 // border-top <-> client border
@@ -180,31 +289,57 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                     subtle.styles.clients.border.top = *width as i16;
                 }
 
-                // Set client margin
-                if let Some(val) = values.get("margin") {
-                    parse_side(val, &mut subtle.styles.clients.margin);
-                }
-
                 // Set client strut
                 if let Some(val) = values.get("strut") {
                     parse_side(val, &mut subtle.styles.clients.padding);
                 }
 
-                if let Some(val) = values.get("padding") {
-                    parse_side(val, &mut subtle.styles.clients.padding);
-                }
+                style = &mut subtle.styles.clients;
             },
             "title" => {
                 if let Some(MixedConfigVal::I(width)) = values.get("title_width") {
                     subtle.title_width = *width as u16;
                 }
 
+                style = &mut subtle.styles.title;
             }
             _ => warn!("Unhandled style: {}", name),
+        }
+
+        // Common values of all styles
+        if let Some(MixedConfigVal::S(color_str)) = values.get("fg") {
+            style.fg = parse_color(conn, color_str, default_screen.default_colormap)?;
+        }
+
+        if let Some(MixedConfigVal::S(color_str)) = values.get("bg") {
+            style.bg = parse_color(conn, color_str, default_screen.default_colormap)?;
+        }
+
+        if let Some(val) = values.get("margin") {
+            parse_side(val, &mut style.margin);
+        }
+
+        if let Some(val) = values.get("padding") {
+            parse_side(val, &mut style.padding);
         }
     }
 
     debug!("{}", function_name!());
 
     Ok(())
+}
+
+pub(crate) fn update(subtle: &mut Subtle) {
+    // Inherit styles
+    subtle.styles.views.inherit(&subtle.styles.all);
+    subtle.styles.title.inherit(&subtle.styles.all);
+    subtle.styles.sublets.inherit(&subtle.styles.all);
+    subtle.styles.separator.inherit(&subtle.styles.all);
+    subtle.styles.panel_top.inherit(&subtle.styles.all);
+    subtle.styles.panel_bottom.inherit(&subtle.styles.all);
+
+    // Check fonts
+    // TODO Font
+
+    debug!("{}", function_name!());
 }
