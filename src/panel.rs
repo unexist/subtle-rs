@@ -34,15 +34,15 @@ bitflags! {
         const SPACER1 = 1 << 7;     // Panel spacer1
         const SPACER2 = 1 << 8;     // Panel spacer2
         const SEPARATOR1 = 1 << 9;  // Panel separator1
-        const SEPARATOR2 = 1 << 10;  // Panel separator2
-        const BOTTOM = 1 << 11;      // Panel bottom
-        const HIDDEN = 1 << 12;      // Panel hidden
-        const CENTER = 1 << 13;      // Panel center
-        const SUBLETS = 1 << 14;     // Panel sublets
+        const SEPARATOR2 = 1 << 10; // Panel separator2
+        const BOTTOM = 1 << 11;     // Panel bottom
+        const HIDDEN = 1 << 12;     // Panel hidden
+        const CENTER = 1 << 13;     // Panel center
+        const SUBLETS = 1 << 14;    // Panel sublets
 
-        const DOWN = 1 << 15;        // Panel mouse down
-        const OVER = 1 << 16;        // Panel mouse over
-        const OUT = 1 << 17;         // Panel mouse out
+        const MOUSE_DOWN = 1 << 15;       // Panel mouse down
+        const MOUSE_OVER = 1 << 16;       // Panel mouse over
+        const MOUSE_OUT = 1 << 17;        // Panel mouse out
     }
 }
 
@@ -99,7 +99,7 @@ impl Panel {
             PanelFlags::ICON => {}, // TODO icon
             PanelFlags::SUBLETS => {}, // TODO sublets
             PanelFlags::VIEWS => {
-                panel.flags.insert(PanelFlags::DOWN);
+                panel.flags.insert(PanelFlags::MOUSE_DOWN);
             },
             _ => warn!("Unknown panel flag {:?}", flag),
         });

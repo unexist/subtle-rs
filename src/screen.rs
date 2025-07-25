@@ -289,7 +289,6 @@ pub(crate) fn update(subtle: &Subtle) {
     debug!("{}", function_name!());
 }
 
-
 pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
