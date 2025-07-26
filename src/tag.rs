@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use derive_builder::Builder;
 use log::{debug, warn};
 use stdext::function_name;

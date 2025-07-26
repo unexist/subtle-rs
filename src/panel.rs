@@ -17,7 +17,6 @@ use easy_min_max::max;
 use stdext::function_name;
 use crate::client::{Client, ClientFlags};
 use crate::config::Config;
-use crate::screen::ScreenFlags;
 use crate::subtle::Subtle;
 
 bitflags! {
