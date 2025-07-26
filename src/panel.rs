@@ -154,26 +154,6 @@ impl fmt::Display for Panel {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    for (name, values) in config.panels.iter() {
-        if name.starts_with("screen") {
-            if let Some((_, digits)) = name.rsplit_once(|c: char| !c.is_ascii_digit()) {
-                if let Ok(screen_id) = digits.parse::<usize>() && 0 < screen_id && subtle.screens.len() >= screen_id {
-                   if let Some(screen) = subtle.screens.get_mut(screen_id - 1) {
-                       if let Some(top_panel) = values.get("top_panel") {
-                           screen.flags.insert(ScreenFlags::PANEL_TOP);
-                       }
-                       if let Some(bottom_panel) = values.get("bottom_panel") {
-                           screen.flags.insert(ScreenFlags::PANEL_BOTTOM);
-                       }
-                   }
-                }
-            }
-        } else {
-            // TODO sublets
-        }
-
-    }
-
     debug!("{}", function_name!());
 
     Ok(())
