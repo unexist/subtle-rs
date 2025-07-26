@@ -10,19 +10,16 @@
 ///
 
 use proptest::prelude::*;
-use crate::tag::Tag;
+use crate::tag::{Tag, TagBuilder};
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn should_create_tag(s in "[a-zA-Z]*") {
-        match Tag::new(&*s) {
-            Ok(tag) => assert!(!tag.name.is_empty()),
-            Err(err) => {
-                if !s.is_empty() {
-                    panic!("Expected valid tag");
-                }
-            }
-        }
+        let mut builder = TagBuilder::default();
+
+        builder.name(s);
+
+        let _ = builder.build().unwrap();
     }
 }

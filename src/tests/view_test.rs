@@ -10,21 +10,16 @@
 ///
 
 use proptest::prelude::*;
-use crate::view::View;
+use crate::view::{View, ViewBuilder};
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn should_create_view(s in "[a-zA-Z]*") {
-        let view = View::new(&*s);
+        let mut builder = ViewBuilder::default();
+        
+        builder.name(s);
 
-        match View::new(&*s) {
-            Ok(view) => assert!(!view.name.is_empty()),
-            Err(err) => {
-                if !s.is_empty() {
-                    panic!("Expected valid view");
-                }
-            }
-        }
+        let _ = builder.build().unwrap();
     }
 }
