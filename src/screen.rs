@@ -20,7 +20,7 @@ use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
 use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, Window, WindowClass};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::config::Config;
+use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{ClientFlags, WMState};
 use crate::style::Style;
@@ -29,8 +29,8 @@ use crate::tagging::Tagging;
 bitflags! {
     #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct ScreenFlags: u32 {
-        const PANEL_TOP = 1 << 0; // Screen panel1 enabled
-        const PANEL_BOTTOM = 1 << 1; // Screen panel2 enabled
+        const TOP_PANEL = 1 << 0; // Screen panel1 enabled
+        const BOTTOM_PANEL = 1 << 1; // Screen panel2 enabled
         const VIRTUAL = 1 << 3; // Screen is virtual       
     }
 }
@@ -119,7 +119,7 @@ impl fmt::Display for Screen {
     }
 }
 
-pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     // Check both but prefer xrandr
@@ -157,6 +157,22 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     if subtle.screens.is_empty() {
         if let Ok(screen) = Screen::new(subtle, 0, 0, subtle.width, subtle.height) {
             subtle.screens.push(screen);
+        }
+    }
+
+    // Load screen config
+    for (screen_idx, values) in config.screens.iter().enumerate() {
+        if subtle.screens.len() > screen_idx && let Some(screen) = subtle.screens.get_mut(screen_idx) {
+            if let Some(MixedConfigVal::VS(panels)) = values.get("top_panel") {
+                screen.flags.insert(ScreenFlags::TOP_PANEL);
+            }
+
+            if let Some(MixedConfigVal::VS(panels)) = values.get("bottom_panel") {
+                screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
+            }
+
+            // TODO Panels
+            // TODO virtual
         }
     }
 
@@ -327,7 +343,7 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
             - subtle.styles.clients.padding.bottom as u16;
 
         // Update panels
-        if screen.flags.contains(ScreenFlags::PANEL_TOP) {
+        if screen.flags.contains(ScreenFlags::TOP_PANEL) {
             let aux = ConfigureWindowAux::default()
                 .x(screen.base.x as i32)
                 .y(screen.base.y as i32)
@@ -344,7 +360,7 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
             conn.unmap_window(screen.panel_top_win)?.check()?;
         }
 
-        if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
+        if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
             let aux = ConfigureWindowAux::default()
                 .x(screen.base.x as i32)
                 .y(screen.base.y as i32 + screen.base.height as i32 - subtle.panel_height as i32)
@@ -393,9 +409,9 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
             workareas.push(screen.geom.width as u32);
             workareas.push(screen.geom.height as u32);
 
-            panels.push(if screen.flags.contains(ScreenFlags::PANEL_TOP) {
+            panels.push(if screen.flags.contains(ScreenFlags::TOP_PANEL) {
                 subtle.panel_height as u32 } else { 0 });
-            panels.push(if screen.flags.contains(ScreenFlags::PANEL_BOTTOM) {
+            panels.push(if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
                 subtle.panel_height as u32 } else { 0 });
 
             viewports.push(0);
@@ -427,7 +443,7 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: screens={}", function_name!(), subtle.views.len());
+    debug!("{}: screens={}", function_name!(), subtle.screens.len());
 
     Ok(())
 }

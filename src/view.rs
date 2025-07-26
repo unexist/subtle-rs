@@ -13,6 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
 use anyhow::{anyhow, Result};
+use derive_builder::Builder;
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -23,7 +24,7 @@ use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 
 bitflags! {
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Clone)]
     pub(crate) struct ViewFlags: u32 {
         const MODE_ICON = 1 << 0; // View icon
         const MODE_ICON_ONLY = 1 << 1; // Icon only
@@ -32,7 +33,8 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Builder)]
+#[builder(default)]
 pub(crate) struct View {
     pub(crate) flags: ViewFlags,
     pub(crate) tags: Tagging,
@@ -42,21 +44,6 @@ pub(crate) struct View {
 }
 
 impl View {
-    pub(crate) fn new(name: &str) -> Result<Self> {
-        if name.is_empty() {
-            return Err(anyhow!("Empty view name"))
-        }
-
-        let view = Self {
-            name: name.into(),
-            ..Default::default()
-        };
-
-        debug!("{}: {}", function_name!(), view);
-
-        Ok(view)
-    }
-
     fn retag(&mut self, subtle: &Subtle) {
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if let Some(regex) = &self.regex && regex.is_match(&*tag.name) {
@@ -75,24 +62,32 @@ impl fmt::Display for View {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    for (name, values) in config.views.iter() {
-        let mut view = View::new(name)?;
+    for values in config.views.iter() {
+        let mut builder = ViewBuilder::default();
 
-        // Handle match
-        if let Some(MixedConfigVal::S(value)) = values.get("match") {
-            view.regex = Some(Regex::new(value)?);
-
-            view.retag(subtle);
+        if let Some(MixedConfigVal::S(name)) = values.get("name") {
+            builder.name(name.into());
         }
+
+        if let Some(MixedConfigVal::S(value)) = values.get("match") {
+            builder.regex(Some(Regex::new(value)?));
+        }
+
+        // Apply tagging
+        let mut view = builder.build()?;
+
+        view.retag(subtle);
 
         subtle.views.push(view)
     }
 
     // Sanity check
     if subtle.views.is_empty() {
-        let view = View::new("default")?;
+        let mut builder = ViewBuilder::default();
 
-        subtle.views.push(view);
+        builder.name("default".into());
+
+        subtle.views.push(builder.build()?);
     }
 
     publish(subtle)?;

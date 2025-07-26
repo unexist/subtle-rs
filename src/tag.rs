@@ -13,6 +13,7 @@ use std::fmt;
 use bitflags::bitflags;
 use regex::Regex;
 use anyhow::{anyhow, Result};
+use derive_builder::Builder;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -23,7 +24,7 @@ use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
 bitflags! {
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Clone)]
     pub(crate) struct TagFlags: u32 {
         const GRAVITY = 1 << 0; // Gravity property
         const GEOMETRY = 1 << 1; // Geometry property
@@ -32,33 +33,19 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Builder)]
+#[builder(default)]
 pub(crate) struct Tag {
     pub(crate) flags: TagFlags,
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
-    
+
     pub(crate) screen_id: usize,
     pub(crate) gravity_id: usize,
     pub(crate) geom: Rectangle,
 }
 
 impl Tag {
-    pub(crate) fn new(name: &str) -> Result<Self> {
-        if name.is_empty() {
-            return Err(anyhow!("Empty tag name"))
-        }
-
-        let tag = Self {
-            name: name.into(),
-            ..Default::default()
-        };
-
-        debug!("{}: {}", function_name!(), tag);
-        
-        Ok(tag)
-    }
-    
     pub(crate) fn matches(&self, client: &Client) -> bool {
         true
     }
@@ -71,60 +58,65 @@ impl fmt::Display for Tag {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    for (name, values) in config.tags.iter() {
-        let mut tag = Tag::new(name)?;
+    for tag_values in config.tags.iter() {
+        let mut builder = TagBuilder::default();
+        let mut flags = TagFlags::empty();
 
-        // Handle match
-        if let Some(MixedConfigVal::S(value)) = values.get("match") {
-            tag.regex = Some(Regex::new(value)?);
+        if let Some(MixedConfigVal::S(value)) = tag_values.get("name") {
+            builder.name(value.to_string());
         }
 
-        // Handle gravity
-        if let Some(MixedConfigVal::S(value)) = values.get("gravity") {
+        if let Some(MixedConfigVal::S(value)) = tag_values.get("match") {
+            builder.regex(Some(Regex::new(value)?));
+        }
+
+        if let Some(MixedConfigVal::S(value)) = tag_values.get("gravity") {
 
             // Enable gravity only when gravity can be found
             if let Some(grav_id) = subtle.gravities.iter().position(|grav| grav.name.eq(value)) {
-                tag.gravity_id = grav_id;
-                tag.flags.insert(TagFlags::GRAVITY);
+                flags.insert(TagFlags::GRAVITY);
+                builder.gravity_id(grav_id);
             }
         }
 
-        // Handle geometry
-        if let Some(MixedConfigVal::VI(value)) = values.get("geometry") {
+        if let Some(MixedConfigVal::VI(value)) = tag_values.get("geometry") {
             if 4 == value.len() {
-                tag.flags.insert(TagFlags::GEOMETRY);
-                tag.geom = Rectangle {
+                flags.insert(TagFlags::GEOMETRY);
+                builder.geom(Rectangle {
                     x: value[0] as i16,
                     y: value[1] as i16,
                     width: value[2] as u16,
                     height: value[3] as u16,
-                };
+                });
             }
         }
 
         // Handle geometry
-        if let Some(MixedConfigVal::VI(value)) = values.get("position") {
-            if tag.flags.contains(TagFlags::GEOMETRY) {
+        if let Some(MixedConfigVal::VI(value)) = tag_values.get("position") {
+            if flags.contains(TagFlags::GEOMETRY) {
                 warn!("Tags cannot use both geometry and position");
             } else if 2 == value.len() {
-                tag.flags.insert(TagFlags::POSITION);
-                tag.geom = Rectangle {
+                flags.insert(TagFlags::POSITION);
+                builder.geom(Rectangle {
                     x: value[0] as i16,
                     y: value[1] as i16,
                     ..Rectangle::default()
-                };
+                });
             }
         }
 
+        builder.flags(flags);
 
-        subtle.tags.push(tag)
+        subtle.tags.push(builder.build()?);
     }
     
     // Sanity check
     if subtle.tags.is_empty() {
-        let tag = Tag::new("default")?;
-        
-        subtle.tags.push(tag);
+        let mut builder = TagBuilder::default();
+
+        builder.name("default".into());
+
+        subtle.tags.push(builder.build()?);
     }
 
     publish(subtle)?;

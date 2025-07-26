@@ -38,9 +38,9 @@ pub(crate) struct Gravity {
 }
 
 impl Gravity {
-    pub(crate) fn new(name: String, x: u16, y: u16, width: u16, height: u16) -> Self {
+    pub(crate) fn new(name: &str, x: u16, y: u16, width: u16, height: u16) -> Self {
         let grav = Gravity {
-            name,
+            name: name.into(),
             geom: Rectangle {
                 x: clamp!(x as i16, 0, 100),
                 y: clamp!(y as i16, 0, 100),
@@ -71,10 +71,20 @@ impl fmt::Display for Gravity {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    subtle.gravities = config.gravities.iter()
-        .map(|grav|
-            Gravity::new(String::from(grav.0), grav.1[0], grav.1[1],
-                         grav.1[2], grav.1[3])).collect();
+    for gravity_values in config.gravities.iter() {
+        if let (Some(MixedConfigVal::S(name)), Some(MixedConfigVal::I(x)),
+            Some(MixedConfigVal::I(y)), Some(MixedConfigVal::I(width)),
+            Some(MixedConfigVal::I(height))) = (gravity_values.get("name"), gravity_values.get("x"),
+                                                gravity_values.get("y"), gravity_values.get("width"), gravity_values.get("height"))
+        {
+            subtle.gravities.push(Gravity::new(name, *x as u16, *y as u16, *width as u16, *height as u16));
+        }
+    }
+
+    // Check gravities
+    if 0 == subtle.gravities.len() {
+        return Err(anyhow!("No gravities found"));
+    }
 
     // Find default gravity
     if let Some(MixedConfigVal::S(grav_name)) = config.subtle.get("default_gravity") {
@@ -83,11 +93,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         } else {
             subtle.default_gravity = 0;
         }
-    }
-
-    // Check gravities
-    if 0 == subtle.gravities.len() {
-        return Err(anyhow!("No gravities found"));
     }
 
     publish(subtle)?;
