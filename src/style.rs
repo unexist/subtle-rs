@@ -213,7 +213,7 @@ macro_rules! scale {
     };
 }
 
-fn parse_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<i32> {
+fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<i32> {
     let hex_color = HexColor::parse(color_str)?;
 
     Ok(conn.alloc_color(cmap,
@@ -262,65 +262,67 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    for (name, values) in config.styles.iter() {
+    for style_values in config.styles.iter() {
         let mut style = &mut subtle.styles.all;
 
-        match name.as_str() {
-            "all" => {
-                style = &mut subtle.styles.all;
+        if let Some(MixedConfigVal::S(kind))  = style_values.get("kind") {
+            match kind.as_str() {
+                "all" => {
+                    style = &mut subtle.styles.all;
+                }
+                "clients" => {
+                    // We exploit some unused style variables here:
+                    // border-top <-> client border
+                    // border-right <-> title length
+                    // margin <-> client gap
+                    // padding <-> client strut
+
+                    // Set border color and width
+                    if let Some(MixedConfigVal::S(color_str)) = style_values.get("active") {
+                        subtle.styles.clients.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+                    }
+
+                    if let Some(MixedConfigVal::S(color_str)) = style_values.get("inactive") {
+                        subtle.styles.clients.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+                    }
+
+                    if let Some(MixedConfigVal::I(width)) = style_values.get("border_width") {
+                        subtle.styles.clients.border.top = *width as i16;
+                    }
+
+                    // Set client strut
+                    if let Some(val) = style_values.get("strut") {
+                        parse_side(val, &mut subtle.styles.clients.padding);
+                    }
+
+                    style = &mut subtle.styles.clients;
+                },
+                "title" => {
+                    if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
+                        subtle.title_width = *width as u16;
+                    }
+
+                    style = &mut subtle.styles.title;
+                }
+                _ => warn!("Unknown style name: {}", kind),
             }
-            "clients" => {
-                // We exploit some unused style variables here:
-                // border-top <-> client border
-                // border-right <-> title length
-                // margin <-> client gap
-                // padding <-> client strut
 
-                // Set border color and width
-                if let Some(MixedConfigVal::S(color_str)) = values.get("active") {
-                    subtle.styles.clients.fg = parse_color(conn, color_str, default_screen.default_colormap)?;
-                }
-
-                if let Some(MixedConfigVal::S(color_str)) = values.get("inactive") {
-                    subtle.styles.clients.bg = parse_color(conn, color_str, default_screen.default_colormap)?;
-                }
-
-                if let Some(MixedConfigVal::I(width)) = values.get("border_width") {
-                    subtle.styles.clients.border.top = *width as i16;
-                }
-
-                // Set client strut
-                if let Some(val) = values.get("strut") {
-                    parse_side(val, &mut subtle.styles.clients.padding);
-                }
-
-                style = &mut subtle.styles.clients;
-            },
-            "title" => {
-                if let Some(MixedConfigVal::I(width)) = values.get("title_width") {
-                    subtle.title_width = *width as u16;
-                }
-
-                style = &mut subtle.styles.title;
+            // Common values of all styles
+            if let Some(MixedConfigVal::S(color_str)) = style_values.get("fg") {
+                style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
             }
-            _ => warn!("Unhandled style: {}", name),
-        }
 
-        // Common values of all styles
-        if let Some(MixedConfigVal::S(color_str)) = values.get("fg") {
-            style.fg = parse_color(conn, color_str, default_screen.default_colormap)?;
-        }
+            if let Some(MixedConfigVal::S(color_str)) = style_values.get("bg") {
+                style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+            }
 
-        if let Some(MixedConfigVal::S(color_str)) = values.get("bg") {
-            style.bg = parse_color(conn, color_str, default_screen.default_colormap)?;
-        }
+            if let Some(val) = style_values.get("margin") {
+                parse_side(val, &mut style.margin);
+            }
 
-        if let Some(val) = values.get("margin") {
-            parse_side(val, &mut style.margin);
-        }
-
-        if let Some(val) = values.get("padding") {
-            parse_side(val, &mut style.padding);
+            if let Some(val) = style_values.get("padding") {
+                parse_side(val, &mut style.padding);
+            }
         }
     }
 
