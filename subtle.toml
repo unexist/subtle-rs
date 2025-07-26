@@ -63,34 +63,15 @@ skip_urgent_warp = false
 # [*padding*]    Inner spacing
 # [*font*]       Font string (xftontsel or xft)
 #
-# The styles also define the styling and appearance of the two possible
-# panels per screen in subtle. Each panel can be configured with different
-# panel items and sublets screen wise. The default config uses a top panel
-# on the first screen only, it's up to the user to enable the bottom panel or
-# disable either one # or both.
-#
-# Following items are available for the panels:
-#
-# [*:views*]     List of views with buttons
-# [*:title*]     Title of the current active window
-# [*:tray*]      Systray icons (Can be used only once)
-# [*:keychain*]  Display current chain (Can be used only once)
-# [*:sublets*]   Catch-all for installed sublets
-# [*:sublet*]    Name of a sublet for direct placement
-# [*:spacer*]    Variable spacer (free width / count of spacers)
-# [*:center*]    Enclose items with :center to center them on the panel
-# [*:separator*] Insert separator
 
-# Empty panels are hidden.
 #
 # === Links
 #
 # https://subtle.rs/projects/subtle/wiki/Styles
 
-[styles]
-
 # Style for all style elements
-[styles.all]
+[[style]]
+kind = "all"
 foreground = "#757575"
 background = "#202020"
 icon = "#757575"
@@ -99,38 +80,50 @@ font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
 #font = "xft:sans-8"
 
 # Style for the all views
-[styles.views_focus]
+[[style]]
+kind = "views_focus"
 foreground = "#fecf35"
 
-[styles.urgent]
+[[style]]
+kind = "urgent"
 foreground = "#ff9800"
 
 # Style for occupied views (views with clients)
-[styles.occupied]
+[[style]]
+kind = "occupied"
 foreground = "#b8b8b8"
 
 # Style for sublets
-#[style.sublets]
+#[[style]]
+#kind = "sublets"
 
 # Style for separator
-[styles.separator]
+[[style]]
+kind = "separator"
 separator = "|"
 
 # Style for focus window title
-[styles.title]
+[[style]]
+kind = "title"
 foreground = "#fecf35"
 width = 50
 
 # Style for active/inactive windows
-[styles.clients]
+[[style]]
+kind = "clients"
 active = "#303030"
 inactive = "#202020"
 margin = 5
 padding = 5
 border_width = 2
 
+# Style for panel
+#[[style]]
+#kind = "panel"
+
 # Style for tray
-#[styles.tray]
+#[[style]]
+#kind= "tray"
 
 # == Panel
 
@@ -156,22 +149,11 @@ border_width = 2
 # === Links
 #
 # https://subtle.rs/projects/subtle/wiki/Panel
-# https://subtle.rs/projects/subtle/wiki/Multihead
-
-[panels]
-
-# Panel for screen 1
-[panels.screen1]
-top_panel = [ "tray", "views", "title", "spacer", "time" ]
-bottom_panel = [ "views" ]
-
-# Panel for screen 2
-[panels.screen2]
-top_panel = [ ]
-bottom_panel = [ ]
 
 # Time panel
-[panels.time]
+[[panel]]
+name = "time"
+interval = 60
 script = """
 print("12:00")
 """
@@ -199,56 +181,224 @@ print("12:00")
 # https://subtle.rs/projects/subtle/wiki/Gravity
 #
 
-[gravities]
-# Top left
-top_left = [ 0, 0, 50, 50 ]
-top_left66 = [ 0, 0, 50, 66 ]
-top_left33 = [ 0, 0, 50, 34 ]
+[[gravity]]
+name = "top_left"
+x = 0
+y = 0
+width = 50
+height = 50
+
+[[gravity]]
+name   = "top_left66"
+x      = 0
+y      = 0
+width  = 50
+height = 66
+
+[[gravity]]
+name   = "top_left33"
+x      = 0
+y      = 0
+width  = 50
+height = 34
 
 # Top
-top = [ 0, 0, 100, 50 ]
-top66 = [ 0, 0, 100, 66 ]
-top33 = [ 0, 0, 100, 34 ]
+[[gravity]]
+name   = "top"
+x      = 0
+y      = 0
+width  = 100
+height = 50
+
+[[gravity]]
+name   = "top66"
+x      = 0
+y      = 0
+width  = 100
+height = 66
+
+[[gravity]]
+name   = "top33"
+x      = 0
+y      = 0
+width  = 100
+height = 34
 
 # Top right
-top_right = [ 50, 0, 50, 50 ]
-top_right66 = [ 50, 0, 50, 66 ]
-top_right33 = [ 50, 0, 50, 33 ]
+[[gravity]]
+name   = "top_right"
+x      = 50
+y      = 0
+width  = 50
+height = 50
+
+[[gravity]]
+name   = "top_right66"
+x      = 50
+y      = 0
+width  = 50
+height = 66
+
+[[gravity]]
+name   = "top_right33"
+x      = 50
+y      = 0
+width  = 50
+height = 33
 
 # Left
-left = [ 0, 0, 50, 100 ]
-left66 = [ 0, 0, 66, 100 ]
-left33 = [ 0, 0, 33, 100 ]
+[[gravity]]
+name   = "left"
+x      = 0
+y      = 0
+width  = 50
+height = 100
+
+[[gravity]]
+name   = "left66"
+x      = 0
+y      = 0
+width  = 66
+height = 100
+
+[[gravity]]
+name   = "left33"
+x      = 0
+y      = 0
+width  = 33
+height = 100
 
 # Center
-center = [ 0, 0, 100, 100 ]
-center66 = [ 17, 17, 66, 66 ]
-center33 = [ 33, 33, 33, 33 ]
+[[gravity]]
+name   = "center"
+x      = 0
+y      = 0
+width  = 100
+height = 100
+
+[[gravity]]
+name   = "center66"
+x      = 17
+y      = 17
+width  = 66
+height = 66
+
+[[gravity]]
+name   = "center33"
+x      = 33
+y      = 33
+width  = 33
+height = 33
 
 # Right
-right = [ 50, 0, 50, 100 ]
-right66 = [ 34, 0, 66, 100 ]
-right33 = [ 67, 0, 33, 100 ]
+[[gravity]]
+name   = "right"
+x      = 50
+y      = 0
+width  = 50
+height = 100
+
+[[gravity]]
+name   = "right66"
+x      = 34
+y      = 0
+width  = 66
+height = 100
+
+[[gravity]]
+name   = "right33"
+x      = 67
+y      = 0
+width  = 33
+height = 100
 
 # Bottom left
-bottom_left = [ 0, 50, 50, 50 ]
-bottom_left66 = [ 0, 34, 50, 66 ]
-bottom_left33 = [ 0, 67, 50, 33 ]
+[[gravity]]
+name   = "bottom_left"
+x      = 0
+y      = 50
+width  = 50
+height = 50
+
+[[gravity]]
+name   = "bottom_left66"
+x      = 0
+y      = 34
+width  = 50
+height = 66
+
+[[gravity]]
+name   = "bottom_left33"
+x      = 0
+y      = 67
+width  = 50
+height = 33
 
 # Bottom
-bottom = [ 0, 50, 100, 50 ]
-bottom66 = [ 0, 34, 100, 66 ]
-bottom33 = [ 0, 67, 100, 33 ]
+[[gravity]]
+name   = "bottom"
+x      = 0
+y      = 50
+width  = 100
+height = 50
+
+[[gravity]]
+name   = "bottom66"
+x      = 0
+y      = 34
+width  = 100
+height = 66
+
+[[gravity]]
+name   = "bottom33"
+x      = 0
+y      = 67
+width  = 100
+height = 33
 
 # Bottom right
-bottom_right = [ 50, 50, 50, 50 ]
-bottom_right66 = [ 50, 34, 50, 66 ]
-bottom_right33 = [ 50, 67, 50, 33 ]
+[[gravity]]
+name   = "bottom_right"
+x      = 50
+y      = 50
+width  = 50
+height = 50
+
+[[gravity]]
+name   = "bottom_right66"
+x      = 50
+y      = 34
+width  = 50
+height = 66
+
+[[gravity]]
+name   = "bottom_right33"
+x      = 50
+y      = 67
+width  = 50
+height = 33
 
 # Gimp
-gimp_image = [ 10, 0, 80, 100 ]
-gimp_toolbox = [ 0, 0, 10, 100 ]
-gimp_dock = [ 90, 0, 10, 100 ]
+[[gravity]]
+name   = "gimp_image"
+x      = 10
+y      = 0
+width  = 80
+height = 100
+
+[[gravity]]
+name   = "gimp_toolbox"
+x      = 0
+y      = 0
+width  = 10
+height = 100
+
+[[gravity]]
+name   = "gimp_dock"
+x      = 90
+y      = 0
+width  = 10
+height = 100
 
 #
 # == Grabs
@@ -599,28 +749,32 @@ window_kill = "W-S-k"
 # https://subtle.rs/projects/subtle/wiki/Tagging
 #
 
-[tags]
-
 # Simple tags
-[tags.terms]
+[[tag]]
+name = "terms"
 match = "xterm|[u]?rxvt|alacritty"
 
-[tags.browser]
+[[tag]]
+name = "browser"
 match = "opera|firefox|(google-)?chrom[e|ium]"
 
 # Placement
-[tags.editor]
+[[tag]]
+name = "editor"
 match = "[g]?vim"
 
-[tags.fixed]
+[[tag]]
+name = "fixed"
 geometry = [ 10, 10, 100, 100 ]
 sticky = true
 
-[tags.resize]
+[[tag]]
+name = "resize"
 match = "sakura|gvim"
 resize = true
 
-[tags.gravity]
+[[tag]]
+name = "gravity"
 gravity = "center"
 
 #
@@ -682,7 +836,6 @@ gravity = "center"
 #
 #                Example: match "terms"
 #
-
 #
 # [*icon*]       This property adds an icon in front of the view name. The
 #                icon can either be path to an icon or an instance of
@@ -696,33 +849,43 @@ gravity = "center"
 # https://subtle.rs/projects/subtle/wiki/Tagging
 #
 
-[views]
-
-[views.terms]
+[[view]]
+name = "terms"
 match = "terms"
 icon = "/usr/share/icons/icon.xbm"
 
-[views.www]
+[[view]]
+name = "wwww"
 match = "browser"
 
-[views.gimp]
+[[view]]
+name = "gimp"
 match = "gimp_.*"
 
-[views.dev]
+[[view]]
+name = "dev"
 match = "editor"
 
 #
 # == Screens
 #
-# Subtle usually creates screens based on the information it gathers from  X
+# Subtle usually creates screens based on the information it gathers from X
 # and xrandr runtime.
 #
 # To allow more flexibility, subtle can split physically screens into virtual
 # ones and low to see multiple views on screen per virtual screen.
 #
-# === Example
+# === Link
+# https://subtle.rs/projects/subtle/wiki/Multihead
 #
-#   screen 1 do
-#     virtual [  0,  0, 50, 50 ]
-#     virtual [ 50, 50, 50, 50 ]
-#   end
+
+# Screen 1
+[[screen]]
+top_panel = [ "tray", "views", "title", "spacer", "time" ]
+bottom_panel = [ "views" ]
+#virtual = [ [ 0, 0, 50, 50 ], [ 0, 0, 50, 50 ] ]
+
+# Panel for screen 2
+[[screen]]
+top_panel = [ ]
+bottom_panel = [ ]
