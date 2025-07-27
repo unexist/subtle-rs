@@ -56,7 +56,7 @@ impl Font {
         let reply = conn.query_text_extents(self.fontable, &text_char2b)?.reply()?;
 
         Ok(((if center {
-            (reply.overall_width - (reply.overall_left - reply.overall_right).abs())
+            reply.overall_width - (reply.overall_left - reply.overall_right).abs()
         } else {
             reply.overall_width
         }) as u16, reply.overall_left as u16, reply.overall_right as u16))
