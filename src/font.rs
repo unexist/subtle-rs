@@ -42,7 +42,7 @@ impl Font {
         Ok(font)
     }
 
-    pub(crate) fn calc_width(&self, subtle: &Subtle, text: &str, center: bool) -> Result<(u16, u16, u16)> {
+    pub(crate) fn calc_text_width(&self, subtle: &Subtle, text: &str, center: bool) -> Result<(u16, u16, u16)> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         let text_char2b: Vec<Char2b> = text.as_bytes()
