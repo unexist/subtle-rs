@@ -124,7 +124,7 @@ impl Client {
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
-            .border_pixel(subtle.styles.clients.bg as u32)
+            .border_pixel(subtle.clients_style.bg as u32)
             .event_mask(EventMask::PROPERTY_CHANGE
                 | EventMask::ENTER_WINDOW
                 | EventMask::FOCUS_CHANGE);
@@ -132,7 +132,7 @@ impl Client {
         conn.change_window_attributes(win, &aux)?.check()?;
 
         let aux = ConfigureWindowAux::default()
-            .border_width(subtle.styles.clients.border.top as u32);
+            .border_width(subtle.clients_style.border.top as u32);
 
         conn.configure_window(win, &aux)?.check()?;
 
@@ -511,7 +511,7 @@ impl Client {
 
                 if !focus.flags.contains(ClientFlags::TYPE_DESKTOP) {
                     let aux = ChangeWindowAttributesAux::default()
-                        .border_pixel(subtle.styles.clients.bg as u32);
+                        .border_pixel(subtle.clients_style.bg as u32);
 
                     conn.change_window_attributes(focus.win, &aux)?.check()?;
                 }
@@ -539,7 +539,7 @@ impl Client {
         // Exclude desktop and dock type windows
         if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
             let aux = ChangeWindowAttributesAux::default()
-                .border_pixel(subtle.styles.clients.fg as u32);
+                .border_pixel(subtle.clients_style.fg as u32);
 
             conn.change_window_attributes(self.win, &aux)?.check()?;
         }
@@ -607,7 +607,7 @@ impl Client {
             if self.flags.contains(ClientFlags::MODE_FULL) {
                 if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
                     let aux = ConfigureWindowAux::default()
-                        .border_width(subtle.styles.clients.border.top as u32);
+                        .border_width(subtle.clients_style.border.top as u32);
 
                     conn.configure_window(self.win, &aux)?.check()?;
                 }
@@ -636,7 +636,7 @@ impl Client {
 
             // Unset borderless
             if !self.flags.contains(ClientFlags::MODE_BORDERLESS) {
-                aux = aux.border_width(subtle.styles.clients.border.top as u32);
+                aux = aux.border_width(subtle.clients_style.border.top as u32);
             } else {
                 aux = aux.border_width(0);
             }
@@ -1047,12 +1047,12 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
 
         // Update border and gap
-        self.geom.x += subtle.styles.clients.margin.left;
-        self.geom.y += subtle.styles.clients.margin.left;
-        self.geom.width -= (2 * self.get_border_width(subtle) + subtle.styles.clients.margin.left
-            + subtle.styles.clients.margin.right) as u16;
-        self.geom.height -= (2 * self.get_border_width(subtle) + subtle.styles.clients.margin.top
-            + subtle.styles.clients.margin.bottom) as u16;
+        self.geom.x += subtle.clients_style.margin.left;
+        self.geom.y += subtle.clients_style.margin.left;
+        self.geom.width -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.left
+            + subtle.clients_style.margin.right) as u16;
+        self.geom.height -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.top
+            + subtle.clients_style.margin.bottom) as u16;
 
         self.resize(subtle, bounds, true)?;
 
@@ -1166,7 +1166,7 @@ impl Client {
         if self.flags.contains(ClientFlags::MODE_BORDERLESS) {
             0
         } else {
-            subtle.styles.clients.border.top
+            subtle.clients_style.border.top
         }
     }
 
@@ -1176,8 +1176,8 @@ impl Client {
             || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE))
         {
             let border_width = (2 * self.get_border_width(subtle)
-                + subtle.styles.clients.margin.left
-                + subtle.styles.clients.margin.right) as u16;
+                + subtle.clients_style.margin.left
+                + subtle.clients_style.margin.right) as u16;
 
             // Calculate max width and max height for bounds
             let max_width = if -1 == self.max_width {
@@ -1256,12 +1256,12 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     let mut flags = ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL;
 
     // Update bounds according to styles
-    bounds.x = subtle.styles.clients.padding.left;
-    bounds.y = subtle.styles.clients.padding.top;
-    bounds.width = subtle.width - (subtle.styles.clients.padding.left -
-        subtle.styles.clients.padding.right) as u16;
-    bounds.height = subtle.height - (subtle.styles.clients.padding.top -
-        subtle.styles.clients.padding.bottom) as u16;
+    bounds.x = subtle.clients_style.padding.left;
+    bounds.y = subtle.clients_style.padding.top;
+    bounds.width = subtle.width - (subtle.clients_style.padding.left -
+        subtle.clients_style.padding.right) as u16;
+    bounds.height = subtle.height - (subtle.clients_style.padding.top -
+        subtle.clients_style.padding.bottom) as u16;
 
     // Iterate over screens to find fitting square
     for screen in subtle.screens.iter() {

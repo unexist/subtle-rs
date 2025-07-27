@@ -118,7 +118,7 @@ impl Panel {
         } else if self.flags.contains(PanelFlags::SUBLETS) {
             // TODO sublets
         } else if self.flags.contains(PanelFlags::TITLE) {
-            self.width = subtle.styles.clients.min_width as u16;
+            self.width = subtle.clients_style.min_width as u16;
 
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
@@ -133,7 +133,7 @@ impl Panel {
                     }
 
                     // Ensure min-width
-                    self.width = max!(subtle.styles.clients.min_width as u16, self.width);
+                    self.width = max!(subtle.clients_style.min_width as u16, self.width);
                 }
             }
         } else if self.flags.contains(PanelFlags::VIEWS) {

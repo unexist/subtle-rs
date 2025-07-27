@@ -311,7 +311,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     for screen in subtle.screens.iter() {
         let panel = screen.panel_top_win;
 
-        screen.clear(subtle, &subtle.styles.panel_top)?;
+        screen.clear(subtle, &subtle.top_panel_style)?;
 
         // Render panel items
         // TODO Panels
@@ -335,12 +335,12 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     for screen in subtle.screens.iter_mut() {
 
         // Add strut
-        screen.geom.x = screen.base.x + subtle.styles.clients.padding.left;
-        screen.geom.y = screen.base.y + subtle.styles.clients.padding.top;
-        screen.geom.width = screen.base.width - subtle.styles.clients.padding.left as u16
-            - subtle.styles.clients.padding.right as u16;
-        screen.geom.height = screen.base.height - subtle.styles.clients.padding.top as u16
-            - subtle.styles.clients.padding.bottom as u16;
+        screen.geom.x = screen.base.x + subtle.clients_style.padding.left;
+        screen.geom.y = screen.base.y + subtle.clients_style.padding.top;
+        screen.geom.width = screen.base.width - subtle.clients_style.padding.left as u16
+            - subtle.clients_style.padding.right as u16;
+        screen.geom.height = screen.base.height - subtle.clients_style.padding.top as u16
+            - subtle.clients_style.padding.bottom as u16;
 
         // Update panels
         if screen.flags.contains(ScreenFlags::TOP_PANEL) {
