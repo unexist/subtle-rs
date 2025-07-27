@@ -24,6 +24,7 @@ use x11rb::NONE;
 use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
+use crate::font::Font;
 use crate::grab::Grab;
 use crate::panel::Panel;
 use crate::screen::Screen;
@@ -54,18 +55,6 @@ bitflags! {
         const SKIP_POINTER_WARP = 1 << 14; // Skip pointer warp
         const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
     }
-}
-
-#[derive(Default)]
-pub(crate) struct SubtleStyles {
-    pub(crate) all: Style,
-    pub(crate) views: Style,
-    pub(crate) title: Style,
-    pub(crate) sublets: Style,
-    pub(crate) separator: Style,
-    pub(crate) clients: Style,
-    pub(crate) panel_top: Style,
-    pub(crate) panel_bottom: Style,
 }
 
 pub(crate) struct Subtle {
@@ -101,7 +90,15 @@ pub(crate) struct Subtle {
     pub(crate) move_cursor: Cursor,
     pub(crate) resize_cursor: Cursor,
 
-    pub(crate) styles: SubtleStyles,
+    pub(crate) all_style: Style,
+    pub(crate) views_style: Style,
+    pub(crate) title_style: Style,
+    pub(crate) panels_style: Style,
+    pub(crate) clients_style: Style,
+    pub(crate) top_panel_style: Style,
+    pub(crate) bottom_panel_style: Style,
+
+    pub(crate) fonts: Vec<Font>,
 
     pub(crate) screens: Vec<Screen>,
     pub(crate) panels: Vec<Panel>,
@@ -213,8 +210,15 @@ impl Default for Subtle {
             move_cursor: Cursor::default(),
             resize_cursor: Cursor::default(),
 
-            styles: SubtleStyles::default(),
+            all_style: Style::default(),
+            views_style: Style::default(),
+            title_style: Style::default(),
+            panels_style: Style::default(),
+            clients_style: Style::default(),
+            top_panel_style: Style::default(),
+            bottom_panel_style: Style::default(),
 
+            fonts: Vec::new(),
             screens: Vec::new(),
             panels: Vec::new(),
             clients: VecCell::new(),
