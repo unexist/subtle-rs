@@ -12,12 +12,12 @@
 use std::fmt;
 use anyhow::{Context, Result};
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::ConnectionExt;
+use x11rb::protocol::xproto::{Char2b, ConnectionExt};
 use crate::subtle::Subtle;
 
 #[derive(Default, Debug, Clone)]
 pub(crate) struct Font {
-    pub(crate) font_id: u32,
+    pub(crate) fontable: u32,
     pub(crate) y: u16,
     pub(crate) height: u16,
 }
@@ -27,14 +27,14 @@ impl Font {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         let mut font = Self {
-            font_id: conn.generate_id()?,
+            fontable: conn.generate_id()?,
             ..Default::default()
         };
 
         // Open font and calculate specs
-        conn.open_font(font.font_id, name.as_ref())?.check()?;
+        conn.open_font(font.fontable, name.as_ref())?.check()?;
 
-        let reply = conn.query_font(font.font_id)?.reply()?;
+        let reply = conn.query_font(font.fontable)?.reply()?;
 
         font.height = (reply.font_ascent + reply.font_descent + 2) as u16;
         font.y = (font.height - 2 + reply.font_ascent as u16) / 2;
@@ -42,10 +42,30 @@ impl Font {
         Ok(font)
     }
 
+    pub(crate) fn calc_width(&self, subtle: &Subtle, text: &str, center: bool) -> Result<(u16, u16, u16)> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let text_char2b: Vec<Char2b> = text.as_bytes()
+            .to_vec()
+            .iter()
+            .map(|b| Char2b {
+                byte1: *b,
+                byte2: *b
+            }).collect();
+
+        let reply = conn.query_text_extents(self.fontable, &text_char2b)?.reply()?;
+
+        Ok(((if center {
+            (reply.overall_width - (reply.overall_left - reply.overall_right).abs())
+        } else {
+            reply.overall_width
+        }) as u16, reply.overall_left as u16, reply.overall_right as u16))
+    }
+
     pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
-        conn.close_font(self.font_id)?.check()?;
+        conn.close_font(self.fontable)?.check()?;
 
         Ok(())
     }
