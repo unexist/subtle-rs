@@ -258,6 +258,11 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
 
     conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 
+    // Destroy fonts
+    for font in subtle.fonts.iter() {
+        font.kill(subtle)?;
+    }
+
     debug!("{}", function_name!());
 
     Ok(())
