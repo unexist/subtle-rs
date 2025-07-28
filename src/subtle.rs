@@ -182,21 +182,21 @@ impl Default for Subtle {
             width: 0,
             height: 0,
 
-            panel_height: 10, // TODO Style Inherit
+            panel_height: 1,
             title_width: 50,
             step_size: 0,
             snap_size: 0,
             default_gravity: 0,
-            
+
             visible_tags: Cell::new(Tagging::empty()),
             visible_views: Cell::new(Tagging::empty()),
             client_tags: Cell::new(Tagging::empty()),
             urgent_tags: Cell::new(Tagging::empty()),
-            
+
             exterminate: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),
             screen_num: 0,
-            
+
             atoms: OnceCell::new(),
 
             support_win: Window::default(),
@@ -229,7 +229,6 @@ impl Default for Subtle {
         }
     }
 }
-
 
 impl From<&Config> for Subtle {
     fn from(config: &Config) -> Self {
