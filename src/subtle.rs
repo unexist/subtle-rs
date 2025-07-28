@@ -26,7 +26,6 @@ use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::font::Font;
 use crate::grab::Grab;
-use crate::panel::Panel;
 use crate::screen::Screen;
 use crate::style::Style;
 use crate::tagging::Tagging;
@@ -102,7 +101,6 @@ pub(crate) struct Subtle {
     pub(crate) fonts: Vec<Font>,
 
     pub(crate) screens: Vec<Screen>,
-    pub(crate) panels: Vec<Panel>,
     pub(crate) clients: VecCell<Client>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
@@ -222,7 +220,6 @@ impl Default for Subtle {
 
             fonts: Vec::new(),
             screens: Vec::new(),
-            panels: Vec::new(),
             clients: VecCell::new(),
             gravities: Vec::new(),
             grabs: Vec::new(),
