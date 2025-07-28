@@ -10,10 +10,12 @@
 ///
 
 use std::fmt;
-use anyhow::{Context, Result};
+use anyhow::Result;
+use log::debug;
+use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{Char2b, ConnectionExt};
-use crate::subtle::Subtle;
+use x11rb::rust_connection::RustConnection;
 
 #[derive(Default, Debug, Clone)]
 pub(crate) struct Font {
@@ -23,9 +25,7 @@ pub(crate) struct Font {
 }
 
 impl Font {
-    pub(crate) fn new(subtle: &Subtle, name: &str) -> Result<Self> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
+    pub(crate) fn new(conn: &RustConnection, name: &str) -> Result<Self> {
         let mut font = Self {
             fontable: conn.generate_id()?,
             ..Default::default()
@@ -39,12 +39,12 @@ impl Font {
         font.height = (reply.font_ascent + reply.font_descent + 2) as u16;
         font.y = (font.height - 2 + reply.font_ascent as u16) / 2;
 
+        debug!("{}: {}", function_name!(), font);
+
         Ok(font)
     }
 
-    pub(crate) fn calc_text_width(&self, subtle: &Subtle, text: &str, center: bool) -> Result<(u16, u16, u16)> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
+    pub(crate) fn calc_text_width(&self, conn: &RustConnection, text: &str, center: bool) -> Result<(u16, u16, u16)> {
         let text_char2b: Vec<Char2b> = text.as_bytes()
             .to_vec()
             .iter()
@@ -62,10 +62,10 @@ impl Font {
         }) as u16, reply.overall_left as u16, reply.overall_right as u16))
     }
 
-    pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
+    pub(crate) fn kill(&self, conn: &RustConnection) -> Result<()> {
         conn.close_font(self.fontable)?.check()?;
+
+        debug!("{}", function_name!());
 
         Ok(())
     }
@@ -73,7 +73,6 @@ impl Font {
 
 impl fmt::Display for Font {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(y={}, height={})",
-               self.y, self.height)
+        write!(f, "(y={}, height={})", self.y, self.height)
     }
 }
