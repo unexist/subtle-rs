@@ -577,9 +577,9 @@ impl Client {
             } else {
                 if set_gravity {
                     // Set gravity for untagged views
-                    for (idx, view) in subtle.views.iter().enumerate() {
+                    for (view_idx, view) in subtle.views.iter().enumerate() {
                         if !view.tags.contains(self.tags) && -1 != self.gravity_id {
-                            self.gravities[idx] = self.gravity_id as usize;
+                            self.gravities[view_idx] = self.gravity_id as usize;
                         }
                     }
                 }
@@ -1160,7 +1160,7 @@ impl Client {
         // Pass 2: Update geometry of every client with this gravity
         let mut pos = 0;
 
-        for (idx, client) in subtle.clients.iter().enumerate() {
+        for (client_idx, client) in subtle.clients.iter().enumerate() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
@@ -1184,7 +1184,7 @@ impl Client {
                 }
 
                 // Finally update client
-                if let Some(mut mut_client) = subtle.clients.borrow_mut(idx) {
+                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
                     mut_client.geom = geom;
 
                     mut_client.move_resize(subtle, &screen.geom)?;
@@ -1370,7 +1370,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.len());
 
     // Sort clients from top to bottom
-    for (idx, client) in subtle.clients.iter().enumerate() {
+    for (client_idx, client) in subtle.clients.iter().enumerate() {
         wins.push(client.win);
     }
 
