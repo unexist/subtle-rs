@@ -55,7 +55,7 @@ pub(crate) struct Panel {
 }
 
 impl Panel {
-    pub(crate) fn new(subtle: &Subtle, flag: PanelFlags) -> Self {
+    pub(crate) fn new(flag: PanelFlags) -> Self {
         let mut panel = Self {
             flags: flag,
             ..Self::default()
@@ -63,7 +63,7 @@ impl Panel {
 
         bitflags_match!(flag, {
             PanelFlags::ICON => {}, // TODO icon
-            PanelFlags::SUBLETS => {}, // TODO sublets
+            PanelFlags::TITLE => {},
             PanelFlags::VIEWS => {
                 panel.flags.insert(PanelFlags::MOUSE_DOWN);
             },
@@ -274,6 +274,6 @@ impl Panel {
 
 impl fmt::Display for Panel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "x={}, width={}, screen_id={})", self.x, self.width, self.screen_id)
+        write!(f, "x={}, width={}, screen_id={}, flags={:?})", self.x, self.width, self.screen_id, self.flags)
     }
 }
