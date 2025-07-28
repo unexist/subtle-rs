@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use log::debug;
 use anyhow::{Context, Result};
 use stdext::function_name;
+use veccell::VecCell;
 use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME};
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
@@ -23,6 +24,7 @@ use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{ClientFlags, WMState};
+use crate::panel::{Panel, PanelFlags};
 use crate::style::Style;
 use crate::tagging::Tagging;
 
@@ -35,7 +37,7 @@ bitflags! {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct Screen {
     pub(crate) flags: ScreenFlags,
 
@@ -47,6 +49,8 @@ pub(crate) struct Screen {
 
     pub(crate) geom: Rectangle,
     pub(crate) base: Rectangle,
+
+    pub(crate) panels: VecCell<Panel>,
 }
 
 impl Screen {
@@ -61,8 +65,6 @@ impl Screen {
         };
 
         let mut screen = Self {
-            flags: ScreenFlags::empty(),
-            drawable: 0,
             geom: screen_size,
             base: screen_size,
             ..Self::default()
@@ -101,7 +103,9 @@ impl Screen {
 
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg as u32))?.check()?;
 
-        // Clear pixmap
+        println!("bg={}", style.bg);
+
+        // Clear drawable
         conn.poly_fill_rectangle(self.drawable, subtle.draw_gc, &[Rectangle {
             x: 0,
             y: 0,
@@ -109,6 +113,24 @@ impl Screen {
             height: subtle.panel_height}])?.check()?;
 
         Ok(())
+    }
+}
+
+impl Default for Screen {
+    fn default() -> Self {
+        Screen {
+            flags: ScreenFlags::empty(),
+
+            view_id: -1,
+
+            panel_top_win: Window::default(),
+            panel_bottom_win: Window::default(),
+            drawable: 0,
+
+            geom: Rectangle::default(),
+            base: Rectangle::default(),
+            panels: VecCell::new(),
+        }
     }
 }
 
@@ -301,22 +323,52 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn update(subtle: &Subtle) {
+pub(crate) fn update(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+
+    // Update screens
+    for screen in subtle.screens.iter() {
+        // Update panel items
+        for (panel_idx, panel) in screen.panels.iter().enumerate() {
+            if let Some(mut panel_mut) = screen.panels.borrow_mut(panel_idx) {
+                panel_mut.update(subtle)?
+            }
+        }
+    }
+
     debug!("{}", function_name!());
+
+    Ok(())
 }
 
 pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
+    // Update screens
     for screen in subtle.screens.iter() {
-        let panel = screen.panel_top_win;
+        let panel_win = screen.panel_top_win;
 
         screen.clear(subtle, &subtle.top_panel_style)?;
 
         // Render panel items
-        // TODO Panels
+        for (panel_idx, panel) in screen.panels.iter().enumerate() {
+            if panel.flags.intersects(PanelFlags::HIDDEN) {
+                continue;
+            }
 
-        conn.copy_area(screen.drawable, panel, subtle.draw_gc, 0, 0, 0, 0,
+            if panel_win != screen.panel_bottom_win && panel.flags.intersects(PanelFlags::BOTTOM) {
+                conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
+                               screen.base.width, subtle.panel_height)?.check()?;
+
+                screen.clear(subtle, &subtle.bottom_panel_style)?;
+            }
+
+            if let Some(mut panel_mut) = screen.panels.borrow_mut(panel_idx) {
+                panel_mut.render(subtle, screen.drawable)?
+            }
+        }
+
+        conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
                        screen.base.width, subtle.panel_height)?.check()?;
     }
 
