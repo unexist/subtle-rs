@@ -85,7 +85,6 @@ fn main() -> Result<()> {
     ewmh::init(&config, &mut subtle)?;
     style::init(&config, &mut subtle)?;
     screen::init(&config, &mut subtle)?;
-    panel::init(&config, &mut subtle)?;
     gravity::init(&config, &mut subtle)?;
     tag::init(&config, &mut subtle)?;
     view::init(&config, &mut subtle)?;
