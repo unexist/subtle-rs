@@ -17,7 +17,6 @@ use easy_min_max::{max, min};
 use stdext::function_name;
 use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
-use crate::config::Config;
 use crate::style::{CalcSide, Style, StyleFlags};
 use crate::subtle::Subtle;
 
@@ -278,16 +277,3 @@ impl fmt::Display for Panel {
         write!(f, "x={}, width={}, screen_id={})", self.x, self.width, self.screen_id)
     }
 }
-
-pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    debug!("{}", function_name!());
-
-    Ok(())
-}
-
-pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
-    debug!("{}: panels={}", function_name!(), subtle.panels.len());
-
-    Ok(())
-}
-
