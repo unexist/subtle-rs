@@ -103,8 +103,6 @@ impl Screen {
 
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg as u32))?.check()?;
 
-        println!("bg={}", style.bg);
-
         // Clear drawable
         conn.poly_fill_rectangle(self.drawable, subtle.draw_gc, &[Rectangle {
             x: 0,
@@ -138,6 +136,13 @@ impl fmt::Display for Screen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(geom=(x={}, y={}, width={}, height={}))",
                self.geom.x, self.geom.y, self.geom.width, self.geom.height)
+    }
+}
+
+fn create_panel(name: &str) -> Option<Panel> {
+    match name {
+        "title" => Some(Panel::new(PanelFlags::TITLE)),
+        _ => None,
     }
 }
 
@@ -185,15 +190,28 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Load screen config
     for (screen_idx, values) in config.screens.iter().enumerate() {
         if subtle.screens.len() > screen_idx && let Some(screen) = subtle.screens.get_mut(screen_idx) {
+            // Handle panels
             if let Some(MixedConfigVal::VS(panels)) = values.get("top_panel") {
                 screen.flags.insert(ScreenFlags::TOP_PANEL);
+
+                for panel_name in panels.iter() {
+                    if let Some(panel) = create_panel(panel_name) {
+                        screen.panels.push(panel);
+                    }
+                }
             }
 
             if let Some(MixedConfigVal::VS(panels)) = values.get("bottom_panel") {
                 screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
+
+                for panel_name in panels.iter() {
+                    if let Some(panel) = create_panel(panel_name) {
+                        screen.panels.push(panel);
+                    }
+                }
             }
 
-            // TODO Panels
+            // Handle virtual
             // TODO virtual
         }
     }
@@ -330,8 +348,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     for screen in subtle.screens.iter() {
         // Update panel items
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
-            if let Some(mut panel_mut) = screen.panels.borrow_mut(panel_idx) {
-                panel_mut.update(subtle)?
+            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
+                mut_panel.update(subtle)?
             }
         }
     }
@@ -363,8 +381,8 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
                 screen.clear(subtle, &subtle.bottom_panel_style)?;
             }
 
-            if let Some(mut panel_mut) = screen.panels.borrow_mut(panel_idx) {
-                panel_mut.render(subtle, screen.drawable)?
+            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
+                mut_panel.render(subtle, screen.drawable)?
             }
         }
 
