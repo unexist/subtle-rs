@@ -114,7 +114,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             if let Some(win) = subtle.focus_history.borrow(0)
                 && event.window == *win
             {
-                screen::update(subtle);
+                screen::update(subtle)?;
                 screen::render(subtle)?;
             }
         }
@@ -129,7 +129,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) {
-                screen::update(subtle);
+                screen::update(subtle)?;
                 screen::render(subtle)?;
             }
 
@@ -146,7 +146,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
-                screen::update(subtle);
+                screen::update(subtle)?;
                 screen::render(subtle)?;
             }
         }
@@ -154,7 +154,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             client.set_strut(subtle)?;
 
-            screen::update(subtle);
+            screen::update(subtle)?;
         }
     } else if atoms._MOTIF_WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
@@ -179,7 +179,7 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         client.flags.insert(ClientFlags::ARRANGE);
 
         screen::configure(subtle)?;
-        screen::update(subtle);
+        screen::update(subtle)?;
         screen::render(subtle)?;
     } else if let Ok(client) = Client::new(subtle, event.window) {
         //subtle.clients.push(client);
@@ -211,7 +211,7 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
         client::publish(subtle, false)?;
 
         screen::configure(subtle)?;
-        screen::update(subtle);
+        screen::update(subtle)?;
         screen::render(subtle)?;
     }
 
@@ -239,7 +239,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
     // Update screen and panels
     screen::configure(subtle)?;
-    screen::update(subtle);
+    screen::update(subtle)?;
     screen::render(subtle)?;
 
     conn.flush()?;
