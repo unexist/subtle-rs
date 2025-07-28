@@ -103,21 +103,6 @@ pub(crate) struct Style {
 }
 
 impl Style {
-    pub(crate) fn new() -> Self {
-        Style {
-            fg: -1,
-            bg: -1,
-            icon: -1,
-            top: -1,
-            right: -1,
-            bottom: -1,
-            left: -1,
-            font_id: -1,
-            sep_width: -1,
-            ..Self::default()
-        }
-    }
-
     pub(crate) fn calc_side(&self, side: CalcSide) -> i16 {
         match side {
             CalcSide::Top => self.border.top + self.padding.top + self.margin.top,
@@ -186,6 +171,7 @@ impl Style {
         self.icon = -1;
         self.font_id = -1;
         self.sep_width = -1;
+        self.sep_string = None;
     }
 }
 
@@ -255,6 +241,16 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
+    // Reset styles
+    subtle.all_style.reset(0); // Ensure sane base values
+    subtle.views_style.reset(-1);
+    subtle.title_style.reset(-1);
+    subtle.separator_style.reset(-1);
+    subtle.clients_style.reset(-1);
+    subtle.top_panel_style.reset(-1);
+    subtle.bottom_panel_style.reset(-1);
+    // TODO tray
+
     for style_values in config.styles.iter() {
         let style: &mut Style;
 
@@ -297,6 +293,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.title_style;
                 }
+                "top_panel" => {
+                    style = &mut subtle.top_panel_style;
+                },
+                "bottom_panel" => {
+                    style = &mut subtle.bottom_panel_style;
+                },
                 _ => {
                     warn!("Unknown style name: {}", kind);
                     continue;
@@ -304,11 +306,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
 
             // Common values of all styles
-            if let Some(MixedConfigVal::S(color_str)) = style_values.get("fg") {
+            if let Some(MixedConfigVal::S(color_str)) = style_values.get("foreground") {
                 style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
             }
 
-            if let Some(MixedConfigVal::S(color_str)) = style_values.get("bg") {
+            if let Some(MixedConfigVal::S(color_str)) = style_values.get("background") {
                 style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
             }
 
