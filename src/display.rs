@@ -260,8 +260,9 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
 
     // Destroy fonts
     for font in subtle.fonts.iter() {
-        font.kill(subtle)?;
+        font.kill(conn)?;
     }
+
 
     debug!("{}", function_name!());
 
