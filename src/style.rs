@@ -36,6 +36,8 @@ pub(crate) enum CalcSide {
     Right,
     Bottom,
     Left,
+    Width,
+    Height,
 }
 
 #[derive(Default, Debug, Copy, Clone)]
@@ -122,6 +124,8 @@ impl Style {
             CalcSide::Right => self.border.right + self.padding.right + self.margin.right,
             CalcSide::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
             CalcSide::Left => self.border.left + self.padding.left + self.margin.left,
+            CalcSide::Width => self.calc_side(CalcSide::Left) + self.calc_side(CalcSide::Right),
+            CalcSide::Height => self.calc_side(CalcSide::Top) + self.calc_side(CalcSide::Bottom),
         }
     }
 

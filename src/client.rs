@@ -1011,6 +1011,39 @@ impl Client {
         self.flags.contains(ClientFlags::DEAD)
     }
 
+    pub(crate) fn format_modes(&self) -> Result<String> {
+        let mut x = 0;
+        let mut mode_str =  [0; 6];
+
+        // Collect window modes
+        if self.flags.intersects(ClientFlags::MODE_FULL) {
+            mode_str[x] = '+' as u8;
+            x += 1;
+        }
+        if self.flags.intersects(ClientFlags::MODE_FLOAT) {
+            mode_str[x] = '^' as u8;
+            x += 1;
+        }
+        if self.flags.intersects(ClientFlags::MODE_STICK) {
+            mode_str[x] = '*' as u8;
+            x += 1;
+        }
+        if self.flags.intersects(ClientFlags::MODE_RESIZE) {
+            mode_str[x] = '-' as u8;
+            x += 1;
+        }
+        if self.flags.intersects(ClientFlags::MODE_ZAPHOD) {
+            mode_str[x] = '=' as u8;
+            x += 1;
+        }
+        if self.flags.intersects(ClientFlags::MODE_FIXED) {
+            mode_str[x] = '!' as u8;
+            x += 1;
+        }
+
+        String::from_utf8(mode_str[0..x].to_vec()).map_err(|e| anyhow!(e))
+    }
+
     pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
