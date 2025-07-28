@@ -93,10 +93,6 @@ foreground = "#ff9800"
 kind = "occupied"
 foreground = "#b8b8b8"
 
-# Style for sublets
-#[[style]]
-#kind = "sublets"
-
 # Style for separator
 [[style]]
 kind = "separator"
@@ -117,9 +113,9 @@ margin = 5
 padding = 5
 border_width = 2
 
-# Style for panel
+# Style for top panel
 #[[style]]
-#kind = "panel"
+#kind = "top_panel"
 
 # Style for tray
 #[[style]]
