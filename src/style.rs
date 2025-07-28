@@ -11,7 +11,8 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use anyhow::Result;
+use anyhow::{Context, Result};
+use easy_min_max::max;
 use hex_color::HexColor;
 use log::{debug, warn};
 use stdext::function_name;
@@ -25,7 +26,7 @@ use crate::subtle::Subtle;
 bitflags! {
     #[derive(Default, Debug)]
     pub(crate) struct StyleFlags: u32 {
-        const FONT= 1 << 0; // Style has custom font
+        const FONT = 1 << 0; // Style has custom font
         const SEPARATOR = 1 << 1; // Style has separator
     }
 }
@@ -73,12 +74,6 @@ impl Side {
     }
 }
 
-#[derive(Default, Debug, Clone)]
-pub(crate) struct Separator {
-    pub(crate) string: String,
-    pub(crate) width: u16,
-}
-
 #[derive(Default, Debug)]
 pub(crate) struct Style {
     pub(crate) flags: StyleFlags,
@@ -99,8 +94,10 @@ pub(crate) struct Style {
     pub(crate) padding: Side,
     pub(crate) margin: Side,
 
-    pub(crate) font: Option<Font>,
-    pub(crate) separator: Option<Separator>,
+    pub(crate) font_id: isize,
+
+    pub(crate) sep_width: i16,
+    pub(crate) sep_string: Option<String>,
 }
 
 impl Style {
@@ -113,6 +110,8 @@ impl Style {
             right: -1,
             bottom: -1,
             left: -1,
+            font_id: -1,
+            sep_width: -1,
             ..Self::default()
         }
     }
@@ -162,14 +161,8 @@ impl Style {
         self.margin.inherit(&other_style.margin, false);
 
         // Inherit font
-        if self.font.is_none() {
-            self.font = other_style.font.clone();
-        }
-
-        if self.font.is_some() {
-            if self.separator.is_some() {
-                // TODO font width
-            }
+        if -1 == self.font_id {
+            self.font_id = other_style.font_id;
         }
     }
 
@@ -185,8 +178,10 @@ impl Style {
         self.padding.reset(default_value as i16);
         self.margin.reset(default_value as i16);
 
-        // Force value to prevent inheriting of 0 value from all
+        // Force values to prevent inheriting of 0 value from all
         self.icon = -1;
+        self.font_id = -1;
+        self.sep_width = -1;
     }
 }
 
@@ -194,12 +189,6 @@ impl fmt::Display for Side {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(top={}, right={}, bottom={}, left={})",
                self.top, self.right, self.bottom, self.left)
-    }
-}
-
-impl fmt::Display for Separator {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(string={}, width={})", self.string, self.width)
     }
 }
 
@@ -258,17 +247,17 @@ fn parse_side(mixed_val: &MixedConfigVal, side: &mut Side) {
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    let conn = subtle.conn.get().unwrap();
+    let conn = subtle.conn.get().context("Failed to get connection")?;
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     for style_values in config.styles.iter() {
-        let mut style = &mut subtle.styles.all;
+        let style: &mut Style;
 
         if let Some(MixedConfigVal::S(kind))  = style_values.get("kind") {
             match kind.as_str() {
                 "all" => {
-                    style = &mut subtle.styles.all;
+                    style = &mut subtle.all_style;
                 }
                 "clients" => {
                     // We exploit some unused style variables here:
@@ -279,32 +268,35 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     // Set border color and width
                     if let Some(MixedConfigVal::S(color_str)) = style_values.get("active") {
-                        subtle.styles.clients.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+                        subtle.clients_style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
                     }
 
                     if let Some(MixedConfigVal::S(color_str)) = style_values.get("inactive") {
-                        subtle.styles.clients.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+                        subtle.clients_style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
                     }
 
                     if let Some(MixedConfigVal::I(width)) = style_values.get("border_width") {
-                        subtle.styles.clients.border.top = *width as i16;
+                        subtle.clients_style.border.top = *width as i16;
                     }
 
                     // Set client strut
                     if let Some(val) = style_values.get("strut") {
-                        parse_side(val, &mut subtle.styles.clients.padding);
+                        parse_side(val, &mut subtle.clients_style.padding);
                     }
 
-                    style = &mut subtle.styles.clients;
+                    style = &mut subtle.clients_style;
                 },
                 "title" => {
                     if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
                         subtle.title_width = *width as u16;
                     }
 
-                    style = &mut subtle.styles.title;
+                    style = &mut subtle.title_style;
                 }
-                _ => warn!("Unknown style name: {}", kind),
+                _ => {
+                    warn!("Unknown style name: {}", kind);
+                    continue;
+                },
             }
 
             // Common values of all styles
@@ -316,12 +308,27 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
             }
 
-            if let Some(val) = style_values.get("margin") {
-                parse_side(val, &mut style.margin);
+            if let Some(margin) = style_values.get("margin") {
+                parse_side(margin, &mut style.margin);
             }
 
-            if let Some(val) = style_values.get("padding") {
-                parse_side(val, &mut style.padding);
+            if let Some(padding) = style_values.get("padding") {
+                parse_side(padding, &mut style.padding);
+            }
+
+            if let Some(MixedConfigVal::S(font_name)) = style_values.get("font") {
+                let font = Font::new(conn, font_name)?;
+
+                // Update panel height
+                let height = (style.calc_side(CalcSide::Top)
+                    + style.calc_side(CalcSide::Bottom)) as u16 + font.height;
+
+                subtle.panel_height = max!(subtle.panel_height, height);
+
+                style.font_id = subtle.fonts.len() as isize;
+                style.flags.insert(StyleFlags::FONT);
+
+                subtle.fonts.push(font);
             }
         }
     }
@@ -333,15 +340,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
 pub(crate) fn update(subtle: &mut Subtle) {
     // Inherit styles
-    subtle.styles.views.inherit(&subtle.styles.all);
-    subtle.styles.title.inherit(&subtle.styles.all);
-    subtle.styles.sublets.inherit(&subtle.styles.all);
-    subtle.styles.separator.inherit(&subtle.styles.all);
-    subtle.styles.panel_top.inherit(&subtle.styles.all);
-    subtle.styles.panel_bottom.inherit(&subtle.styles.all);
+    subtle.views_style.inherit(&subtle.all_style);
+    subtle.title_style.inherit(&subtle.all_style);
+    subtle.panels_style.inherit(&subtle.all_style);
+    subtle.top_panel_style.inherit(&subtle.all_style);
+    subtle.bottom_panel_style.inherit(&subtle.all_style);
+    // TODO tray
 
     // Check fonts
-    // TODO Font
+    if !subtle.title_style.flags.contains(StyleFlags::FONT) {}
 
     debug!("{}", function_name!());
 }
