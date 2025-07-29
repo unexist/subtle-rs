@@ -41,6 +41,8 @@ pub(crate) struct View {
     
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
+
+    pub(crate) text_width: u16,
 }
 
 impl View {
@@ -51,7 +53,13 @@ impl View {
             }
         }
 
-        debug!("{}: view={}", function_name!(), self);
+        debug!("{}: {}", function_name!(), self);
+    }
+
+    pub(crate) fn focus(&self, subtle: &Subtle) -> Result<()> {
+        debug!("{}: {}", function_name!(), self);
+
+        Ok(())
     }
 }
 
@@ -138,7 +146,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     
     conn.flush()?;
 
-    debug!("{}: views={}", function_name!(), subtle.views.len());
+    debug!("{}: nviews={}", function_name!(), subtle.views.len());
 
     Ok(())
 }

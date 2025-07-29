@@ -118,7 +118,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     conn.change_property8(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_GRAVITY_LIST,
                           AtomEnum::STRING, gravities.join("\0").as_bytes())?.check()?;
 
-    debug!("{}: gravities={}", function_name!(), subtle.gravities.len());
+    debug!("{}: ngravities={}", function_name!(), subtle.gravities.len());
 
     Ok(())
 }

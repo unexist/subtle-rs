@@ -143,7 +143,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: tags={}", function_name!(), subtle.tags.len());
+    debug!("{}: ntags={}", function_name!(), subtle.tags.len());
     
     Ok(())
 }
