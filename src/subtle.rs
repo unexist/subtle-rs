@@ -125,7 +125,10 @@ impl Subtle {
     }
 
     pub(crate) fn find_focus_client(&self) -> Option<VecRef<Client>> {
+        println!("history-len={}", self.focus_history.len());
+
         if let Some(win) = self.focus_history.borrow(0) {
+            println!("win={}", win);
             if let Some(focus) = self.find_client(*win) {
                 return self.find_client(*win)
             }
@@ -165,8 +168,18 @@ impl Subtle {
 
             if let Ok(cookie) = conn.query_pointer(default_screen.root) {
                 if let Ok(reply) = cookie.reply() {
-                    return self.find_screen_by_xy(reply.root_x, reply.root_y)
+                    return self.find_screen_by_xy(reply.root_x, reply.root_y);
                 }
+            }
+        }
+
+        None
+    }
+
+    pub(crate) fn find_screen_by_panel(&self, win: Window) -> Option<(usize, &Screen)> {
+        for (screen_idx, screen) in self.screens.iter().enumerate() {
+            if screen.top_panel_win == win || screen.bottom_panel_win == win {
+                return Some((screen_idx, screen));
             }
         }
 
