@@ -176,7 +176,7 @@ impl Subtle {
         None
     }
 
-    pub(crate) fn find_screen_by_panel(&self, win: Window) -> Option<(usize, &Screen)> {
+    pub(crate) fn find_screen_by_panel_win(&self, win: Window) -> Option<(usize, &Screen)> {
         for (screen_idx, screen) in self.screens.iter().enumerate() {
             if screen.top_panel_win == win || screen.bottom_panel_win == win {
                 return Some((screen_idx, screen));

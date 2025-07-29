@@ -22,7 +22,7 @@ use crate::{client, screen};
 use crate::panel::PanelAction;
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
-    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel(event.event) {
+    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel_win(event.event) {
         for panel in screen.panels.iter() {
             panel.handle_action(subtle, PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
                                 screen.bottom_panel_win == event.event)?;
@@ -94,7 +94,7 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
 }
 
 fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
-    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel(event.event) {
+    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel_win(event.event) {
         for panel in screen.panels.iter() {
             panel.handle_action(subtle, PanelAction::MouseOut,
                                 screen.bottom_panel_win == event.event)?;
