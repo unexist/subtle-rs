@@ -19,6 +19,7 @@ use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
 use crate::style::{CalcSide, Style, StyleFlags};
 use crate::subtle::Subtle;
+use crate::view::ViewFlags;
 
 bitflags! {
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
@@ -44,6 +45,12 @@ bitflags! {
         const MOUSE_OVER = 1 << 16;      // Panel mouse over
         const MOUSE_OUT = 1 << 17;       // Panel mouse out
     }
+}
+
+pub(crate) enum PanelAction {
+    MouseOver(i16, i16),
+    MouseDown(i16, i16, i8),
+    MouseOut,
 }
 
 #[derive(Default, Debug)]
@@ -88,17 +95,20 @@ impl Panel {
 
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
+                println!("???2");
                 if !focus.is_alive() {
                     return Ok(());
                 }
 
-                if !focus.flags.contains(ClientFlags::TYPE_DESKTOP) {
+                if !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                     if let Ok(mode_str) = focus.format_modes() {
+                        println!("mode={}", mode_str);
                         // Font offset, panel border and padding
                         if -1 != subtle.title_style.font_id
                             && let Some(font) = subtle.fonts.get(subtle.title_style.font_id as usize)
                         {
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &*focus.name, false) {
+                                println!("width={}, mode={}", width, mode_str);
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16;
                             }
                         }
@@ -240,7 +250,7 @@ impl Panel {
                     return Ok(());
                 }
 
-                if !focus.flags.contains(ClientFlags::TYPE_DESKTOP) && focus.is_visible(subtle) {
+                if !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) && focus.is_visible(subtle) {
 
                     // Set window background and border
                     self.draw_rect(subtle, drawable, 0, &subtle.title_style)?;
@@ -264,6 +274,38 @@ impl Panel {
             && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
         {
             self.draw_separator(subtle, drawable, self.width, &subtle.separator_style)?;
+        }
+
+        debug!("{}: {}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn handle_action(&self, subtle: &Subtle, action: PanelAction, is_bottom: bool) -> Result<()> {
+        if self.flags.intersects(PanelFlags::VIEWS)
+            && let PanelAction::MouseDown(x, y, button) = action
+        {
+            let mut vx = self.x;
+
+            for view in subtle.views.iter() {
+                // Skip dynamic views
+                if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
+                    && !(subtle.client_tags.get().intersects(view.tags)) {
+                    continue;
+                }
+
+                // Check if x is in view rect
+                if x >= vx && x <= vx + view.text_width as i16 {
+                    view.focus(subtle)?;
+                }
+
+                // Add view separator width if any
+                if subtle.views_style.sep_string.is_some() {
+                    vx += view.text_width as i16 + subtle.views_style.sep_width;
+                } else {
+                    vx += view.text_width as i16;
+                }
+            }
         }
 
         debug!("{}: {}", function_name!(), self);
