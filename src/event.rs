@@ -14,12 +14,25 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, LeaveNotifyEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ButtonPressEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, LeaveNotifyEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
 use crate::panel::PanelAction;
+
+fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
+    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel(event.event) {
+        for panel in screen.panels.iter() {
+            panel.handle_action(subtle, PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
+                                screen.bottom_panel_win == event.event)?;
+        }
+    }
+
+    debug!("{}: win={}, x={}, y={}", function_name!(), event.event, event.event_x, event.event_y);
+
+    Ok(())
+}
 
 fn handle_configure(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
     debug!("{}: win={}", function_name!(), event.window);
@@ -74,8 +87,8 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
         }
     }
 
-    debug!("{}: event={}, child={}, root={}", function_name!(),
-        event.event, event.child, event.root);
+    debug!("{}: event={}, x={}, y={}", function_name!(),
+        event.event, event.event_x, event.event_y);
 
     Ok(())
 }
@@ -83,7 +96,8 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
 fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
     if let Some((screen_idx, screen)) = subtle.find_screen_by_panel(event.event) {
         for panel in screen.panels.iter() {
-            panel.handle_action(subtle, PanelAction::MouseOut, screen.bottom_panel_win == event.event)?;
+            panel.handle_action(subtle, PanelAction::MouseOut,
+                                screen.bottom_panel_win == event.event)?;
         }
     }
 
@@ -270,6 +284,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
         if let Some(event) = conn.poll_for_event()? {
             match event {
+                Event::ButtonPress(evt) => handle_button_press(subtle, evt)?,
                 Event::ConfigureNotify(evt) => handle_configure(subtle, evt)?,
                 Event::ConfigureRequest(evt) => handle_configure_request(subtle, evt)?,
                 Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
