@@ -14,11 +14,12 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, LeaveNotifyEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, screen};
+use crate::panel::PanelAction;
 
 fn handle_configure(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
     debug!("{}: win={}", function_name!(), event.window);
@@ -68,8 +69,21 @@ fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
 
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     if let Some(client) = subtle.find_client_mut(event.event) {
-        if !subtle.flags.contains(SubtleFlags::FOCUS_CLICK) {
+        if !subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) {
             client.focus(subtle, false)?;
+        }
+    }
+
+    debug!("{}: event={}, child={}, root={}", function_name!(),
+        event.event, event.child, event.root);
+
+    Ok(())
+}
+
+fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
+    if let Some((screen_idx, screen)) = subtle.find_screen_by_panel(event.event) {
+        for panel in screen.panels.iter() {
+            panel.handle_action(subtle, PanelAction::MouseOut, screen.bottom_panel_win == event.event)?;
         }
     }
 
@@ -260,6 +274,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::ConfigureRequest(evt) => handle_configure_request(subtle, evt)?,
                 Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
                 Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
+                Event::LeaveNotify(evt) => handle_leave(subtle, evt)?,
                 Event::Expose(evt) => handle_expose(subtle, evt)?,
                 Event::FocusIn(evt) => handle_focus(subtle, evt)?,
                 Event::MapRequest(evt) => handle_map_request(subtle, evt)?,
