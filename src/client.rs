@@ -92,6 +92,8 @@ pub(crate) struct Client {
     pub(crate) klass: String,
     pub(crate) role: String,
 
+    pub(crate) text_width: u16,
+
     pub(crate) min_ratio: f32,
     pub(crate) max_ratio: f32,
 
