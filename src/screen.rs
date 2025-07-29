@@ -43,8 +43,8 @@ pub(crate) struct Screen {
 
     pub(crate) view_id: isize,
 
-    pub(crate) panel_top_win: Window,
-    pub(crate) panel_bottom_win: Window,
+    pub(crate) top_panel_win: Window,
+    pub(crate) bottom_panel_win: Window,
     pub(crate) drawable: Pixmap,
 
     pub(crate) geom: Rectangle,
@@ -75,21 +75,21 @@ impl Screen {
 
         let aux = CreateWindowAux::default()
             .event_mask(EventMask::BUTTON_PRESS
-                | EventMask::EXPOSURE
+                | EventMask::ENTER_WINDOW
                 | EventMask::LEAVE_WINDOW
                 | EventMask::EXPOSURE)
             .override_redirect(1)
             .background_pixmap(BackPixmap::PARENT_RELATIVE);
 
-        screen.panel_top_win = conn.generate_id()?;
+        screen.top_panel_win = conn.generate_id()?;
 
-        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.panel_top_win, default_screen.root,
+        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.top_panel_win, default_screen.root,
                            0, 0, 1, 1, 0,
                            WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
-        screen.panel_bottom_win = conn.generate_id()?;
+        screen.bottom_panel_win = conn.generate_id()?;
 
-        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.panel_bottom_win, default_screen.root,
+        conn.create_window(COPY_DEPTH_FROM_PARENT, screen.bottom_panel_win, default_screen.root,
                            0, 0, 1, 1, 0,
                            WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
@@ -121,8 +121,8 @@ impl Default for Screen {
 
             view_id: -1,
 
-            panel_top_win: Window::default(),
-            panel_bottom_win: Window::default(),
+            top_panel_win: Window::default(),
+            bottom_panel_win: Window::default(),
             drawable: 0,
 
             geom: Rectangle::default(),
@@ -348,6 +348,9 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     for screen in subtle.screens.iter() {
         // Update panel items
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
+
+            drop(panel);
+
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
                 mut_panel.update(subtle)?
             }
@@ -364,7 +367,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
 
     // Update screens
     for screen in subtle.screens.iter() {
-        let panel_win = screen.panel_top_win;
+        let panel_win = screen.top_panel_win;
 
         screen.clear(subtle, &subtle.top_panel_style)?;
 
@@ -374,12 +377,14 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            if panel_win != screen.panel_bottom_win && panel.flags.intersects(PanelFlags::BOTTOM) {
+            if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM) {
                 conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
                                screen.base.width, subtle.panel_height)?.check()?;
 
                 screen.clear(subtle, &subtle.bottom_panel_style)?;
             }
+
+            drop(panel);
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
                 mut_panel.render(subtle, screen.drawable)?
@@ -420,14 +425,14 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
                 .width(screen.base.width as u32)
                 .height(subtle.panel_height as u32);
 
-            conn.configure_window(screen.panel_top_win, &aux)?.check()?;
-            conn.map_window(screen.panel_top_win)?.check()?;
+            conn.configure_window(screen.top_panel_win, &aux)?.check()?;
+            conn.map_window(screen.top_panel_win)?.check()?;
 
             // Update height
             screen.geom.y += subtle.panel_height as i16;
             screen.geom.height -= subtle.panel_height;
         } else {
-            conn.unmap_window(screen.panel_top_win)?.check()?;
+            conn.unmap_window(screen.top_panel_win)?.check()?;
         }
 
         if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
@@ -437,13 +442,13 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
                 .width(screen.base.width as u32)
                 .height(subtle.panel_height as u32);
 
-            conn.configure_window(screen.panel_bottom_win, &aux)?.check()?;
-            conn.map_window(screen.panel_bottom_win)?.check()?;
+            conn.configure_window(screen.bottom_panel_win, &aux)?.check()?;
+            conn.map_window(screen.bottom_panel_win)?.check()?;
 
             // Update height
             screen.geom.height -= subtle.panel_height;
         } else {
-            conn.unmap_window(screen.panel_top_win)?.check()?;
+            conn.unmap_window(screen.top_panel_win)?.check()?;
         }
 
         // Re-create double buffer
