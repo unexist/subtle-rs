@@ -24,7 +24,7 @@ tasks:
 
   run:
     cmds:
-      - cargo run -- {{.CLI_ARGS}}
+      - cargo run -- -d {{.DISPLAY}} {{.CLI_ARGS}}
 
   clean:
     cmds:
