@@ -10,7 +10,7 @@
 ///
 
 use std::fmt;
-use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, Window, CLIENT_MESSAGE_EVENT};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
@@ -806,17 +806,17 @@ impl Client {
                 aux = aux.x(0)
                     .y(0)
                     .width(subtle.width as u32)
-                    .height(subtle.height as u32);
+                    .height(subtle.height as u32)
+                    .stack_mode(StackMode::ABOVE);
             } else if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
                 aux = aux.x(screen.base.x as i32)
                     .y(screen.base.y as i32)
                     .width(screen.base.width as u32)
-                    .height(screen.base.height as u32);
+                    .height(screen.base.height as u32)
+                    .stack_mode(StackMode::ABOVE);
             }
 
             conn.configure_window(self.win, &aux)?.check()?;
-
-            //XRaiseWindow(subtle->dpy, c->win); // TODO
         } else if self.flags.contains(ClientFlags::MODE_FLOAT) {
             if self.flags.contains(ClientFlags::ARRANGE)
                 || (-1 != screen_id && self.screen_id != screen_id)
