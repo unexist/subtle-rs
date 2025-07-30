@@ -208,13 +208,13 @@ impl Client {
         //conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_FRAME_EXTENTS
         //                       AtomEnum::CARDINAL, &data)?.check()?;
 
-        debug!("{}: {}", function_name!(), client);
+        debug!("{}: client={}", function_name!(), client);
 
         Ok(client)
     }
 
     pub(crate) fn set_strut(&mut self, subtle: &Subtle) -> Result<()> {
-        debug!("{}: {}", function_name!(), self);
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -540,10 +540,8 @@ impl Client {
 
         // Exclude desktop and dock type windows
         if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
-            let aux = ChangeWindowAttributesAux::default()
-                .border_pixel(subtle.clients_style.fg as u32);
-
-            conn.change_window_attributes(self.win, &aux)?.check()?;
+            conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()
+                .border_pixel(subtle.clients_style.fg as u32))?.check()?;
         }
 
         // EWMH: Active window
@@ -554,6 +552,13 @@ impl Client {
 
         conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_ACTIVE_WINDOW,
                                AtomEnum::WINDOW, list.as_slice())?.check()?;
+
+        // Warp pointer
+        if warp_pointer && !subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP) {
+            self.warp_pointer(subtle)?;
+        }
+
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -978,8 +983,18 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn warp(&self, subtle: &Subtle) -> Result<()> {
-        debug!("{}", function_name!());
+    pub(crate) fn warp_pointer(&self, subtle: &Subtle) -> Result<()> {
+        ignore_if_dead!(self);
+
+        let conn = subtle.conn.get().unwrap();
+
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+
+        conn.warp_pointer(NONE, default_screen.root, 0, 0, 0, 0,
+                          self.geom.x + self.geom.width as i16 / 2,
+                          self.geom.y + self.geom.height as i16 / 2)?.check()?;
+
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -1073,7 +1088,7 @@ impl Client {
             }
         }
 
-        debug!("{}", function_name!());
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -1390,7 +1405,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: clients={}, restack={}", function_name!(), subtle.clients.len(), restack_windows);
+    debug!("{}: nclients={}, restack={}", function_name!(), subtle.clients.len(), restack_windows);
 
     Ok(())
 }
