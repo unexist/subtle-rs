@@ -83,17 +83,17 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.arrow_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.arrow_cursor, font_wrapper.font(), font_wrapper.font(),
                              XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
-                             u16::MAX, u16::MAX, u16::MAX)?;
+                             u16::MAX, u16::MAX, u16::MAX)?.check()?;
 
     subtle.move_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.move_cursor, font_wrapper.font(), font_wrapper.font(),
                              XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
-                             u16::MAX, u16::MAX, u16::MAX)?;
+                             u16::MAX, u16::MAX, u16::MAX)?.check()?;
 
     subtle.resize_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.resize_cursor, font_wrapper.font(), font_wrapper.font(),
                              XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
-                             u16::MAX, u16::MAX, u16::MAX)?;
+                             u16::MAX, u16::MAX, u16::MAX)?.check()?;
 
     drop(font_wrapper);
 
