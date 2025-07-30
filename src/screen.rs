@@ -283,7 +283,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                     && !subtle.flags.contains(SubtleFlags::SKIP_URGENT_WARP)
                     && !subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP)
                 {
-                    client.warp(subtle)?;
+                    client.warp_pointer(subtle)?;
                 }
 
                 // EWMH: Desktop, screen
