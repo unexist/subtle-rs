@@ -108,6 +108,7 @@ fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
 }
 
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
+    // Render only once
     if 0 == event.count {
         screen::render(subtle)?;
     }
@@ -117,14 +118,18 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_focus(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
+fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
 
     // Remove urgent after getting focus
     if let Some(mut client) = subtle.find_client_mut(event.event) {
-        if client.flags.contains(ClientFlags::MODE_URGENT) {
+        if client.flags.intersects(ClientFlags::MODE_URGENT) {
             client.flags.remove(ClientFlags::MODE_URGENT);
             subtle.urgent_tags.replace(subtle.urgent_tags.get() - client.tags);
         }
+
+        // Update screen
+        screen::update(subtle)?;
+        screen::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.event);
@@ -212,6 +217,9 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
     } else if let Ok(client) = Client::new(subtle, event.window) {
         //subtle.clients.push(client);
 
+        screen::configure(subtle)?;
+        screen::update(subtle)?;
+        screen::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.window);
@@ -291,7 +299,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
                 Event::LeaveNotify(evt) => handle_leave(subtle, evt)?,
                 Event::Expose(evt) => handle_expose(subtle, evt)?,
-                Event::FocusIn(evt) => handle_focus(subtle, evt)?,
+                Event::FocusIn(evt) => handle_focus_in(subtle, evt)?,
                 Event::MapRequest(evt) => handle_map_request(subtle, evt)?,
                 Event::PropertyNotify(evt) => handle_property(subtle, evt)?,
                 Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
