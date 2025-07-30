@@ -305,7 +305,11 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
                 Event::UnmapNotify(evt) => handle_unmap(subtle, evt)?,
 
-                _ => warn!("Unhandled event: {:?}", event),
+                _ => {
+                    if subtle.flags.intersects(SubtleFlags::DEBUG) {
+                        warn!("Unhandled event: {:?}", event)
+                    }
+                },
             }
         }
     }
