@@ -19,7 +19,7 @@ use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME};
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, Window, WindowClass};
+use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, StackMode, Window, WindowClass};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
@@ -93,7 +93,7 @@ impl Screen {
                            0, 0, 1, 1, 0,
                            WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
-        debug!("{}: {}", function_name!(), screen);
+        debug!("{}: screen={}", function_name!(), screen);
 
         Ok(screen)
     }
@@ -134,14 +134,15 @@ impl Default for Screen {
 
 impl fmt::Display for Screen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(geom=(x={}, y={}, width={}, height={}))",
-               self.geom.x, self.geom.y, self.geom.width, self.geom.height)
+        write!(f, "(geom=(x={}, y={}, width={}, height={}, npanel={}, flags={:?}))",
+               self.geom.x, self.geom.y, self.geom.width, self.geom.height,
+               self.panels.len(), self.flags)
     }
 }
 
-fn create_panel(name: &str) -> Option<Panel> {
+fn create_panel(name: &str, flags: PanelFlags) -> Option<Panel> {
     match name {
-        "title" => Some(Panel::new(PanelFlags::TITLE)),
+        "title" => Panel::new(PanelFlags::TITLE | flags),
         _ => None,
     }
 }
@@ -149,8 +150,8 @@ fn create_panel(name: &str) -> Option<Panel> {
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    // Check both but prefer xrandr
-    if subtle.flags.contains(SubtleFlags::XRANDR) {
+    // Check both Xinerama and xrandr, but prefer the latter
+    if subtle.flags.intersects(SubtleFlags::XRANDR) {
         let default_screen = &conn.setup().roots[subtle.screen_num];
         let crtcs= conn.randr_get_screen_resources_current(default_screen.root)?.reply()?.crtcs;
 
@@ -158,20 +159,20 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             let screen_size = conn.randr_get_crtc_info(*crtc, CURRENT_TIME)?.reply()?;
 
             if let Ok(screen) = Screen::new(subtle, screen_size.x, screen_size.y,
-                                     screen_size.width, screen_size.height)
+                                            screen_size.width, screen_size.height)
             {
                 subtle.screens.push(screen);
             }
         }
     }
 
-    if subtle.flags.contains(SubtleFlags::XINERAMA) && subtle.screens.is_empty() {
+    if subtle.flags.intersects(SubtleFlags::XINERAMA) && subtle.screens.is_empty() {
         if 0 != conn.xinerama_is_active()?.reply()?.state {
             let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
 
             for screen_info in screens.iter() {
                 if let Ok(screen) = Screen::new(subtle, screen_info.x_org, screen_info.y_org,
-                                         screen_info.width, screen_info.height)
+                                                screen_info.width, screen_info.height)
                 {
                     subtle.screens.push(screen);
                 }
@@ -189,24 +190,32 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     // Load screen config
     for (screen_idx, values) in config.screens.iter().enumerate() {
-        if subtle.screens.len() > screen_idx && let Some(screen) = subtle.screens.get_mut(screen_idx) {
+        if subtle.screens.len() > screen_idx
+            && let Some(screen) = subtle.screens.get_mut(screen_idx)
+        {
             // Handle panels
-            if let Some(MixedConfigVal::VS(panels)) = values.get("top_panel") {
-                screen.flags.insert(ScreenFlags::TOP_PANEL);
-
-                for panel_name in panels.iter() {
-                    if let Some(panel) = create_panel(panel_name) {
-                        screen.panels.push(panel);
+            if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
+                if !top_panels.is_empty() {
+                    for panel_name in top_panels.iter() {
+                        if let Some(panel) = create_panel(panel_name, PanelFlags::empty()) {
+                            screen.flags.insert(ScreenFlags::TOP_PANEL);
+                            screen.panels.push(panel);
+                        }
                     }
                 }
             }
 
-            if let Some(MixedConfigVal::VS(panels)) = values.get("bottom_panel") {
-                screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
+            if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
+                if !bottom_panels.is_empty() {
+                    // Add bottom marker to first panel on bottom panel in linear vec
+                    let mut bottom_flags = PanelFlags::BOTTOM_MARKER;
 
-                for panel_name in panels.iter() {
-                    if let Some(panel) = create_panel(panel_name) {
-                        screen.panels.push(panel);
+                    for panel_name in bottom_panels.iter() {
+                        if let Some(panel) = create_panel(panel_name, bottom_flags) {
+                            screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
+                            bottom_flags = PanelFlags::empty();
+                            screen.panels.push(panel);
+                        }
                     }
                 }
             }
@@ -241,7 +250,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             let mut visible = 0;
 
             // Ignore dead or just iconified clients
-            if client.flags.contains(ClientFlags::DEAD) {
+            if client.flags.intersects(ClientFlags::DEAD) {
                 continue;
             }
 
@@ -255,9 +264,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                     visible_tags.insert(view.tags);
                     visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
 
-                    if visible_tags.contains(view.tags) {
+                    if visible_tags.intersects(view.tags) {
                         // Keep screen when sticky
-                        if client.flags.contains(ClientFlags::MODE_STICK)
+                        if client.flags.intersects(ClientFlags::MODE_STICK)
                             && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
                         {
                             view_id = client_screen.view_id as usize;
@@ -279,9 +288,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 client.map(subtle)?;
 
                 // Warp after gravity and screen have been set if not disabled
-                if client.flags.contains(ClientFlags::MODE_URGENT)
-                    && !subtle.flags.contains(SubtleFlags::SKIP_URGENT_WARP)
-                    && !subtle.flags.contains(SubtleFlags::SKIP_POINTER_WARP)
+                if client.flags.intersects(ClientFlags::MODE_URGENT)
+                    && !subtle.flags.intersects(SubtleFlags::SKIP_URGENT_WARP)
+                    && !subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP)
                 {
                     client.warp_pointer(subtle)?;
                 }
@@ -377,7 +386,8 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM) {
+            // Switch to bottom panel
+            if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
                 conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
                                screen.base.width, subtle.panel_height)?.check()?;
 
@@ -412,18 +422,19 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
         // Add strut
         screen.geom.x = screen.base.x + subtle.clients_style.padding.left;
         screen.geom.y = screen.base.y + subtle.clients_style.padding.top;
-        screen.geom.width = screen.base.width - subtle.clients_style.padding.left as u16
-            - subtle.clients_style.padding.right as u16;
-        screen.geom.height = screen.base.height - subtle.clients_style.padding.top as u16
-            - subtle.clients_style.padding.bottom as u16;
+        screen.geom.width = (screen.base.width as i16 - subtle.clients_style.padding.left
+            - subtle.clients_style.padding.right) as u16;
+        screen.geom.height = (screen.base.height as i16 - subtle.clients_style.padding.top
+            - subtle.clients_style.padding.bottom) as u16;
 
         // Update panels
-        if screen.flags.contains(ScreenFlags::TOP_PANEL) {
+        if screen.flags.intersects(ScreenFlags::TOP_PANEL) {
             let aux = ConfigureWindowAux::default()
                 .x(screen.base.x as i32)
                 .y(screen.base.y as i32)
                 .width(screen.base.width as u32)
-                .height(subtle.panel_height as u32);
+                .height(subtle.panel_height as u32)
+                .stack_mode(StackMode::ABOVE);
 
             conn.configure_window(screen.top_panel_win, &aux)?.check()?;
             conn.map_window(screen.top_panel_win)?.check()?;
@@ -435,12 +446,13 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
             conn.unmap_window(screen.top_panel_win)?.check()?;
         }
 
-        if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
+        if screen.flags.intersects(ScreenFlags::BOTTOM_PANEL) {
             let aux = ConfigureWindowAux::default()
                 .x(screen.base.x as i32)
                 .y(screen.base.y as i32 + screen.base.height as i32 - subtle.panel_height as i32)
                 .width(screen.base.width as u32)
-                .height(subtle.panel_height as u32);
+                .height(subtle.panel_height as u32)
+                .stack_mode(StackMode::ABOVE);
 
             conn.configure_window(screen.bottom_panel_win, &aux)?.check()?;
             conn.map_window(screen.bottom_panel_win)?.check()?;
@@ -448,7 +460,7 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
             // Update height
             screen.geom.height -= subtle.panel_height;
         } else {
-            conn.unmap_window(screen.top_panel_win)?.check()?;
+            conn.unmap_window(screen.bottom_panel_win)?.check()?;
         }
 
         // Re-create double buffer
@@ -484,9 +496,9 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
             workareas.push(screen.geom.width as u32);
             workareas.push(screen.geom.height as u32);
 
-            panels.push(if screen.flags.contains(ScreenFlags::TOP_PANEL) {
+            panels.push(if screen.flags.intersects(ScreenFlags::TOP_PANEL) {
                 subtle.panel_height as u32 } else { 0 });
-            panels.push(if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
+            panels.push(if screen.flags.intersects(ScreenFlags::BOTTOM_PANEL) {
                 subtle.panel_height as u32 } else { 0 });
 
             viewports.push(0);
