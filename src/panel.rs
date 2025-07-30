@@ -10,8 +10,8 @@
 ///
 
 use std::fmt;
-use bitflags::{bitflags, bitflags_match};
-use log::{debug, warn};
+use bitflags::bitflags;
+use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
@@ -32,11 +32,11 @@ bitflags! {
         const TRAY = 1 << 5;            // Panel tray type
         const ICON = 1 << 6;            // Panel icon type
 
-        const SPACER1 = 1 << 7;          // Panel spacer1
-        const SPACER2 = 1 << 8;          // Panel spacer2
+        const SPACER_BEFORE = 1 << 7;    // Panel spacer before item
+        const SPACER_AFTER = 1 << 8;     // Panel spacer after item
         const SEPARATOR_BEFORE = 1 << 9; // Panel separator before item
         const SEPARATOR_AFTER = 1 << 10; // Panel separator after item
-        const BOTTOM = 1 << 11;          // Panel bottom
+        const BOTTOM_MARKER = 1 << 11;   // Panel bottom marker
         const HIDDEN = 1 << 12;          // Panel hidden
         const CENTER = 1 << 13;          // Panel center
         const SUBLETS = 1 << 14;         // Panel sublets
@@ -62,24 +62,27 @@ pub(crate) struct Panel {
 }
 
 impl Panel {
-    pub(crate) fn new(flag: PanelFlags) -> Self {
+    pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
         let mut panel = Self {
-            flags: flag,
+            flags,
             ..Self::default()
         };
 
-        bitflags_match!(flag, {
-            PanelFlags::ICON => {}, // TODO icon
-            PanelFlags::TITLE => {},
-            PanelFlags::VIEWS => {
-                panel.flags.insert(PanelFlags::MOUSE_DOWN);
-            },
-            _ => warn!("Unknown panel flag {:?}", flag),
-        });
+        if flags.intersects(PanelFlags::ICON) {
+            // TODO icon
+        } else if flags.intersects(PanelFlags::TITLE) {
+            // TODO title
+        } else if flags.intersects(PanelFlags::VIEWS) {
+            panel.flags.insert(PanelFlags::MOUSE_DOWN);
+        } else {
+            debug!("Unhandled panel flags: {:?}", flags);
 
-        debug!("{}: {}", function_name!(), panel);
+            return None
+        }
 
-        panel
+        debug!("{}: panel={}", function_name!(), panel);
+
+        Some(panel)
     }
 
     pub(crate) fn update(&mut self, subtle: &Subtle) -> Result<()> {
@@ -95,7 +98,6 @@ impl Panel {
 
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
-                println!("???2");
                 if !focus.is_alive() {
                     return Ok(());
                 }
@@ -132,7 +134,7 @@ impl Panel {
             // TODO views
         }
 
-        debug!("{}: {}", function_name!(), self);
+        debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
     }
@@ -276,7 +278,7 @@ impl Panel {
             self.draw_separator(subtle, drawable, self.width, &subtle.separator_style)?;
         }
 
-        debug!("{}: {}", function_name!(), self);
+        debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
     }
@@ -308,7 +310,7 @@ impl Panel {
             }
         }
 
-        debug!("{}: {}", function_name!(), self);
+        debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
     }
