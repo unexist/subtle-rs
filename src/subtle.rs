@@ -110,35 +110,39 @@ pub(crate) struct Subtle {
 
 impl Subtle {
     pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<Client>> {
-        self.clients.iter()
-            .find(|client| client.win == win)
-    }
+        for (client_idx, client) in self.clients.try_iter().enumerate() {
+            if client.is_some() && client.as_ref()?.win == win {
+                drop(client);
 
-    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<Client>> {
-        let maybe_idx = self.clients.iter()
-            .position(|client| client.win == win);
-
-        match maybe_idx {
-            Some(idx) => self.clients.borrow_mut(idx),
-            None => None,
-        }
-    }
-
-    pub(crate) fn find_focus_client(&self) -> Option<VecRef<Client>> {
-        println!("history-len={}", self.focus_history.len());
-
-        if let Some(win) = self.focus_history.borrow(0) {
-            println!("win={}", win);
-            if let Some(focus) = self.find_client(*win) {
-                return self.find_client(*win)
+                return self.clients.borrow(client_idx);
             }
         }
 
         None
     }
 
-    pub(crate) fn find_focus_win(&self) -> Window {
+    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<Client>> {
+        for (client_idx, client) in self.clients.try_iter().enumerate() {
+            if client.is_some() && client.as_ref()?.win == win {
+                drop(client);
+
+                return self.clients.borrow_mut(client_idx);
+            }
+        }
+
+        None
+    }
+
+    pub(crate) fn find_focus_client(&self) -> Option<VecRef<Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
+            return self.find_client(*win)
+        }
+
+        None
+    }
+
+    pub(crate) fn find_focus_win(&self) -> Window {
+        if let Some(win) = self.focus_history.borrow(0) && NONE != *win {
             return *win
         }
 
@@ -213,7 +217,7 @@ impl Default for Subtle {
 
             support_win: Window::default(),
             tray_win: Window::default(),
-            focus_history: VecCell::with_capacity(HISTORY_SIZE),
+            focus_history: VecCell::from(vec![NONE; HISTORY_SIZE]),
 
             invert_gc: Gcontext::default(),
             draw_gc: Gcontext::default(),
