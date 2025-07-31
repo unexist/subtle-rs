@@ -128,8 +128,8 @@ impl Client {
         let aux = ChangeWindowAttributesAux::default()
             .border_pixel(subtle.clients_style.bg as u32)
             .event_mask(EventMask::PROPERTY_CHANGE
-                | EventMask::ENTER_WINDOW
-                | EventMask::FOCUS_CHANGE);
+                | EventMask::FOCUS_CHANGE
+                | EventMask::ENTER_WINDOW);
 
         conn.change_window_attributes(win, &aux)?.check()?;
 
