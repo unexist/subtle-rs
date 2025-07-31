@@ -119,12 +119,17 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
 }
 
 fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
-
-    // Remove urgent after getting focus
     if let Some(mut client) = subtle.find_client_mut(event.event) {
+
+        // Remove urgent after getting focus
         if client.flags.intersects(ClientFlags::MODE_URGENT) {
             client.flags.remove(ClientFlags::MODE_URGENT);
             subtle.urgent_tags.replace(subtle.urgent_tags.get() - client.tags);
+        }
+
+        // Update focus history
+        if let Some(mut focus) = subtle.focus_history.borrow_mut(0) {
+            *focus = event.event;
         }
 
         // Update screen
