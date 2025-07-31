@@ -173,6 +173,14 @@ impl Style {
         self.sep_width = -1;
         self.sep_string = None;
     }
+
+    pub(crate) fn get_font<'a>(&self, subtle: &'a Subtle) -> Option<&'a Font> {
+        if -1 != self.font_id {
+            return subtle.fonts.get(self.font_id as usize);
+        }
+
+        None
+    }
 }
 
 impl fmt::Display for Side {
