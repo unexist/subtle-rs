@@ -504,7 +504,7 @@ impl Client {
         let atoms = subtle.atoms.get().unwrap();
 
         // Unset current focus
-        if let Some(win) = subtle.focus_history.borrow(0) {
+        if let Some(win) = subtle.focus_history.borrow(0) && self.win != *win {
             if let Some(focus) = subtle.find_client(*win) {
                 //subGrabUnset // TODO Grabs
 
