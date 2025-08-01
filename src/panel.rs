@@ -15,7 +15,7 @@ use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
-use x11rb::protocol::xproto::{ChangeGCAux, Char2b, ConnectionExt, Drawable, Rectangle};
+use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
 use crate::style::{CalcSide, Style, StyleFlags};
 use crate::subtle::Subtle;
@@ -96,19 +96,13 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::TITLE) {
             self.width = subtle.clients_style.min_width as u16;
 
-            println!("render title");
-
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
-                println!("found client={}, alive={}, desktop={}", focus, focus.is_alive(), focus.flags.intersects(ClientFlags::TYPE_DESKTOP));
-
                 if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                     if let Ok(mode_str) = focus.format_modes() {
-                        println!("mode={}", mode_str);
                         // Font offset, panel border and padding
                         if let Some(font) = subtle.title_style.get_font(subtle) {
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
-                                println!("width={}, mode={}", width, mode_str);
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16;
                             }
                         }
