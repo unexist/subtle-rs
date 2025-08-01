@@ -25,26 +25,30 @@ pub(crate) struct Font {
 }
 
 impl Font {
-    pub(crate) fn new(conn: &RustConnection, name: &str) -> Result<Self> {
+    pub(crate) fn new(conn: &RustConnection, font_name: &str) -> Result<Self> {
         let mut font = Self {
             fontable: conn.generate_id()?,
             ..Default::default()
         };
 
         // Open font and calculate specs
-        conn.open_font(font.fontable, name.as_ref())?.check()?;
+        if font_name.starts_with("xft") {
+            return Err(anyhow::anyhow!("Xft not supported yet"));
+        } else {
+            conn.open_font(font.fontable, font_name.as_bytes())?.check()?;
 
-        let reply = conn.query_font(font.fontable)?.reply()?;
+            let reply = conn.query_font(font.fontable)?.reply()?;
 
-        font.height = (reply.font_ascent + reply.font_descent + 2) as u16;
-        font.y = (font.height - 2 + reply.font_ascent as u16) / 2;
+            font.height = (reply.font_ascent + reply.font_descent + 2) as u16;
+            font.y = (font.height - 2 + reply.font_ascent as u16) / 2;
+        }
 
         debug!("{}: {}", function_name!(), font);
 
         Ok(font)
     }
 
-    pub(crate) fn calc_text_width(&self, conn: &RustConnection, text: &str, center: bool) -> Result<(u16, u16, u16)> {
+    pub(crate) fn calc_text_width(&self, conn: &RustConnection, text: &String, center: bool) -> Result<(u16, u16, u16)> {
         let text_char2b: Vec<Char2b> = text.as_bytes()
             .to_vec()
             .iter()

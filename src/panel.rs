@@ -15,7 +15,7 @@ use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
-use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
+use x11rb::protocol::xproto::{ChangeGCAux, Char2b, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
 use crate::style::{CalcSide, Style, StyleFlags};
 use crate::subtle::Subtle;
@@ -100,13 +100,14 @@ impl Panel {
 
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
-                println!("found client={}", focus);
+                println!("found client={}, alive={}, desktop={}", focus, focus.is_alive(), focus.flags.intersects(ClientFlags::TYPE_DESKTOP));
+
                 if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                     if let Ok(mode_str) = focus.format_modes() {
                         println!("mode={}", mode_str);
                         // Font offset, panel border and padding
                         if let Some(font) = subtle.title_style.get_font(subtle) {
-                            if let Ok((width, _, _)) = font.calc_text_width(conn, &*focus.name, false) {
+                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
                                 println!("width={}, mode={}", width, mode_str);
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16;
                             }
@@ -118,11 +119,9 @@ impl Panel {
                 }
             }
         } else if self.flags.intersects(PanelFlags::SEPARATOR_BEFORE | PanelFlags::SEPARATOR_AFTER) {
-            if -1 != subtle.separator_style.font_id
-                && let Some(font) = subtle.fonts.get(subtle.separator_style.font_id as usize)
-            {
+            if let Some(font) = subtle.separator_style.get_font(subtle) {
                 if let Ok((width, _, _)) = font.calc_text_width(conn,
-                                                                subtle.separator_style.sep_string.clone().unwrap().as_str(), false)
+                                                                subtle.separator_style.sep_string.as_ref().unwrap(), false)
                 {
                     self.width = width;
                 }
@@ -202,11 +201,13 @@ impl Panel {
     pub(crate) fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, text: &String, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
-        if -1 != style.font_id && let Some(font) = subtle.fonts.get(style.font_id as usize) {
+        if let Some(font) = style.get_font(subtle) {
             conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
+                .font(font.fontable)
                 .foreground(style.fg as u32)
                 .background(style.bg as u32))?.check()?;
-            conn.poly_text16(drawable, subtle.draw_gc,
+
+            conn.image_text8(drawable, subtle.draw_gc,
                              (self.x as u16 + style.calc_side(CalcSide::Left) as u16 + offset_x) as i16,
                              font.y as i16 + style.calc_side(CalcSide::Top),
                              text.as_bytes())?.check()?;
