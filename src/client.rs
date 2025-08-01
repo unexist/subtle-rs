@@ -1025,7 +1025,7 @@ impl Client {
     }
 
     pub(crate) fn is_alive(&self) -> bool {
-        self.flags.contains(ClientFlags::DEAD)
+        !self.flags.intersects(ClientFlags::DEAD)
     }
 
     pub(crate) fn format_modes(&self) -> Result<String> {
