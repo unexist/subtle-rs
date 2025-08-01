@@ -96,19 +96,16 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::TITLE) {
             self.width = subtle.clients_style.min_width as u16;
 
+            println!("render title");
+
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
-                if !focus.is_alive() {
-                    return Ok(());
-                }
-
-                if !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                println!("found client={}", focus);
+                if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                     if let Ok(mode_str) = focus.format_modes() {
                         println!("mode={}", mode_str);
                         // Font offset, panel border and padding
-                        if -1 != subtle.title_style.font_id
-                            && let Some(font) = subtle.fonts.get(subtle.title_style.font_id as usize)
-                        {
+                        if let Some(font) = subtle.title_style.get_font(subtle) {
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &*focus.name, false) {
                                 println!("width={}, mode={}", width, mode_str);
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16;
@@ -248,12 +245,9 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
-                if !focus.is_alive() {
-                    return Ok(());
-                }
-
-                if !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) && focus.is_visible(subtle) {
-
+                if focus.is_alive() && focus.is_visible(subtle)
+                    && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
+                {
                     // Set window background and border
                     self.draw_rect(subtle, drawable, 0, &subtle.title_style)?;
 
