@@ -53,11 +53,11 @@ impl Font {
             .to_vec()
             .iter()
             .map(|b| Char2b {
-                byte1: *b,
-                byte2: *b
+                byte1: 0,
+                byte2: *b,
             }).collect();
 
-        let reply = conn.query_text_extents(self.fontable, &text_char2b)?.reply()?;
+        let reply = conn.query_text_extents(self.fontable, &*text_char2b)?.reply()?;
 
         Ok(((if center {
             reply.overall_width - (reply.overall_left - reply.overall_right).abs()
