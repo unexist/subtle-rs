@@ -127,6 +127,8 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
             subtle.urgent_tags.replace(subtle.urgent_tags.get() - client.tags);
         }
 
+        drop(client);
+
         // Update focus history
         if let Some(mut focus) = subtle.focus_history.borrow_mut(0) {
             *focus = event.event;
@@ -152,6 +154,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             if let Some(win) = subtle.focus_history.borrow(0)
                 && event.window == *win
             {
+                drop(client);
+
                 screen::update(subtle)?;
                 screen::render(subtle)?;
             }
@@ -167,6 +171,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) {
+                drop(client);
+
                 screen::update(subtle)?;
                 screen::render(subtle)?;
             }
@@ -184,6 +190,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
 
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
+                drop(client);
+
                 screen::update(subtle)?;
                 screen::render(subtle)?;
             }
@@ -192,7 +200,10 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             client.set_strut(subtle)?;
 
+            drop(client);
+
             screen::update(subtle)?;
+            screen::render(subtle)?;
         }
     } else if atoms._MOTIF_WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
@@ -216,11 +227,15 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         client.flags.remove(ClientFlags::DEAD);
         client.flags.insert(ClientFlags::ARRANGE);
 
+        drop(client);
+
         screen::configure(subtle)?;
         screen::update(subtle)?;
         screen::render(subtle)?;
     } else if let Ok(client) = Client::new(subtle, event.window) {
         //subtle.clients.push(client);
+
+        drop(client);
 
         screen::configure(subtle)?;
         screen::update(subtle)?;
@@ -241,19 +256,19 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
         // Ignore our generated unmap events
         if client.flags.contains(ClientFlags::UNMAP) {
             client.flags.remove(ClientFlags::UNMAP);
+        } else {
+            // Kill client
+            //subtle.clients.pop(client);
+            //client.kill(subtle);
 
-            return Ok(());
+            drop(client);
+
+            client::publish(subtle, false)?;
+
+            screen::configure(subtle)?;
+            screen::update(subtle)?;
+            screen::render(subtle)?;
         }
-
-        // Kill client
-        //subtle.clients.pop(client);
-        //client.kill(subtle);
-
-        client::publish(subtle, false)?;
-
-        screen::configure(subtle)?;
-        screen::update(subtle)?;
-        screen::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.window);
