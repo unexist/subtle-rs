@@ -111,10 +111,12 @@ pub(crate) struct Subtle {
 impl Subtle {
     pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<Client>> {
         for (client_idx, client) in self.clients.try_iter().enumerate() {
-            if client.is_some() && client.as_ref()?.win == win {
-                drop(client);
+            if client.is_some() {
+                let client_win = client.unwrap().win;
 
-                return self.clients.borrow(client_idx);
+                if win == client_win {
+                    return self.clients.borrow(client_idx);
+                }
             }
         }
 
@@ -123,10 +125,12 @@ impl Subtle {
 
     pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<Client>> {
         for (client_idx, client) in self.clients.try_iter().enumerate() {
-            if client.is_some() && client.as_ref()?.win == win {
-                drop(client);
+            if client.is_some() {
+                let client_win = client.unwrap().win;
 
-                return self.clients.borrow_mut(client_idx);
+                if win == client_win {
+                    return self.clients.borrow_mut(client_idx);
+                }
             }
         }
 
