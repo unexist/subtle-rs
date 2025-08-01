@@ -360,13 +360,13 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
     // Update screens
     for screen in subtle.screens.iter() {
-        let mut center = false;
+        let mut is_centered = false;
         let mut npanel = 0;
         let mut offset = 0;
 
         let mut x = [0; 4];
         let mut nspacer = [0; 4];
-        let mut sw = [0; 4];
+        let mut spacer_width = [0; 4];
         let mut fix = [0; 4];
         let mut width = [0; 4];
         let mut spacer = [0; 4];
@@ -381,15 +381,15 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             if 0 == npanel && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
                 npanel = 1;
-                center = false;
+                is_centered = false;
             }
 
             if panel.flags.intersects(PanelFlags::CENTER) {
-                center = !center;
+                is_centered = !is_centered;
             }
 
             // Offset select panels variables for either center or not
-            offset = if center { npanel + 2 } else { npanel };
+            offset = if is_centered { npanel + 2 } else { npanel };
 
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
                 spacer[offset] += 1;
@@ -420,8 +420,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         // Calculate spacer and fix sizes
         for i in 0..4 {
             if 0 < spacer[i] {
-                sw[i] = (screen.base.width - width[i]) / spacer[i];
-                fix[i] = screen.base.width - (width[i] + spacer[i] * sw[i]);
+                spacer_width[i] = (screen.base.width - width[i]) / spacer[i];
+                fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
             }
         }
 
@@ -440,18 +440,18 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 nspacer[2] = 0;
                 x[0] = 0;
                 x[2] = 0;
-                center = false;
+                is_centered = false;
             }
 
             if panel.flags.intersects(PanelFlags::CENTER) {
-                center = !center;
+                is_centered = !is_centered;
             }
 
             // Offset select panels variables for either center or not
-            offset = if center { npanel + 2 } else { npanel };
+            offset = if is_centered { npanel + 2 } else { npanel };
 
             // Set start position of centered panel items
-            if center && 0 == x[offset] {
+            if is_centered && 0 == x[offset] {
                 x[offset] = (screen.base.width - width[offset]) / 2;
             }
 
@@ -462,7 +462,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             // Add spacer before item
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
-                x[offset] += sw[offset];
+                x[offset] += spacer_width[offset];
 
                 // Increase last spacer size by rounding fix
                 nspacer[offset] += 1;
@@ -487,7 +487,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             // Add spacer after item
             if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
-                x[offset] += sw[offset];
+                x[offset] += spacer_width[offset];
 
                 // Increase last spacer size by rounding fix
                 nspacer[offset] += 1;
