@@ -85,50 +85,6 @@ impl Panel {
         Some(panel)
     }
 
-    pub(crate) fn update(&mut self, subtle: &Subtle) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        // Handle panel item type
-        if self.flags.intersects(PanelFlags::TRAY) {
-            // TODO tray
-        } else if self.flags.intersects(PanelFlags::ICON) {
-            // TODO icon
-        } else if self.flags.intersects(PanelFlags::TITLE) {
-            self.width = subtle.clients_style.min_width as u16;
-
-            // Find focus window
-            if let Some(focus) = subtle.find_focus_client() {
-                if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
-                    if let Ok(mode_str) = focus.format_modes() {
-                        // Font offset, panel border and padding
-                        if let Some(font) = subtle.title_style.get_font(subtle) {
-                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
-                                self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16;
-                            }
-                        }
-                    }
-
-                    // Ensure min-width
-                    self.width = max!(subtle.clients_style.min_width as u16, self.width);
-                }
-            }
-        } else if self.flags.intersects(PanelFlags::SEPARATOR_BEFORE | PanelFlags::SEPARATOR_AFTER) {
-            if let Some(font) = subtle.separator_style.get_font(subtle) {
-                if let Ok((width, _, _)) = font.calc_text_width(conn,
-                                                                subtle.separator_style.sep_string.as_ref().unwrap(), false)
-                {
-                    self.width = width;
-                }
-            }
-        } else if self.flags.intersects(PanelFlags::VIEWS) {
-            // TODO views
-        }
-
-        debug!("{}: panel={}", function_name!(), self);
-
-        Ok(())
-    }
-
     pub(crate) fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -221,6 +177,72 @@ impl Panel {
         Ok(())
     }
 
+    pub(crate) fn update(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        // Handle panel item type
+        if self.flags.intersects(PanelFlags::TRAY) {
+            // TODO tray
+        } else if self.flags.intersects(PanelFlags::ICON) {
+            // TODO icon
+        } else if self.flags.intersects(PanelFlags::TITLE) {
+            self.width = subtle.clients_style.min_width as u16;
+
+            // Find focus window
+            if let Some(focus) = subtle.find_focus_client() {
+                if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                    if let Ok(mode_str) = focus.format_modes() {
+                        // Font offset, panel border and padding
+                        if let Some(font) = subtle.title_style.get_font(subtle) {
+                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
+                                self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16
+                                    + subtle.title_style.calc_side(CalcSide::Width) as u16;
+                            }
+                        }
+                    }
+
+                    // Ensure min-width
+                    self.width = max!(subtle.clients_style.min_width as u16, self.width);
+                }
+            }
+        } else if self.flags.intersects(PanelFlags::VIEWS) {
+            let mut style = Style::default();
+
+            for view in subtle.views.iter() {
+                // Skip dynamic
+                if view.flags.intersects(ViewFlags::MODE_DYNAMIC) && !subtle.client_tags.get().intersects(view.tags) {
+                    continue;
+                }
+
+                style.inherit(&subtle.views_style);
+
+                // Update view width
+                let mut view_width = 0u16;
+
+                if view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                    // TODO icons
+                } else {
+                    if let Some(font) = style.get_font(subtle) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
+                            view_width = width + style.calc_side(CalcSide::Width) as u16; // TODO icons
+                        }
+                    }
+                }
+
+                self.width += max!(style.min_width as u16, view_width);
+            }
+
+            // Add width of view separator if any
+            if subtle.views_style.sep_string.is_some() {
+                self.width += (subtle.views.len() - 1) as u16 * subtle.views_style.sep_width as u16;
+            }
+        }
+
+        debug!("{}: panel={}", function_name!(), self);
+
+        Ok(())
+    }
+
     pub(crate) fn render(&mut self, subtle: &Subtle, drawable: Drawable) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -231,6 +253,8 @@ impl Panel {
             self.draw_separator(subtle, drawable, -subtle.separator_style.sep_width as u16,
                                 &subtle.separator_style)?;
         }
+
+        println!("render panel={}", self);
 
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
@@ -243,19 +267,60 @@ impl Panel {
                 if focus.is_alive() && focus.is_visible(subtle)
                     && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
+                    let mut offset_x = (self.x + subtle.title_style.calc_side(CalcSide::Left)) as u16;
+
                     // Set window background and border
                     self.draw_rect(subtle, drawable, 0, &subtle.title_style)?;
-
-                    let mut offset_x = 0;
 
                     // Draw modes and title
                     if let Ok(mode_str) = focus.format_modes() {
                         self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
 
-                        offset_x += mode_str.len();
+                        offset_x += mode_str.len() as u16;
                     }
 
-                    self.draw_text(subtle, drawable, offset_x as u16, &focus.name, &subtle.title_style)?;
+                    self.draw_text(subtle, drawable, offset_x, &focus.name, &subtle.title_style)?;
+                }
+            }
+        } else if self.flags.intersects(PanelFlags::VIEWS) {
+            let mut style = Style::default();
+            let mut offset_x = self.x as u16;
+
+            for (view_idx, view) in subtle.views.iter().enumerate() {
+
+                // Skip dynamic
+                if view.flags.intersects(ViewFlags::MODE_DYNAMIC) && !subtle.client_tags.get().intersects(view.tags) {
+                    continue;
+                }
+
+                style.inherit(&subtle.views_style);
+
+                offset_x += style.calc_side(CalcSide::Left) as u16;
+
+                // Set window background and border
+                self.draw_rect(subtle, drawable, offset_x, &style)?;
+
+                // Draw icon and/or text
+                if view.flags.intersects(ViewFlags::MODE_ICON) {
+                    // TODO icons
+                }
+
+                if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                    // Add space between icon and text
+                    if view.flags.intersects(ViewFlags::MODE_ICON) {
+                        // TODO icons
+                    }
+
+                    self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
+                }
+
+                offset_x += 1;
+
+                // Draw view separator if any
+                if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
+                    self.draw_separator(subtle, drawable, offset_x, &style)?;
+
+                    offset_x += subtle.views_style.sep_width as u16;
                 }
             }
         }
@@ -276,7 +341,7 @@ impl Panel {
         if self.flags.intersects(PanelFlags::VIEWS)
             && let PanelAction::MouseDown(x, y, button) = action
         {
-            let mut vx = self.x;
+            let mut offset_x = self.x;
 
             for view in subtle.views.iter() {
                 // Skip dynamic views
@@ -286,15 +351,15 @@ impl Panel {
                 }
 
                 // Check if x is in view rect
-                if x >= vx && x <= vx + view.text_width as i16 {
+                if x >= offset_x && x <= offset_x + view.text_width as i16 {
                     view.focus(subtle)?;
                 }
 
                 // Add view separator width if any
                 if subtle.views_style.sep_string.is_some() {
-                    vx += view.text_width as i16 + subtle.views_style.sep_width;
+                    offset_x += view.text_width as i16 + subtle.views_style.sep_width;
                 } else {
-                    vx += view.text_width as i16;
+                    offset_x += view.text_width as i16;
                 }
             }
         }
