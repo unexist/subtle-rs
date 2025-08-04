@@ -76,7 +76,7 @@ impl Side {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct Style {
     pub(crate) flags: StyleFlags,
 
@@ -180,6 +180,29 @@ impl Style {
         }
 
         None
+    }
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Style {
+            flags: StyleFlags::empty(),
+            name: "".to_string(),
+            min_width: -1,
+            fg: -1,
+            bg: -1,
+            icon: -1,
+            top: -1,
+            right: -1,
+            bottom: -1,
+            left: -1,
+            border: Default::default(),
+            padding: Default::default(),
+            margin: Default::default(),
+            font_id: -1,
+            sep_width: 0,
+            sep_string: None,
+        }
     }
 }
 
@@ -334,10 +357,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 let font = Font::new(conn, font_name)?;
 
                 // Update panel height
-                let height = (style.calc_side(CalcSide::Top)
-                    + style.calc_side(CalcSide::Bottom)) as u16 + font.height;
+                let new_height = style.calc_side(CalcSide::Height) as u16 + font.height;
 
-                subtle.panel_height = max!(subtle.panel_height, height);
+                subtle.panel_height = max!(subtle.panel_height, new_height);
 
                 style.font_id = subtle.fonts.len() as isize;
                 style.flags.insert(StyleFlags::FONT);
