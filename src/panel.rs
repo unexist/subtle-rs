@@ -85,7 +85,7 @@ impl Panel {
         Some(panel)
     }
 
-    pub(crate) fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()> {
+    pub(crate) fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, width: u16, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if 0 >= self.width {
@@ -101,7 +101,7 @@ impl Panel {
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
             x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
             y: style.margin.top,
-            width: self.width - min_width as u16,
+            width: width - min_width as u16,
             height: subtle.panel_height - min_height as u16,
         }])?.check()?;
 
@@ -111,7 +111,7 @@ impl Panel {
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
             x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
             y: style.margin.top,
-            width: self.width - min_width as u16,
+            width: width - min_width as u16,
             height: style.border.top as u16,
         }])?.check()?;
 
@@ -157,6 +157,8 @@ impl Panel {
                 .foreground(style.fg as u32)
                 .background(style.bg as u32))?.check()?;
 
+            println!("draw text: text={}, x={}, offset_x={}",  text, (self.x as u16 + style.calc_side(CalcSide::Left) as u16 + offset_x) as i16, offset_x);
+
             conn.image_text8(drawable, subtle.draw_gc,
                              (self.x as u16 + style.calc_side(CalcSide::Left) as u16 + offset_x) as i16,
                              font.y as i16 + style.calc_side(CalcSide::Top),
@@ -170,7 +172,7 @@ impl Panel {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if style.flags.intersects(StyleFlags::SEPARATOR) {
-            self.draw_rect(subtle, drawable, offset_x, &subtle.separator_style)?;
+            self.draw_rect(subtle, drawable, offset_x, self.width, &subtle.separator_style)?;
             self.draw_text(subtle, drawable, offset_x, &style.sep_string.clone().unwrap(), style )?;
         }
 
@@ -229,7 +231,7 @@ impl Panel {
                     }
                 }
 
-                self.width += max!(style.min_width as u16, view_width);
+                self.width += max!(style.min_width, view_width as i16) as u16;
             }
 
             // Add width of view separator if any
@@ -267,10 +269,10 @@ impl Panel {
                 if focus.is_alive() && focus.is_visible(subtle)
                     && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
-                    let mut offset_x = (self.x + subtle.title_style.calc_side(CalcSide::Left)) as u16;
+                    let mut offset_x = subtle.title_style.calc_side(CalcSide::Left) as u16;
 
                     // Set window background and border
-                    self.draw_rect(subtle, drawable, 0, &subtle.title_style)?;
+                    self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
 
                     // Draw modes and title
                     if let Ok(mode_str) = focus.format_modes() {
@@ -284,26 +286,43 @@ impl Panel {
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
             let mut style = Style::default();
-            let mut offset_x = self.x as u16;
+            let mut offset_x = 0;
 
             for (view_idx, view) in subtle.views.iter().enumerate() {
 
                 // Skip dynamic
-                if view.flags.intersects(ViewFlags::MODE_DYNAMIC) && !subtle.client_tags.get().intersects(view.tags) {
+                if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
+                    && !subtle.client_tags.get().intersects(view.tags)
+                {
                     continue;
                 }
 
                 style.inherit(&subtle.views_style);
 
-                offset_x += style.calc_side(CalcSide::Left) as u16;
-
-                // Set window background and border
-                self.draw_rect(subtle, drawable, offset_x, &style)?;
-
                 // Draw icon and/or text
                 if view.flags.intersects(ViewFlags::MODE_ICON) {
                     // TODO icons
                 }
+
+                let mut view_width= style.calc_side(CalcSide::Width) as u16; // TODO icons
+
+                if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                    // Add space between icon and text
+                    if view.flags.intersects(ViewFlags::MODE_ICON) {
+                        // TODO icons
+                    }
+
+                    if let Some(font) = style.get_font(subtle) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
+                            view_width += width;
+                        }
+                    }
+                }
+
+                offset_x += style.calc_side(CalcSide::Left) as u16;
+
+                // Set window background and border
+                self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
@@ -314,7 +333,7 @@ impl Panel {
                     self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
                 }
 
-                offset_x += 1;
+                offset_x += max!(style.min_width as u16, view_width);
 
                 // Draw view separator if any
                 if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
