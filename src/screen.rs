@@ -361,7 +361,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     // Update screens
     for screen in subtle.screens.iter() {
         let mut is_centered = false;
-        let mut npanel = 0;
+        let mut panel_number = 0;
         let mut offset = 0;
 
         let mut x = [0; 4];
@@ -379,8 +379,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            if 0 == npanel && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                npanel = 1;
+            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+                panel_number = 1;
                 is_centered = false;
             }
 
@@ -389,7 +389,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Offset select panels variables for either center or not
-            offset = if is_centered { npanel + 2 } else { npanel };
+            offset = if is_centered { panel_number + 2 } else { panel_number };
 
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
                 spacer[offset] += 1;
@@ -433,9 +433,9 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            if 0 == npanel && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
                 // Reset for new panel
-                npanel = 1;
+                panel_number = 1;
                 nspacer[0] = 0;
                 nspacer[2] = 0;
                 x[0] = 0;
@@ -448,7 +448,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Offset select panels variables for either center or not
-            offset = if is_centered { npanel + 2 } else { npanel };
+            offset = if is_centered { panel_number + 2 } else { panel_number };
 
             // Set start position of centered panel items
             if is_centered && 0 == x[offset] {
