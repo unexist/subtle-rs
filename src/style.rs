@@ -206,7 +206,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Reset styles
     subtle.all_style.reset(0); // Ensure sane base values
     subtle.views_style.reset(-1);
+    subtle.views_active_style.reset(-1);
+    subtle.views_occupied_style.reset(-1);
+    subtle.views_visible_style.reset(-1);
     subtle.title_style.reset(-1);
+    subtle.urgent_style.reset(-1);
     subtle.separator_style.reset(-1);
     subtle.clients_style.reset(0);
     subtle.top_panel_style.reset(-1);
@@ -218,9 +222,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         if let Some(MixedConfigVal::S(kind))  = style_values.get("kind") {
             match kind.as_str() {
-                "all" => {
-                    style = &mut subtle.all_style;
-                }
+                "all" => style = &mut subtle.all_style,
+                "views" => style = &mut subtle.views_style,
+                "views_active" => style = &mut subtle.views_active_style,
+                "views_occupied" => style = &mut subtle.views_occupied_style,
+                "views_visible" => style = &mut subtle.views_visible_style,
                 "clients" => {
                     // We exploit some unused style variables here:
                     // margin <-> client gap
@@ -253,14 +259,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.title_style;
                 }
-                "top_panel" => {
-                    style = &mut subtle.top_panel_style;
-                },
-                "bottom_panel" => {
-                    style = &mut subtle.bottom_panel_style;
-                },
+                "urgent" => style = &mut subtle.urgent_style,
+                "top_panel" => style = &mut subtle.top_panel_style,
+                "bottom_panel" => style = &mut subtle.bottom_panel_style,
                 _ => {
                     warn!("Unknown style name: {}", kind);
+
                     continue;
                 },
             }
@@ -311,7 +315,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     // Inherit styles
     subtle.views_style.inherit(&subtle.all_style);
+    subtle.views_active_style.inherit(&subtle.all_style);
+    subtle.views_occupied_style.inherit(&subtle.all_style);
+    subtle.views_visible_style.inherit(&subtle.all_style);
     subtle.title_style.inherit(&subtle.all_style);
+    subtle.urgent_style.inherit(&subtle.all_style);
     subtle.panels_style.inherit(&subtle.all_style);
     subtle.top_panel_style.inherit(&subtle.all_style);
     subtle.bottom_panel_style.inherit(&subtle.all_style);

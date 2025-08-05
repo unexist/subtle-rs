@@ -80,17 +80,22 @@ font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
 #font = "xft:sans-8"
 
 # Style for the all views
-[[style]]
-kind = "views_focus"
-foreground = "#fecf35"
+#[[style]]
+#kind = "views"
 
+# Style for the active views
 [[style]]
-kind = "urgent"
-foreground = "#ff9800"
+kind = "views_active"
+foreground = "#fecf35"
 
 # Style for occupied views (views with clients)
 [[style]]
-kind = "occupied"
+kind = "views_occupied"
+foreground = "#b8b8b8"
+
+# Style for visible views
+[[style]]
+kind = "views_visible"
 foreground = "#b8b8b8"
 
 # Style for separator
@@ -103,6 +108,11 @@ separator = "|"
 kind = "title"
 foreground = "#fecf35"
 width = 50
+
+# Style for urgent window titles and views
+[[style]]
+kind = "urgent"
+foreground = "#ff9800"
 
 # Style for active/inactive windows
 [[style]]
@@ -877,8 +887,8 @@ match = "editor"
 
 # Screen 1
 [[screen]]
-top_panel = [ "tray", "views", "title", "spacer", "time" ]
-bottom_panel = [ "views" ]
+top_panel = [ "tray", "views", "center", "title", "center", "time" ]
+bottom_panel = [ ]
 #virtual = [ [ 0, 0, 50, 50 ], [ 0, 0, 50, 50 ] ]
 
 # Panel for screen 2

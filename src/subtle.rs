@@ -90,7 +90,11 @@ pub(crate) struct Subtle {
 
     pub(crate) all_style: Style,
     pub(crate) views_style: Style,
+    pub(crate) views_active_style: Style,
+    pub(crate) views_occupied_style: Style,
+    pub(crate) views_visible_style: Style,
     pub(crate) title_style: Style,
+    pub(crate) urgent_style: Style,
     pub(crate) panels_style: Style,
     pub(crate) separator_style: Style,
     pub(crate) clients_style: Style,
@@ -230,7 +234,11 @@ impl Default for Subtle {
 
             all_style: Style::default(),
             views_style: Style::default(),
+            views_active_style: Style::default(),
+            views_occupied_style: Style::default(),
+            views_visible_style: Style::default(),
             title_style: Style::default(),
+            urgent_style: Style::default(),
             panels_style: Style::default(),
             separator_style: Style::default(),
             clients_style: Style::default(),

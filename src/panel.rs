@@ -10,6 +10,7 @@
 ///
 
 use std::fmt;
+use std::thread::current;
 use bitflags::bitflags;
 use log::debug;
 use anyhow::{Context, Result};
@@ -19,6 +20,7 @@ use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
 use crate::style::{CalcSpacing, Style, StyleFlags};
 use crate::subtle::Subtle;
+use crate::tagging::Tagging;
 use crate::view::ViewFlags;
 
 bitflags! {
@@ -212,13 +214,31 @@ impl Panel {
 
             let mut style = Style::default();
 
-            for view in subtle.views.iter() {
+            for (view_idx, view) in subtle.views.iter().enumerate() {
                 // Skip dynamic
                 if view.flags.intersects(ViewFlags::MODE_DYNAMIC) && !subtle.client_tags.get().intersects(view.tags) {
                     continue;
                 }
 
+                // Pick base style
+                if let Some(current_screen) = subtle.screens.get(self.screen_id) {
+                    if view_idx as isize == current_screen.view_id {
+                        style.inherit(&subtle.views_active_style);
+                    } else if subtle.client_tags.get().intersects(view.tags) {
+                        style.inherit(&subtle.views_occupied_style);
+                    }
+                }
+
                 style.inherit(&subtle.views_style);
+
+                // Apply modifier styles
+                if subtle.urgent_tags.get().intersects(view.tags) {
+                    style.inherit(&subtle.urgent_style);
+                }
+
+                if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
+                    style.inherit(&subtle.views_visible_style);
+                }
 
                 // Update view width
                 let mut view_width = 0u16;
