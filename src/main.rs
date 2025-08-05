@@ -30,6 +30,7 @@ mod tagging;
 mod style;
 mod font;
 mod panel;
+mod spacing;
 
 use std::env;
 use std::env::current_exe;
@@ -94,7 +95,7 @@ fn main() -> Result<()> {
 
     sanity_check(&mut subtle)?;
 
-    style::update(&mut subtle);
+    style::update(&mut subtle)?;
     screen::resize(&mut subtle)?;
 
     display::claim(&mut subtle)?;
@@ -116,7 +117,7 @@ fn main() -> Result<()> {
         // When this actually returns something went wrong
         let err = exec::execvp(current_exe()?.as_os_str(), env::args());
         
-        error!("Error: {:?}", err);
+        error!("Failed to restart: {:?}", err);
     }
     
     info!("Exit");
