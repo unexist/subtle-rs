@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file Main functions
+/// @file Config functions
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///

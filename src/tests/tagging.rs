@@ -10,7 +10,6 @@
 ///
 
 use proptest::prelude::*;
-use crate::screen::ScreenFlags;
 use crate::tagging::Tagging;
 
 proptest! {
@@ -24,8 +23,8 @@ proptest! {
         
         let tagging = tag1;
     
-        assert!(tagging.contains(tag1));
-        assert!(!tagging.contains(tag2));
+        prop_assert!(tagging.contains(tag1));
+        prop_assert!(!tagging.contains(tag2));
     }
 }
 
@@ -42,8 +41,8 @@ proptest! {
 
         remaining &= !(tagging & (tag2 | tag3));
 
-        assert!(remaining.contains(tag1));
-        assert!(!remaining.contains(tag2));
-        assert!(!remaining.contains(tag3));
+        prop_assert!(remaining.contains(tag1));
+        prop_assert!(!remaining.contains(tag2));
+        prop_assert!(!remaining.contains(tag3));
     }
 }
