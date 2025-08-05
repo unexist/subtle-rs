@@ -62,7 +62,6 @@ pub(crate) struct Subtle {
     pub(crate) height: u16,
 
     pub(crate) panel_height: u16,
-    pub(crate) title_width: u16,
     pub(crate) step_size: i16,
     pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
@@ -203,7 +202,6 @@ impl Default for Subtle {
             height: 0,
 
             panel_height: 1,
-            title_width: 50,
             step_size: 0,
             snap_size: 0,
             default_gravity: 0,

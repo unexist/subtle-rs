@@ -17,7 +17,7 @@ use easy_min_max::{max, min};
 use stdext::function_name;
 use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
-use crate::style::{CalcSide, Style, StyleFlags};
+use crate::style::{CalcSpacing, Style, StyleFlags};
 use crate::subtle::Subtle;
 use crate::view::ViewFlags;
 
@@ -115,11 +115,13 @@ impl Panel {
             height: style.border.top as u16,
         }])?.check()?;
 
+        println!("panel={:?}, style={:?} + offset={}", self, style, offset_x);
+
         // Borders: Right
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
             .foreground(style.right as u32))?.check()?;
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
-            x: (self.x as u16 + self.width as u16 - style.border.right as u16 - style.margin.right as u16 + offset_x) as i16,
+            x: self.x + self.width  as i16 - style.border.right - style.margin.right + offset_x as i16,
             y: style.margin.top,
             width: style.border.right as u16,
             height: subtle.panel_height - min_height as u16,
@@ -129,7 +131,7 @@ impl Panel {
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
             .foreground(style.bottom as u32))?.check()?;
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
-            x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
+            x: self.x + style.margin.left + offset_x as i16,
             y: subtle.panel_height as i16 - style.border.bottom - style.margin.bottom,
             width: self.width - min_width as u16,
             height: style.border.bottom as u16,
@@ -139,7 +141,7 @@ impl Panel {
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
             .foreground(style.left as u32))?.check()?;
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
-            x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
+            x: self.x + style.margin.left + offset_x as i16,
             y: style.margin.top,
             width: style.border.left as u16,
             height: subtle.panel_height - min_height as u16,
@@ -157,11 +159,11 @@ impl Panel {
                 .foreground(style.fg as u32)
                 .background(style.bg as u32))?.check()?;
 
-            println!("draw text: text={}, x={}, offset_x={}",  text, (self.x as u16 + style.calc_side(CalcSide::Left) as u16 + offset_x) as i16, offset_x);
+            println!("draw text: text={}, x={}, offset_x={}", text, (self.x as u16 + style.calc_space(CalcSpacing::Left) as u16 + offset_x) as i16, offset_x);
 
             conn.image_text8(drawable, subtle.draw_gc,
-                             (self.x as u16 + style.calc_side(CalcSide::Left) as u16 + offset_x) as i16,
-                             font.y as i16 + style.calc_side(CalcSide::Top),
+                             (self.x as u16 + style.calc_space(CalcSpacing::Left) as u16 + offset_x) as i16,
+                             font.y as i16 + style.calc_space(CalcSpacing::Top),
                              text.as_bytes())?.check()?;
         }
 
@@ -188,7 +190,9 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::ICON) {
             // TODO icon
         } else if self.flags.intersects(PanelFlags::TITLE) {
-            self.width = subtle.clients_style.min_width as u16;
+            self.width = subtle.title_style.min_width as u16;
+
+            println!("min_width={}, self.width={}", subtle.title_style.min_width, self.width);
 
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
@@ -198,13 +202,15 @@ impl Panel {
                         if let Some(font) = subtle.title_style.get_font(subtle) {
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16
-                                    + subtle.title_style.calc_side(CalcSide::Width) as u16;
+                                    + subtle.title_style.calc_space(CalcSpacing::Width) as u16;
                             }
                         }
                     }
 
+                    println!("min_width={}, self.width={}", subtle.title_style.min_width, self.width);
+
                     // Ensure min-width
-                    self.width = max!(subtle.clients_style.min_width as u16, self.width);
+                    self.width = max!(subtle.title_style.min_width as u16, self.width);
                 }
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
@@ -226,7 +232,7 @@ impl Panel {
                 } else {
                     if let Some(font) = style.get_font(subtle) {
                         if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
-                            view_width = width + style.calc_side(CalcSide::Width) as u16; // TODO icons
+                            view_width = width + style.calc_space(CalcSpacing::Width) as u16; // TODO icons
                         }
                     }
                 }
@@ -269,7 +275,7 @@ impl Panel {
                 if focus.is_alive() && focus.is_visible(subtle)
                     && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
-                    let mut offset_x = subtle.title_style.calc_side(CalcSide::Left) as u16;
+                    let mut offset_x = subtle.title_style.calc_space(CalcSpacing::Left) as u16;
 
                     // Set window background and border
                     self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
@@ -304,7 +310,7 @@ impl Panel {
                     // TODO icons
                 }
 
-                let mut view_width= style.calc_side(CalcSide::Width) as u16; // TODO icons
+                let mut view_width= style.calc_space(CalcSpacing::Width) as u16; // TODO icons
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
@@ -319,7 +325,7 @@ impl Panel {
                     }
                 }
 
-                offset_x += style.calc_side(CalcSide::Left) as u16;
+                offset_x += style.calc_space(CalcSpacing::Left) as u16;
 
                 // Set window background and border
                 self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
