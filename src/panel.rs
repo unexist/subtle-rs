@@ -20,7 +20,7 @@ use crate::client::ClientFlags;
 use crate::style::{CalcSpacing, Style, StyleFlags};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
-use crate::view::ViewFlags;
+use crate::view::{View, ViewFlags};
 
 bitflags! {
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
@@ -217,25 +217,7 @@ impl Panel {
                     continue;
                 }
 
-                // Pick base style
-                if let Some(current_screen) = subtle.screens.get(self.screen_id) {
-                    if view_idx as isize == current_screen.view_id {
-                        style.inherit(&subtle.views_active_style);
-                    } else if subtle.client_tags.get().intersects(view.tags) {
-                        style.inherit(&subtle.views_occupied_style);
-                    }
-                }
-
-                style.inherit(&subtle.views_style);
-
-                // Apply modifier styles
-                if subtle.urgent_tags.get().intersects(view.tags) {
-                    style.inherit(&subtle.urgent_style);
-                }
-
-                if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
-                    style.inherit(&subtle.views_visible_style);
-                }
+                self.pick_style(&subtle, &mut style, view_idx, view);
 
                 // Update view width
                 let mut view_width = 0u16;
@@ -316,7 +298,7 @@ impl Panel {
                     continue;
                 }
 
-                style.inherit(&subtle.views_style);
+                self.pick_style(&subtle, &mut style, view_idx, view);
 
                 // Draw icon and/or text
                 if view.flags.intersects(ViewFlags::MODE_ICON) {
@@ -405,6 +387,28 @@ impl Panel {
         debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
+    }
+
+    fn pick_style(&mut self, subtle: &&Subtle, style: &mut Style, view_idx: usize, view: &View) {
+        // Pick base style
+        if let Some(current_screen) = subtle.screens.get(self.screen_id) {
+            if view_idx as isize == current_screen.view_id {
+                style.inherit(&subtle.views_active_style);
+            } else if subtle.client_tags.get().intersects(view.tags) {
+                style.inherit(&subtle.views_occupied_style);
+            }
+        }
+
+        style.inherit(&subtle.views_style);
+
+        // Apply modifier styles
+        if subtle.urgent_tags.get().intersects(view.tags) {
+            style.inherit(&subtle.urgent_style);
+        }
+
+        if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
+            style.inherit(&subtle.views_visible_style);
+        }
     }
 }
 
