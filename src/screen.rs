@@ -413,8 +413,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
                 mut_panel.update(subtle)?;
 
-                println!("panel={}, width[off]={}, offset={}", mut_panel, width[offset], offset);
-
                 width[offset] += mut_panel.width;
             }
         }
@@ -506,8 +504,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
                 mut_panel.x = panel_x as i16;
-
-                println!("update panel={}", mut_panel);
             }
         }
     }

@@ -115,8 +115,6 @@ impl Panel {
             height: style.border.top as u16,
         }])?.check()?;
 
-        println!("panel={:?}, style={:?} + offset={}", self, style, offset_x);
-
         // Borders: Right
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
             .foreground(style.right as u32))?.check()?;
@@ -192,8 +190,6 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::TITLE) {
             self.width = subtle.title_style.min_width as u16;
 
-            println!("min_width={}, self.width={}", subtle.title_style.min_width, self.width);
-
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
                 if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
@@ -207,13 +203,13 @@ impl Panel {
                         }
                     }
 
-                    println!("min_width={}, self.width={}", subtle.title_style.min_width, self.width);
-
                     // Ensure min-width
                     self.width = max!(subtle.title_style.min_width as u16, self.width);
                 }
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
+            self.width = subtle.views_style.min_width as u16;
+
             let mut style = Style::default();
 
             for view in subtle.views.iter() {
@@ -236,6 +232,8 @@ impl Panel {
                         }
                     }
                 }
+
+                println!("view_width={}, self.width={}, min_width={}", view_width, self.width, style.min_width);
 
                 self.width += max!(style.min_width, view_width as i16) as u16;
             }
