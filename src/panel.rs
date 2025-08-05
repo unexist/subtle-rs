@@ -10,7 +10,6 @@
 ///
 
 use std::fmt;
-use std::thread::current;
 use bitflags::bitflags;
 use log::debug;
 use anyhow::{Context, Result};
@@ -159,8 +158,6 @@ impl Panel {
                 .foreground(style.fg as u32)
                 .background(style.bg as u32))?.check()?;
 
-            println!("draw text: text={}, x={}, offset_x={}", text, (self.x as u16 + style.calc_space(CalcSpacing::Left) as u16 + offset_x) as i16, offset_x);
-
             conn.image_text8(drawable, subtle.draw_gc,
                              (self.x as u16 + style.calc_space(CalcSpacing::Left) as u16 + offset_x) as i16,
                              font.y as i16 + style.calc_space(CalcSpacing::Top),
@@ -252,8 +249,6 @@ impl Panel {
                         }
                     }
                 }
-
-                println!("view_width={}, self.width={}, min_width={}", view_width, self.width, style.min_width);
 
                 self.width += max!(style.min_width, view_width as i16) as u16;
             }

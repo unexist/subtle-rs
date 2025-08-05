@@ -9,7 +9,6 @@
 /// See the file LICENSE for details.
 ///
 
-use std::fmt;
 use bitflags::bitflags;
 use anyhow::{Context, Result};
 use easy_min_max::max;

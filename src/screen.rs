@@ -201,10 +201,39 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
                 if !top_panels.is_empty() {
-                    for panel_name in top_panels.iter() {
-                        if let Some(panel) = create_panel(panel_name, PanelFlags::empty()) {
+                    let mut flags = PanelFlags::empty();
+                    let mut last_panel_idx = -1;
+
+                    for (panel_idx, panel_name) in top_panels.iter().enumerate() {
+                        // Add spacer after panel item
+                        if -1 != last_panel_idx && flags.intersects(PanelFlags::SPACER_BEFORE) {
+                            if let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize) {
+                                last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
+                                flags.remove(PanelFlags::SPACER_BEFORE);
+                            }
+                        }
+
+                        // Add separator after panel item
+                        if -1 != last_panel_idx && flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
+                            if let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize) {
+                                last_panel.flags.insert(PanelFlags::SEPARATOR_BEFORE);
+                                flags.remove(PanelFlags::SEPARATOR_BEFORE);
+                            }
+                        }
+
+                        // Add remaining flags
+                        match panel_name.as_str() {
+                            "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
+                            "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
+                            "center" => flags.insert(PanelFlags::CENTER),
+                            _ => warn!("Unknown panel item type: {}", panel_name),
+                        }
+
+                        if let Some(panel) = create_panel(panel_name, flags) {
                             screen.flags.insert(ScreenFlags::TOP_PANEL);
                             screen.panels.push(panel);
+
+                            last_panel_idx += 1;
                         }
                     }
                 }
