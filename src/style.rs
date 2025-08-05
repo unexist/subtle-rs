@@ -21,7 +21,10 @@ use x11rb::protocol::xproto::{Colormap, ConnectionExt};
 use x11rb::rust_connection::RustConnection;
 use crate::config::{Config, MixedConfigVal};
 use crate::font::Font;
+use crate::spacing::Spacing;
 use crate::subtle::Subtle;
+
+const DEFAULT_FONT_NAME: &str = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*";
 
 bitflags! {
     #[derive(Default, Debug)]
@@ -31,49 +34,13 @@ bitflags! {
     }
 }
 
-pub(crate) enum CalcSide {
+pub(crate) enum CalcSpacing {
     Top,
     Right,
     Bottom,
     Left,
     Width,
     Height,
-}
-
-#[derive(Default, Debug, Copy, Clone)]
-pub(crate) struct Side {
-    pub(crate) top: i16,
-    pub(crate) right: i16,
-    pub(crate) bottom: i16,
-    pub(crate) left: i16,
-}
-
-impl Side {
-    pub(crate) fn inherit(&mut self, other_side: &Side, merge: bool) {
-        if -1 == self.top || (merge && -1 != other_side.top) {
-            self.top = other_side.top;
-        }
-
-        if -1 == self.right || (merge && -1 != other_side.right) {
-            self.right = other_side.right;
-        }
-
-        if -1 == self.bottom || (merge && -1 != other_side.bottom) {
-            self.bottom = other_side.bottom;
-        }
-
-        if -1 == self.left || (merge && -1 != other_side.left) {
-            self.left = other_side.left;
-        }
-    }
-
-    pub(crate) fn reset(&mut self, default_value: i16) {
-        // Set values
-        self.top = default_value;
-        self.right = default_value;
-        self.bottom = default_value;
-        self.left = default_value;
-    }
 }
 
 #[derive(Debug)]
@@ -92,9 +59,9 @@ pub(crate) struct Style {
     pub(crate) bottom: i32,
     pub(crate) left: i32,
 
-    pub(crate) border: Side,
-    pub(crate) padding: Side,
-    pub(crate) margin: Side,
+    pub(crate) border: Spacing,
+    pub(crate) padding: Spacing,
+    pub(crate) margin: Spacing,
 
     pub(crate) font_id: isize,
 
@@ -103,19 +70,19 @@ pub(crate) struct Style {
 }
 
 impl Style {
-    pub(crate) fn calc_side(&self, side: CalcSide) -> i16 {
+    pub(crate) fn calc_space(&self, side: CalcSpacing) -> i16 {
         match side {
-            CalcSide::Top => self.border.top + self.padding.top + self.margin.top,
-            CalcSide::Right => self.border.right + self.padding.right + self.margin.right,
-            CalcSide::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
-            CalcSide::Left => self.border.left + self.padding.left + self.margin.left,
-            CalcSide::Width => self.calc_side(CalcSide::Left) + self.calc_side(CalcSide::Right),
-            CalcSide::Height => self.calc_side(CalcSide::Top) + self.calc_side(CalcSide::Bottom),
+            CalcSpacing::Top => self.border.top + self.padding.top + self.margin.top,
+            CalcSpacing::Right => self.border.right + self.padding.right + self.margin.right,
+            CalcSpacing::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
+            CalcSpacing::Left => self.border.left + self.padding.left + self.margin.left,
+            CalcSpacing::Width => self.calc_space(CalcSpacing::Left) + self.calc_space(CalcSpacing::Right),
+            CalcSpacing::Height => self.calc_space(CalcSpacing::Top) + self.calc_space(CalcSpacing::Bottom),
         }
     }
 
     pub(crate) fn inherit(&mut self, other_style: &Style) {
-        // Inherit values if unset
+        // Inherit unset values
         if -1 == self.fg {
             self.fg = other_style.fg;
         }
@@ -159,6 +126,7 @@ impl Style {
         // Set values
         self.fg = default_value;
         self.bg = default_value;
+        self.top = default_value;
         self.right = default_value;
         self.bottom = default_value;
         self.left = default_value;
@@ -206,13 +174,6 @@ impl Default for Style {
     }
 }
 
-impl fmt::Display for Side {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(top={}, right={}, bottom={}, left={})",
-               self.top, self.right, self.bottom, self.left)
-    }
-}
-
 macro_rules! scale {
     ($val:expr, $div:expr, $mul:expr) => {
         if 0 < $val {
@@ -232,40 +193,7 @@ fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
                         scale!(hex_color.b, 255, 65535))?.reply()?.pixel as i32)
 }
 
-fn parse_side(mixed_val: &MixedConfigVal, side: &mut Side) {
-    match mixed_val {
-        MixedConfigVal::I(val) => {
-            side.top = *val as i16;
-            side.right = *val as i16;
-            side.left = *val as i16;
-            side.bottom = *val as i16;
-        },
-        MixedConfigVal::VI(val) => {
-            match val.len() {
-                2 => {
-                    side.top = val[0] as i16;
-                    side.right = val[1] as i16;
-                    side.left = val[1] as i16;
-                    side.bottom = val[0] as i16;
-                },
-                3 => {
-                    side.top = val[0] as i16;
-                    side.right = val[1] as i16;
-                    side.left = val[1] as i16;
-                    side.bottom = val[2] as i16;
-                }
-                4 => {
-                    side.top = val[0] as i16;
-                    side.right = val[1] as i16;
-                    side.left = val[2] as i16;
-                    side.bottom = val[3] as i16;
-                }
-                _ => warn!("Too many values for style"),
-            }
-        }
-        _ => warn!("Invalid type for style"),
-    }
-}
+
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
@@ -277,7 +205,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.views_style.reset(-1);
     subtle.title_style.reset(-1);
     subtle.separator_style.reset(-1);
-    subtle.clients_style.reset(-1);
+    subtle.clients_style.reset(0);
     subtle.top_panel_style.reset(-1);
     subtle.bottom_panel_style.reset(-1);
     // TODO tray
@@ -292,8 +220,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 }
                 "clients" => {
                     // We exploit some unused style variables here:
-                    // border-top <-> client border
-                    // border-right <-> title length
                     // margin <-> client gap
                     // padding <-> client strut
 
@@ -312,14 +238,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     // Set client strut
                     if let Some(val) = style_values.get("strut") {
-                        parse_side(val, &mut subtle.clients_style.padding);
+                        subtle.clients_style.padding = Spacing::try_from(val)?;
                     }
 
                     style = &mut subtle.clients_style;
                 },
                 "title" => {
                     if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
-                        subtle.title_width = *width as u16;
+                        subtle.title_style.min_width = *width as i16;
                     }
 
                     style = &mut subtle.title_style;
@@ -346,18 +272,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
 
             if let Some(margin) = style_values.get("margin") {
-                parse_side(margin, &mut style.margin);
+                style.margin = Spacing::try_from(margin)?;
             }
 
             if let Some(padding) = style_values.get("padding") {
-                parse_side(padding, &mut style.padding);
+                style.padding = Spacing::try_from(padding)?;
             }
 
             if let Some(MixedConfigVal::S(font_name)) = style_values.get("font") {
                 let font = Font::new(conn, font_name)?;
 
                 // Update panel height
-                let new_height = style.calc_side(CalcSide::Height) as u16 + font.height;
+                let new_height = style.calc_space(CalcSpacing::Height) as u16 + font.height;
 
                 subtle.panel_height = max!(subtle.panel_height, new_height);
 
@@ -369,12 +295,17 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
     }
 
+    // Enforce sane defaults
+    if -1 == subtle.title_style.min_width {
+        subtle.title_style.min_width = 50;
+    }
+
     debug!("{}", function_name!());
 
     Ok(())
 }
 
-pub(crate) fn update(subtle: &mut Subtle) {
+pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     // Inherit styles
     subtle.views_style.inherit(&subtle.all_style);
     subtle.title_style.inherit(&subtle.all_style);
@@ -384,7 +315,24 @@ pub(crate) fn update(subtle: &mut Subtle) {
     // TODO tray
 
     // Check fonts
-    if !subtle.title_style.flags.contains(StyleFlags::FONT) {}
+    if !subtle.title_style.flags.contains(StyleFlags::FONT) {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let font = Font::new(conn, DEFAULT_FONT_NAME)?;
+
+        // Update panel height
+        let new_height = subtle.title_style.calc_space(CalcSpacing::Height) as u16
+            + font.height;
+
+        subtle.panel_height = max!(subtle.panel_height, new_height);
+
+        subtle.title_style.font_id = subtle.fonts.len() as isize;
+        subtle.title_style.flags.insert(StyleFlags::FONT);
+
+        subtle.fonts.push(font);
+    }
 
     debug!("{}", function_name!());
+
+    Ok(())
 }
