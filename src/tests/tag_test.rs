@@ -10,7 +10,7 @@
 ///
 
 use proptest::prelude::*;
-use crate::tag::{Tag, TagBuilder};
+use crate::tag::TagBuilder;
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]

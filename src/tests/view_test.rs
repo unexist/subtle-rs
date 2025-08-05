@@ -10,7 +10,7 @@
 ///
 
 use proptest::prelude::*;
-use crate::view::{View, ViewBuilder};
+use crate::view::ViewBuilder;
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]

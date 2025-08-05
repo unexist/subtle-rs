@@ -22,10 +22,10 @@ proptest! {
     {
         let gravity = Gravity::new("test".into(), x, y, width, height);
         
-        assert!(0 <= gravity.geom.x && 100 >= gravity.geom.x);
-        assert!(0 <= gravity.geom.y && 100 >= gravity.geom.y);
-        assert!(0 <= gravity.geom.width && 100 >= gravity.geom.width);
-        assert!(0 <= gravity.geom.height && 100 >= gravity.geom.height);
+        prop_assert!(0 <= gravity.geom.x && 100 >= gravity.geom.x);
+        prop_assert!(0 <= gravity.geom.y && 100 >= gravity.geom.y);
+        prop_assert!(0 <= gravity.geom.width && 100 >= gravity.geom.width);
+        prop_assert!(0 <= gravity.geom.height && 100 >= gravity.geom.height);
     }
 }
 
@@ -47,9 +47,9 @@ proptest! {
 
         gravity.calc_geometry(&bounds, &mut geom);
 
-        assert_eq!(geom.x, geom.x);
-        assert_eq!(geom.y, geom.y);
-        assert_eq!(geom.width, width * 50 / 100);
-        assert_eq!(geom.height, height * 50 / 100);
+        prop_assert_eq!(geom.x, geom.x);
+        prop_assert_eq!(geom.y, geom.y);
+        prop_assert_eq!(geom.width, width * 50 / 100);
+        prop_assert_eq!(geom.height, height * 50 / 100);
     }
 }

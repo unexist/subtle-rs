@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file View tests
+/// @file Style tests
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///
@@ -10,14 +10,14 @@
 ///
 
 use proptest::prelude::*;
-use x11rb::protocol::xproto::Rectangle;
-use crate::style::{CalcSide, Side, Style};
+use crate::spacing::Spacing;
+use crate::style::{CalcSpacing, Style};
 
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
-    fn should_calculate_side(n in 0i16..100) {
-        let side = Side {
+    fn should_calculate_spacings(n in 0i16..100) {
+        let spacing = Spacing {
             top: n,
             right: n,
             bottom: n * 2,
@@ -25,15 +25,15 @@ proptest! {
         };
 
         let style = Style {
-            border: side,
-            padding: side,
-            margin: side,
+            border: spacing,
+            padding: spacing,
+            margin: spacing,
             ..Default::default()
         };
 
-        assert_eq!(style.calc_side(CalcSide::Top), n * 3);
-        assert_eq!(style.calc_side(CalcSide::Right), n * 3);
-        assert_eq!(style.calc_side(CalcSide::Bottom), n * 2 * 3);
-        assert_eq!(style.calc_side(CalcSide::Left), n * 2 * 3);
+        prop_assert_eq!(style.calc_space(CalcSpacing::Top), n * 3);
+        prop_assert_eq!(style.calc_space(CalcSpacing::Right), n * 3);
+        prop_assert_eq!(style.calc_space(CalcSpacing::Bottom), n * 2 * 3);
+        prop_assert_eq!(style.calc_space(CalcSpacing::Left), n * 2 * 3);
     }
 }
