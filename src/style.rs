@@ -120,6 +120,9 @@ impl Style {
         if -1 == self.font_id {
             self.font_id = other_style.font_id;
         }
+
+        // Ensure sane value for min_width
+        self.min_width = max!(0, self.min_width);
     }
 
     pub(crate) fn reset(&mut self, default_value: i32) {
