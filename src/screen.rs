@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file View functions
+/// @file Screen functions
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///
@@ -412,6 +412,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
                 mut_panel.update(subtle)?;
+
+                println!("panel={}, width[off]={}, offset={}", mut_panel, width[offset], offset);
 
                 width[offset] += mut_panel.width;
             }
