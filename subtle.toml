@@ -887,7 +887,7 @@ match = "editor"
 
 # Screen 1
 [[screen]]
-top_panel = [ "tray", "views", "center", "title", "center", "time" ]
+top_panel = [ "tray", "views", "time", "center", "title", "center" ]
 bottom_panel = [ ]
 #virtual = [ [ 0, 0, 50, 50 ], [ 0, 0, 50, 50 ] ]
 
