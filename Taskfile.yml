@@ -18,6 +18,18 @@ tasks:
     cmds:
       - cargo test
 
+  test-*:
+    vars:
+      MOD: '{{index .MATCH 0}}'
+    cmds:
+      - cargo test {{.MOD}}_test -- --include-ignored
+
+  cap-*:
+    vars:
+      MOD: '{{index .MATCH 0}}'
+    cmds:
+      - cargo test {{.MOD}}_test -- --no-capture --include-ignored
+
   debug:
     cmds:
       - cargo run -- -d {{.DISPLAY}} --replace --debug {{.CLI_ARGS}}
