@@ -243,7 +243,7 @@ impl Panel {
                 }
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
-            self.width = subtle.views_style.min_width as u16;
+            self.width = 0;
 
             let mut style = Style::default();
 
@@ -267,6 +267,8 @@ impl Panel {
                         }
                     }
                 }
+
+                println!("view_width={}", view_width);
 
                 self.width += max!(style.min_width, view_width as i16) as u16;
             }
@@ -370,7 +372,7 @@ impl Panel {
                     self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
                 }
 
-                offset_x += max!(style.min_width as u16, view_width);
+                offset_x += max!(style.min_width as u16, view_width) - style.calc_spacing(CalcSpacing::Left) as u16;
 
                 // Draw view separator if any
                 if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
