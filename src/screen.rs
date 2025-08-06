@@ -424,7 +424,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 is_centered = !is_centered;
             }
 
-            // Offset select panels variables for either center or not
+            // Offset selects panel variables for either center or not
             offset = if is_centered { panel_number + 2 } else { panel_number };
 
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
@@ -493,7 +493,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             // Add separator before panel item
             if panel.flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                width[offset] += subtle.separator_style.sep_width as u16;
+                x[offset] += subtle.separator_style.sep_width as u16;
             }
 
             // Add spacer before item
