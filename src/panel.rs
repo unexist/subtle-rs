@@ -64,6 +64,8 @@ pub(crate) struct Panel {
 
 impl Panel {
     fn pick_style(&mut self, subtle: &&Subtle, style: &mut Style, view_idx: usize, view: &View) {
+        style.reset(-1);
+
         // Pick base style
         if let Some(current_screen) = subtle.screens.get(self.screen_id) {
             if view_idx as isize == current_screen.view_id {
@@ -388,7 +390,8 @@ impl Panel {
             for view in subtle.views.iter() {
                 // Skip dynamic views
                 if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
-                    && !(subtle.client_tags.get().intersects(view.tags)) {
+                    && !(subtle.client_tags.get().intersects(view.tags))
+                {
                     continue;
                 }
 
