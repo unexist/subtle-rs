@@ -268,8 +268,6 @@ impl Panel {
                     }
                 }
 
-                println!("view_width={}", view_width);
-
                 self.width += max!(style.min_width, view_width as i16) as u16;
             }
 

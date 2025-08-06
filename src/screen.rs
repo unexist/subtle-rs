@@ -172,8 +172,10 @@ fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
                 "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
                 "center" => flags.insert(PanelFlags::CENTER),
                 "title" | "views" => {
-                    if let Some(panel) = Panel::new(panel_name.try_into().unwrap_or_default()) {
-                        screen.flags.insert(ScreenFlags::TOP_PANEL);
+                    if let Some(panel) = Panel::new(
+                        PanelFlags::try_from(panel_name).unwrap_or_default() | flags)
+                    {
+                        screen.flags.insert(if is_bottom { ScreenFlags::BOTTOM_PANEL } else { ScreenFlags::TOP_PANEL });
                         screen.panels.push(panel);
                         flags.remove(PanelFlags::BOTTOM_MARKER);
 
@@ -454,6 +456,10 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
         }
 
+        // Reset values before next pass
+        panel_number = 0;
+        is_centered = false;
+
         // Pass 2: Move and resize windows
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
 
@@ -462,8 +468,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
+            // Switch to bottom panel and reset
             if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                // Reset for new panel
                 panel_number = 1;
                 nspacer[0] = 0;
                 nspacer[2] = 0;
@@ -535,6 +541,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 mut_panel.x = panel_x as i16;
             }
         }
+
+        println!("x={:?}, width={:?}", x, width);
     }
 
     debug!("{}", function_name!());
