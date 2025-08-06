@@ -63,30 +63,29 @@ pub(crate) struct Panel {
 }
 
 impl Panel {
-    pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
-        let mut panel = Self {
-            flags,
-            ..Self::default()
-        };
-
-        if flags.intersects(PanelFlags::ICON) {
-            // TODO icon
-        } else if flags.intersects(PanelFlags::TITLE) {
-            // TODO title
-        } else if flags.intersects(PanelFlags::VIEWS) {
-            panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else {
-            debug!("Unhandled panel flags: {:?}", flags);
-
-            return None
+    fn pick_style(&mut self, subtle: &&Subtle, style: &mut Style, view_idx: usize, view: &View) {
+        // Pick base style
+        if let Some(current_screen) = subtle.screens.get(self.screen_id) {
+            if view_idx as isize == current_screen.view_id {
+                style.inherit(&subtle.views_active_style);
+            } else if subtle.client_tags.get().intersects(view.tags) {
+                style.inherit(&subtle.views_occupied_style);
+            }
         }
 
-        debug!("{}: panel={}", function_name!(), panel);
+        style.inherit(&subtle.views_style);
 
-        Some(panel)
+        // Apply modifier styles
+        if subtle.urgent_tags.get().intersects(view.tags) {
+            style.inherit(&subtle.urgent_style);
+        }
+
+        if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
+            style.inherit(&subtle.views_visible_style);
+        }
     }
 
-    pub(crate) fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, width: u16, style: &Style) -> Result<()> {
+    fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, width: u16, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if 0 >= self.width {
@@ -149,7 +148,7 @@ impl Panel {
         Ok(())
     }
 
-    pub(crate) fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, text: &String, style: &Style) -> Result<()> {
+    fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, text: &String, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if let Some(font) = style.get_font(subtle) {
@@ -167,7 +166,7 @@ impl Panel {
         Ok(())
     }
 
-    pub(crate) fn draw_separator(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()> {
+    fn draw_separator(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if style.flags.intersects(StyleFlags::SEPARATOR) {
@@ -176,6 +175,29 @@ impl Panel {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
+        let mut panel = Self {
+            flags,
+            ..Self::default()
+        };
+
+        if flags.intersects(PanelFlags::ICON) {
+            // TODO icon
+        } else if flags.intersects(PanelFlags::TITLE) {
+            // TODO title
+        } else if flags.intersects(PanelFlags::VIEWS) {
+            panel.flags.insert(PanelFlags::MOUSE_DOWN);
+        } else {
+            debug!("Unhandled panel flags: {:?}", flags);
+
+            return None
+        }
+
+        debug!("{}: panel={}", function_name!(), panel);
+
+        Some(panel)
     }
 
     pub(crate) fn update(&mut self, subtle: &Subtle) -> Result<()> {
@@ -387,28 +409,6 @@ impl Panel {
         debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
-    }
-
-    fn pick_style(&mut self, subtle: &&Subtle, style: &mut Style, view_idx: usize, view: &View) {
-        // Pick base style
-        if let Some(current_screen) = subtle.screens.get(self.screen_id) {
-            if view_idx as isize == current_screen.view_id {
-                style.inherit(&subtle.views_active_style);
-            } else if subtle.client_tags.get().intersects(view.tags) {
-                style.inherit(&subtle.views_occupied_style);
-            }
-        }
-
-        style.inherit(&subtle.views_style);
-
-        // Apply modifier styles
-        if subtle.urgent_tags.get().intersects(view.tags) {
-            style.inherit(&subtle.urgent_style);
-        }
-
-        if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
-            style.inherit(&subtle.views_visible_style);
-        }
     }
 }
 
