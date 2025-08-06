@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use log::debug;
+use log::{debug, warn};
 use anyhow::{Context, Result};
 use stdext::function_name;
 use veccell::VecCell;
@@ -140,14 +140,6 @@ impl fmt::Display for Screen {
     }
 }
 
-fn create_panel(type_name: &str, flags: PanelFlags) -> Option<Panel> {
-    match type_name {
-        "title" => Panel::new(PanelFlags::TITLE | flags),
-        "views" => Panel::new(PanelFlags::VIEWS),
-        _ => None
-    }
-}
-
 fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
     if !panels.is_empty() {
         // Add bottom marker to first panel on bottom panel in linear vec
@@ -179,8 +171,8 @@ fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
                 "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
                 "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
                 "center" => flags.insert(PanelFlags::CENTER),
-                _ => {
-                    if let Some(panel) = create_panel(panel_name, flags) {
+                "title" | "views" => {
+                    if let Some(panel) = Panel::new(PanelFlags::try_from(panel_name).unwrap_or_default()) {
                         screen.flags.insert(ScreenFlags::TOP_PANEL);
                         screen.panels.push(panel);
                         flags.remove(PanelFlags::BOTTOM_MARKER);
@@ -188,6 +180,7 @@ fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
                         last_panel_idx += 1;
                     }
                 }
+                _ => warn!("Unknown panel type: {}", panel_name)
             }
         }
 
