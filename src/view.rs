@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use anyhow::Result;
 use derive_builder::Builder;
 use log::debug;
@@ -48,7 +48,9 @@ pub(crate) struct View {
 impl View {
     fn retag(&mut self, subtle: &Subtle) {
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
-            if let Some(regex) = &self.regex && regex.is_match(&*tag.name) {
+            if let Some(regex) = self.regex.as_ref()
+                && regex.is_match(&*tag.name)
+            {
                 self.tags = Tagging::from_bits_retain(1 << tag_idx);
             }
         }
@@ -78,7 +80,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         if let Some(MixedConfigVal::S(value)) = values.get("match") {
-            builder.regex(Some(Regex::new(value)?));
+            builder.regex(Some(RegexBuilder::new(value)
+                .case_insensitive(true)
+                .build()?));
         }
 
         // Apply tagging

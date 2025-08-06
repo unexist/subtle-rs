@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use anyhow::Result;
 use derive_builder::Builder;
 use log::{debug, warn};
@@ -47,7 +47,13 @@ pub(crate) struct Tag {
 
 impl Tag {
     pub(crate) fn matches(&self, client: &Client) -> bool {
-        true
+        if let Some(regex) = self.regex.as_ref() {
+            return regex.is_match(&*client.name)
+                || regex.is_match(&*client.instance)
+                || regex.is_match(&*client.klass);
+        }
+
+        false
     }
 }
 
@@ -67,7 +73,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         if let Some(MixedConfigVal::S(value)) = tag_values.get("match") {
-            builder.regex(Some(Regex::new(value)?));
+            builder.regex(Some(RegexBuilder::new(value)
+                .case_insensitive(true)
+                .build()?));
         }
 
         if let Some(MixedConfigVal::S(value)) = tag_values.get("gravity") {
