@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use log::debug;
+use log::{debug, warn};
 use anyhow::{Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
@@ -25,26 +25,26 @@ use crate::view::{View, ViewFlags};
 bitflags! {
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct PanelFlags: u32 {
-        const SUBLET = 1 << 0;          // Panel sublet type
-        const COPY = 1 << 1;            // Panel copy type
-        const VIEWS = 1 << 2;           // Panel views type
-        const TITLE = 1 << 3;           // Panel title type
-        const KEYCHAIN = 1 << 4;        // Panel keychain type
-        const TRAY = 1 << 5;            // Panel tray type
-        const ICON = 1 << 6;            // Panel icon type
+        const TITLE = 1 << 0;            // Panel title type
+        const VIEWS = 1 << 1;            // Panel views type
+        const TRAY = 1 << 2;             // Panel tray type
+        const ICON = 1 << 3;             // Panel icon type
+        const SCRIPT = 1 << 4;           // Panel script type
 
-        const SPACER_BEFORE = 1 << 7;    // Panel spacer before item
-        const SPACER_AFTER = 1 << 8;     // Panel spacer after item
-        const SEPARATOR_BEFORE = 1 << 9; // Panel separator before item
-        const SEPARATOR_AFTER = 1 << 10; // Panel separator after item
-        const BOTTOM_MARKER = 1 << 11;   // Panel bottom marker
-        const HIDDEN = 1 << 12;          // Panel hidden
-        const CENTER = 1 << 13;          // Panel center
-        const SUBLETS = 1 << 14;         // Panel sublets
+        const COPY = 1 << 5;             // Panel copy type
 
-        const MOUSE_DOWN = 1 << 15;      // Panel mouse down
-        const MOUSE_OVER = 1 << 16;      // Panel mouse over
-        const MOUSE_OUT = 1 << 17;       // Panel mouse out
+        const SPACER_BEFORE = 1 << 6;    // Panel spacer before item
+        const SPACER_AFTER = 1 << 7;     // Panel spacer after item
+        const SEPARATOR_BEFORE = 1 << 8; // Panel separator before item
+        const SEPARATOR_AFTER = 1 << 9;  // Panel separator after item
+        const BOTTOM_MARKER = 1 << 10;   // Panel bottom marker
+        const HIDDEN = 1 << 11;          // Panel hidden
+        const CENTER = 1 << 12;          // Panel center
+        const SUBLETS = 1 << 13;         // Panel sublets
+
+        const MOUSE_DOWN = 1 << 14;      // Panel mouse down
+        const MOUSE_OVER = 1 << 15;      // Panel mouse over
+        const MOUSE_OUT = 1 << 16;       // Panel mouse out
     }
 }
 
@@ -183,14 +183,12 @@ impl Panel {
             ..Self::default()
         };
 
-        if flags.intersects(PanelFlags::ICON) {
-            // TODO icon
-        } else if flags.intersects(PanelFlags::TITLE) {
+        if flags.intersects(PanelFlags::TITLE) {
             // TODO title
         } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
         } else {
-            debug!("Unhandled panel flags: {:?}", flags);
+            debug!("Unhandled panel type: {:?}", flags);
 
             return None
         }

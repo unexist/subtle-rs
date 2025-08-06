@@ -33,7 +33,7 @@ bitflags! {
     pub(crate) struct ScreenFlags: u32 {
         const TOP_PANEL = 1 << 0; // Screen panel1 enabled
         const BOTTOM_PANEL = 1 << 1; // Screen panel2 enabled
-        const VIRTUAL = 1 << 3; // Screen is virtual       
+        const VIRTUAL = 1 << 2; // Screen is virtual
     }
 }
 
