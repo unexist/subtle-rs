@@ -172,15 +172,15 @@ fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
                 "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
                 "center" => flags.insert(PanelFlags::CENTER),
                 "title" | "views" => {
-                    if let Some(panel) = Panel::new(PanelFlags::try_from(panel_name).unwrap_or_default()) {
+                    if let Some(panel) = Panel::new(panel_name.try_into().unwrap_or_default()) {
                         screen.flags.insert(ScreenFlags::TOP_PANEL);
                         screen.panels.push(panel);
                         flags.remove(PanelFlags::BOTTOM_MARKER);
 
                         last_panel_idx += 1;
                     }
-                }
-                _ => warn!("Unknown panel type: {}", panel_name)
+                },
+                _ => warn!("Unknown panel type: {}", panel_name),
             }
         }
 
