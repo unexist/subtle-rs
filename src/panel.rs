@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use log::{debug, warn};
+use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
@@ -187,6 +187,8 @@ impl Panel {
             // TODO title
         } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
+        } else if flags.intersects(PanelFlags::SCRIPT) {
+            // TODO script
         } else {
             debug!("Unhandled panel type: {:?}", flags);
 
