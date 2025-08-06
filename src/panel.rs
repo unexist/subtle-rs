@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use log::debug;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
 use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
@@ -45,6 +45,18 @@ bitflags! {
         const MOUSE_DOWN = 1 << 14;      // Panel mouse down
         const MOUSE_OVER = 1 << 15;      // Panel mouse over
         const MOUSE_OUT = 1 << 16;       // Panel mouse out
+    }
+}
+
+impl TryFrom<&String> for PanelFlags {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &String) -> Result<PanelFlags, Self::Error> {
+        match value.as_str() {
+            "title" => Ok(PanelFlags::TITLE),
+            "views" => Ok(PanelFlags::VIEWS),
+            _ => Err(anyhow!("Invalid type for panel")),
+        }
     }
 }
 
