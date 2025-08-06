@@ -11,7 +11,7 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use log::{debug, warn};
+use log::debug;
 use anyhow::{Context, Result};
 use stdext::function_name;
 use veccell::VecCell;
@@ -144,11 +144,65 @@ fn create_panel(type_name: &str, flags: PanelFlags) -> Option<Panel> {
     match type_name {
         "title" => Panel::new(PanelFlags::TITLE | flags),
         "views" => Panel::new(PanelFlags::VIEWS),
-        _ => {
-            warn!("Unknown panel type: {}", type_name);
+        _ => None
+    }
+}
 
-            None
-        },
+fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
+    if !panels.is_empty() {
+        // Add bottom marker to first panel on bottom panel in linear vec
+        let mut flags = if is_bottom { PanelFlags::BOTTOM_MARKER } else { PanelFlags::empty() };
+        let mut last_panel_idx = -1;
+
+        for (panel_idx, panel_name) in panels.iter().enumerate() {
+            // Lookbehind to previous panel
+            if flags.intersects(PanelFlags::SPACER_BEFORE | PanelFlags::SEPARATOR_BEFORE) {
+                if -1 != last_panel_idx &&
+                    let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
+                {
+                    // Add spacer after panel item
+                    if flags.intersects(PanelFlags::SPACER_BEFORE) {
+                        last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
+                        flags.remove(PanelFlags::SPACER_BEFORE);
+                    }
+
+                    // Add separator after panel item
+                    if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
+                        last_panel.flags.insert(PanelFlags::SEPARATOR_BEFORE);
+                        flags.remove(PanelFlags::SEPARATOR_BEFORE);
+                    }
+                }
+            }
+
+            // Handle panel type
+            match panel_name.as_str() {
+                "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
+                "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
+                "center" => flags.insert(PanelFlags::CENTER),
+                _ => {
+                    if let Some(panel) = create_panel(panel_name, flags) {
+                        screen.flags.insert(ScreenFlags::TOP_PANEL);
+                        screen.panels.push(panel);
+                        flags.remove(PanelFlags::BOTTOM_MARKER);
+
+                        last_panel_idx += 1;
+                    }
+                }
+            }
+        }
+
+        // Add flags to last item
+        if -1 != last_panel_idx
+            && let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
+        {
+            if flags.intersects(PanelFlags::SPACER_BEFORE) {
+                last_panel.flags.insert(PanelFlags::SPACER_AFTER);
+            }
+
+            if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
+                last_panel.flags.insert(PanelFlags::SEPARATOR_AFTER);
+            }
+        }
     }
 }
 
@@ -200,58 +254,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
-                if !top_panels.is_empty() {
-                    let mut flags = PanelFlags::empty();
-                    let mut last_panel_idx = -1;
-
-                    for (panel_idx, panel_name) in top_panels.iter().enumerate() {
-                        // Add spacer after panel item
-                        if -1 != last_panel_idx && flags.intersects(PanelFlags::SPACER_BEFORE) {
-                            if let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize) {
-                                last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
-                                flags.remove(PanelFlags::SPACER_BEFORE);
-                            }
-                        }
-
-                        // Add separator after panel item
-                        if -1 != last_panel_idx && flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                            if let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize) {
-                                last_panel.flags.insert(PanelFlags::SEPARATOR_BEFORE);
-                                flags.remove(PanelFlags::SEPARATOR_BEFORE);
-                            }
-                        }
-
-                        // Add remaining flags
-                        match panel_name.as_str() {
-                            "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
-                            "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
-                            "center" => flags.insert(PanelFlags::CENTER),
-                            _ => warn!("Unknown panel item type: {}", panel_name),
-                        }
-
-                        if let Some(panel) = create_panel(panel_name, flags) {
-                            screen.flags.insert(ScreenFlags::TOP_PANEL);
-                            screen.panels.push(panel);
-
-                            last_panel_idx += 1;
-                        }
-                    }
-                }
+                configure_panel(screen, top_panels, false);
             }
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
-                if !bottom_panels.is_empty() {
-                    // Add bottom marker to first panel on bottom panel in linear vec
-                    let mut bottom_flags = PanelFlags::BOTTOM_MARKER;
-
-                    for panel_name in bottom_panels.iter() {
-                        if let Some(panel) = create_panel(panel_name, bottom_flags) {
-                            screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
-                            bottom_flags = PanelFlags::empty();
-                            screen.panels.push(panel);
-                        }
-                    }
-                }
+                configure_panel(screen, bottom_panels, false);
             }
 
             // Handle virtual
