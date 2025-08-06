@@ -69,14 +69,16 @@ pub(crate) struct Style {
 }
 
 impl Style {
-    pub(crate) fn calc_space(&self, side: CalcSpacing) -> i16 {
-        match side {
+    pub(crate) fn calc_spacing(&self, spacing: CalcSpacing) -> i16 {
+        match spacing {
             CalcSpacing::Top => self.border.top + self.padding.top + self.margin.top,
             CalcSpacing::Right => self.border.right + self.padding.right + self.margin.right,
             CalcSpacing::Bottom => self.border.bottom + self.padding.bottom + self.margin.bottom,
             CalcSpacing::Left => self.border.left + self.padding.left + self.margin.left,
-            CalcSpacing::Width => self.calc_space(CalcSpacing::Left) + self.calc_space(CalcSpacing::Right),
-            CalcSpacing::Height => self.calc_space(CalcSpacing::Top) + self.calc_space(CalcSpacing::Bottom),
+            CalcSpacing::Width => self.calc_spacing(CalcSpacing::Left)
+                + self.calc_spacing(CalcSpacing::Right),
+            CalcSpacing::Height => self.calc_spacing(CalcSpacing::Top)
+                + self.calc_spacing(CalcSpacing::Bottom),
         }
     }
 
@@ -289,7 +291,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 let font = Font::new(conn, font_name)?;
 
                 // Update panel height
-                let new_height = style.calc_space(CalcSpacing::Height) as u16 + font.height;
+                let new_height = style.calc_spacing(CalcSpacing::Height) as u16 + font.height;
 
                 subtle.panel_height = max!(subtle.panel_height, new_height);
 
@@ -331,7 +333,7 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
         let font = Font::new(conn, DEFAULT_FONT_NAME)?;
 
         // Update panel height
-        let new_height = subtle.title_style.calc_space(CalcSpacing::Height) as u16
+        let new_height = subtle.title_style.calc_spacing(CalcSpacing::Height) as u16
             + font.height;
 
         subtle.panel_height = max!(subtle.panel_height, new_height);

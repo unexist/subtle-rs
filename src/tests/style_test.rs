@@ -31,9 +31,9 @@ proptest! {
             ..Default::default()
         };
 
-        prop_assert_eq!(style.calc_space(CalcSpacing::Top), n * 3);
-        prop_assert_eq!(style.calc_space(CalcSpacing::Right), n * 3);
-        prop_assert_eq!(style.calc_space(CalcSpacing::Bottom), n * 2 * 3);
-        prop_assert_eq!(style.calc_space(CalcSpacing::Left), n * 2 * 3);
+        prop_assert_eq!(style.calc_spacing(CalcSpacing::Top), n * 3);
+        prop_assert_eq!(style.calc_spacing(CalcSpacing::Right), n * 3);
+        prop_assert_eq!(style.calc_spacing(CalcSpacing::Bottom), n * 2 * 3);
+        prop_assert_eq!(style.calc_spacing(CalcSpacing::Left), n * 2 * 3);
     }
 }

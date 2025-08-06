@@ -159,8 +159,8 @@ impl Panel {
                 .background(style.bg as u32))?.check()?;
 
             conn.image_text8(drawable, subtle.draw_gc,
-                             (self.x as u16 + style.calc_space(CalcSpacing::Left) as u16 + offset_x) as i16,
-                             font.y as i16 + style.calc_space(CalcSpacing::Top),
+                             (self.x as u16 + style.calc_spacing(CalcSpacing::Left) as u16 + offset_x) as i16,
+                             font.y as i16 + style.calc_spacing(CalcSpacing::Top),
                              text.as_bytes())?.check()?;
         }
 
@@ -197,7 +197,7 @@ impl Panel {
                         if let Some(font) = subtle.title_style.get_font(subtle) {
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
                                 self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16
-                                    + subtle.title_style.calc_space(CalcSpacing::Width) as u16;
+                                    + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                             }
                         }
                     }
@@ -227,7 +227,7 @@ impl Panel {
                 } else {
                     if let Some(font) = style.get_font(subtle) {
                         if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
-                            view_width = width + style.calc_space(CalcSpacing::Width) as u16; // TODO icons
+                            view_width = width + style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
                         }
                     }
                 }
@@ -270,7 +270,7 @@ impl Panel {
                 if focus.is_alive() && focus.is_visible(subtle)
                     && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
-                    let mut offset_x = subtle.title_style.calc_space(CalcSpacing::Left) as u16;
+                    let mut offset_x = subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
 
                     // Set window background and border
                     self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
@@ -305,7 +305,7 @@ impl Panel {
                     // TODO icons
                 }
 
-                let mut view_width= style.calc_space(CalcSpacing::Width) as u16; // TODO icons
+                let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
@@ -320,7 +320,7 @@ impl Panel {
                     }
                 }
 
-                offset_x += style.calc_space(CalcSpacing::Left) as u16;
+                offset_x += style.calc_spacing(CalcSpacing::Left) as u16;
 
                 // Set window background and border
                 self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
