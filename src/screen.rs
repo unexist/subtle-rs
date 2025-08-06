@@ -301,11 +301,11 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
                 if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
 
-                    // Set visible tags and views tgo ease lookups
+                    // Set visible tags and views to ease lookups
                     visible_tags.insert(view.tags);
                     visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
 
-                    if visible_tags.intersects(view.tags) {
+                    if visible_tags.intersects(client.tags) {
                         // Keep screen when sticky
                         if client.flags.intersects(ClientFlags::MODE_STICK)
                             && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
