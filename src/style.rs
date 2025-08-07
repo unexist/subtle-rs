@@ -279,12 +279,16 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
             }
 
-            if let Some(margin) = style_values.get("margin") {
-                style.margin = Spacing::try_from(margin)?;
+            if let Some(border) = style_values.get("border") {
+                style.border = Spacing::try_from(border)?;
             }
 
             if let Some(padding) = style_values.get("padding") {
                 style.padding = Spacing::try_from(padding)?;
+            }
+
+            if let Some(margin) = style_values.get("margin") {
+                style.margin = Spacing::try_from(margin)?;
             }
 
             if let Some(MixedConfigVal::S(font_name)) = style_values.get("font") {
