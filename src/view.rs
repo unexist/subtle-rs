@@ -1,3 +1,4 @@
+use std::cell::Cell;
 ///
 /// @package subtle-rs
 ///
@@ -17,9 +18,11 @@ use derive_builder::Builder;
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{AtomEnum, PropMode};
+use x11rb::NONE;
+use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
 use x11rb::wrapper::ConnectionExt;
 use crate::config::{Config, MixedConfigVal};
+use crate::{client, screen};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 
@@ -42,7 +45,7 @@ pub(crate) struct View {
     pub(crate) name: String,
     pub(crate) regex: Option<Regex>,
 
-    pub(crate) text_width: u16,
+    pub(crate) focus_win: Cell<Window>,
 }
 
 impl View {
@@ -58,7 +61,56 @@ impl View {
         debug!("{}: {}", function_name!(), self);
     }
 
-    pub(crate) fn focus(&self, subtle: &Subtle) -> Result<()> {
+    pub(crate) fn focus(&self, subtle: &Subtle, screen_idx: usize, swap_views: bool, focus_next: bool) -> Result<()> {
+        println!("focus view={}", self);
+
+        if let Some(screen) = subtle.screens.get(screen_idx) {
+            if let Some(view_idx) = subtle.views.iter().position(|v| v == self) {
+
+                // Check if view is visible on any screen
+                if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
+
+                    // This makes sense oly with more than one screen - ignore otherwise
+                    if 1 < subtle.screens.len() {
+
+                        // Find screen with view and swap
+                        for other_screen in subtle.screens.iter() {
+                            if other_screen.view_idx.get() == view_idx as isize {
+                                if swap_views {
+                                    other_screen.view_idx.set(screen.view_idx.get());
+                                    screen.view_idx.set(view_idx as isize);
+                                } else {
+                                    //screen.warp();
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    screen.view_idx.set(screen_idx as isize);
+                }
+            }
+        }
+
+        // Finally configure and render
+        screen::configure(subtle)?;
+        screen::render(subtle)?;
+        screen::publish(subtle, false)?;
+
+        if focus_next {
+            // Restore focus on view
+            if let Some(focus) = subtle.find_client(self.focus_win.get()) {
+                if !subtle.visible_tags.get().intersects(focus.tags) {
+                    self.focus_win.set(NONE);
+                } else {
+                    focus.focus(subtle, true)?;
+                }
+            } else if let Some(focus) = client::find_next(subtle, screen_idx as isize, false) {
+                focus.focus(subtle, true)?;
+            }
+        }
+
         debug!("{}: {}", function_name!(), self);
 
         Ok(())
@@ -68,6 +120,12 @@ impl View {
 impl fmt::Display for View {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(name={}, regex={:?}, tags={:?})", self.name, self.regex, self.tags)
+    }
+}
+
+impl PartialEq for View {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
 

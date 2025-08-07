@@ -1,3 +1,4 @@
+use std::cell::Cell;
 ///
 /// @package subtle-rs
 ///
@@ -41,7 +42,7 @@ bitflags! {
 pub(crate) struct Screen {
     pub(crate) flags: ScreenFlags,
 
-    pub(crate) view_id: isize,
+    pub(crate) view_idx: Cell<isize>,
 
     pub(crate) top_panel_win: Window,
     pub(crate) bottom_panel_win: Window,
@@ -119,7 +120,7 @@ impl Default for Screen {
         Screen {
             flags: ScreenFlags::empty(),
 
-            view_id: -1,
+            view_idx: Cell::new(-1),
 
             top_panel_win: Window::default(),
             bottom_panel_win: Window::default(),
@@ -280,9 +281,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     if 0 < subtle.clients.len() {
         // Check each client
         for (client_idx, client) in subtle.clients.iter().enumerate() {
-            let mut gravity_id: isize = 0;
+            let mut gravity_idx: isize = 0;
             let mut screen_id: usize = 0;
-            let mut view_id: usize = 0;
+            let mut view_idx: usize = 0;
             let mut visible = 0;
 
             // Ignore dead or just iconified clients
@@ -294,25 +295,25 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
             client_tags.insert(client.tags);
 
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
-                if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
+                if -1 != screen.view_idx.get() && let Some(view) = subtle.views.get(screen.view_idx.get() as usize) {
 
                     // Set visible tags and views to ease lookups
                     visible_tags.insert(view.tags);
-                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_id));
+                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_idx.get()));
 
                     if visible_tags.intersects(client.tags) {
                         // Keep screen when sticky
                         if client.flags.intersects(ClientFlags::MODE_STICK)
                             && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
                         {
-                            view_id = client_screen.view_id as usize;
+                            view_idx = client_screen.view_idx.get() as usize;
                             screen_id = client.screen_id as usize;
                         } else {
-                            view_id = screen.view_id as usize;
+                            view_idx = screen.view_idx.get() as usize;
                             screen_id = screen_idx;
                         }
 
-                        gravity_id = client.gravities[screen.view_id as usize] as isize;
+                        gravity_idx = client.gravities[screen.view_idx.get() as usize] as isize;
                         visible += 1;
                     }
                 }
@@ -333,7 +334,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
                 // EWMH: Desktop, screen
                 conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_WM_DESKTOP,
-                                       AtomEnum::CARDINAL, &[view_id as u32])?.check()?;
+                                       AtomEnum::CARDINAL, &[view_idx as u32])?.check()?;
 
                 conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
                                        AtomEnum::CARDINAL, &[screen_id as u32])?.check()?;
@@ -342,7 +343,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 drop(client);
 
                 if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
-                    mut_client.arrange(subtle, gravity_id, screen_id as isize)?;
+                    mut_client.arrange(subtle, gravity_idx, screen_id as isize)?;
                 }
             } else {
                 client.set_wm_state(subtle, WMState::WithdrawnState)?;
@@ -359,9 +360,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     } else {
         // Check views of each screen
         for screen in subtle.screens.iter() {
-            if -1 != screen.view_id && let Some(view) = subtle.views.get(screen.view_id as usize) {
+            if -1 != screen.view_idx.get() && let Some(view) = subtle.views.get(screen.view_idx.get() as usize) {
                 visible_tags |= view.tags;
-                visible_views |= Tagging::from_bits_retain(1 << (screen.view_id + 1));
+                visible_views |= Tagging::from_bits_retain(1 << (screen.view_idx.get() + 1));
             }
         }
     }
@@ -700,7 +701,7 @@ pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
     let mut views: Vec<u32> = Vec::with_capacity(subtle.screens.len());
 
     for screen in subtle.screens.iter() {
-        views.push(screen.view_id as u32);
+        views.push(screen.view_idx.get() as u32);
     }
 
     // EWMH: Views per screen
