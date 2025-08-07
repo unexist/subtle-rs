@@ -72,6 +72,8 @@ pub(crate) struct Panel {
     pub(crate) x: i16,
     pub(crate) width: u16,
     pub(crate) screen_id: usize,
+
+    pub(crate) text_widths: Vec<u16>,
 }
 
 impl Panel {
@@ -80,7 +82,7 @@ impl Panel {
 
         // Pick base style
         if let Some(current_screen) = subtle.screens.get(self.screen_id) {
-            if view_idx as isize == current_screen.view_id {
+            if current_screen.view_idx.get() == view_idx as isize {
                 style.inherit(&subtle.views_active_style);
             } else if subtle.client_tags.get().intersects(view.tags) {
                 style.inherit(&subtle.views_occupied_style);
@@ -197,7 +199,9 @@ impl Panel {
             ..Self::default()
         };
 
-        if flags.intersects(PanelFlags::VIEWS) {
+        if flags.intersects(PanelFlags::TITLE) {
+            panel.text_widths.resize(2, Default::default());
+        } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
         } else if !flags.intersects(PanelFlags::TITLE) {
             debug!("Unhandled panel type: {:?}", flags);
@@ -224,13 +228,23 @@ impl Panel {
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
                 if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
-                    if let Ok(mode_str) = focus.format_modes() {
+                    if let Ok(mode_str) = focus.mode_string() {
                         // Font offset, panel border and padding
                         if let Some(font) = subtle.title_style.get_font(subtle) {
+                            // Cache length of mode string
                             if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
-                                self.width = min!(subtle.clients_style.right as u16, width) + mode_str.len() as u16
-                                    + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
+                                self.text_widths[0] = width;
                             }
+
+                            // Cache length of actual title
+                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
+                                self.text_widths[1] = width;
+                            }
+
+                            // Finally update actual length
+                            self.width = min!(subtle.clients_style.right as u16, self.text_widths[1])
+                                + self.text_widths[0]
+                                + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                         }
                     }
 
@@ -240,6 +254,9 @@ impl Panel {
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
             self.width = 0;
+
+            // Resize in case the length has changed
+            self.text_widths.resize(subtle.views.len(), Default::default());
 
             let mut style = Style::default();
 
@@ -258,9 +275,13 @@ impl Panel {
                     todo!(); // TODO icons
                 } else {
                     if let Some(font) = style.get_font(subtle) {
+                        // Cache length of view name
                         if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
-                            view_width = width + style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
+                            self.text_widths[view_idx] = width;
                         }
+
+                        view_width = self.text_widths[view_idx]
+                            + style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
                     }
                 }
 
@@ -308,7 +329,7 @@ impl Panel {
                     self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
 
                     // Draw modes and title
-                    if let Ok(mode_str) = focus.format_modes() {
+                    if let Ok(mode_str) = focus.mode_string() {
                         self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
 
                         offset_x += mode_str.len() as u16;
@@ -345,11 +366,7 @@ impl Panel {
                         todo!(); // TODO icons
                     }
 
-                    if let Some(font) = style.get_font(subtle) {
-                        if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
-                            view_width += width;
-                        }
-                    }
+                    view_width += self.text_widths[view_idx];
                 }
 
                 offset_x += style.calc_spacing(CalcSpacing::Left) as u16;
@@ -390,29 +407,30 @@ impl Panel {
     }
 
     pub(crate) fn handle_action(&self, subtle: &Subtle, action: PanelAction, is_bottom: bool) -> Result<()> {
-        if self.flags.intersects(PanelFlags::VIEWS)
-            && let PanelAction::MouseDown(x, y, button) = action
-        {
-            let mut offset_x = self.x;
+        if let PanelAction::MouseDown(x, y, button) = action {
+            if self.flags.intersects(PanelFlags::VIEWS) {
+                let mut offset_x = self.x;
 
-            for view in subtle.views.iter() {
-                // Skip dynamic views
-                if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
-                    && !(subtle.client_tags.get().intersects(view.tags))
-                {
-                    continue;
-                }
+                for (view_idx, view) in subtle.views.iter().enumerate() {
+                    // Skip dynamic views
+                    if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
+                        && !(subtle.client_tags.get().intersects(view.tags))
+                    {
+                        continue;
+                    }
 
-                // Check if x is in view rect
-                if x >= offset_x && x <= offset_x + view.text_width as i16 {
-                    view.focus(subtle)?;
-                }
+                    // Check if x is in view rect
+                    if x >= offset_x && x <= offset_x + self.text_widths[view_idx] as i16 {
+                        view.focus(subtle, self.screen_id, true, false)?;
+                    }
 
-                // Add view separator width if any
-                if subtle.views_style.sep_string.is_some() {
-                    offset_x += view.text_width as i16 + subtle.views_style.sep_width;
-                } else {
-                    offset_x += view.text_width as i16;
+                    // Add view separator width if any
+                    if subtle.views_style.sep_string.is_some() {
+                        offset_x += subtle.views_style.sep_width;
+                    }
+
+                    offset_x += self.text_widths[view_idx] as i16
+                        + subtle.views_style.calc_spacing(CalcSpacing::Width);
                 }
             }
         }
