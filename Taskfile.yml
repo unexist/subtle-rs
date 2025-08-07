@@ -45,3 +45,7 @@ tasks:
   background:
     cmds:
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
+
+  release:
+    cmds:
+      - cargo build --release
