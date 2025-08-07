@@ -197,13 +197,9 @@ impl Panel {
             ..Self::default()
         };
 
-        if flags.intersects(PanelFlags::TITLE) {
-            // TODO title
-        } else if flags.intersects(PanelFlags::VIEWS) {
+        if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else if flags.intersects(PanelFlags::SCRIPT) {
-            // TODO script
-        } else {
+        } else if !flags.intersects(PanelFlags::TITLE) {
             debug!("Unhandled panel type: {:?}", flags);
 
             return None
@@ -219,9 +215,9 @@ impl Panel {
 
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
-            // TODO tray
+            todo!(); // TODO tray
         } else if self.flags.intersects(PanelFlags::ICON) {
-            // TODO icon
+            todo!(); // TODO icon
         } else if self.flags.intersects(PanelFlags::TITLE) {
             self.width = subtle.title_style.min_width as u16;
 
