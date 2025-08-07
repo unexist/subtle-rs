@@ -92,8 +92,6 @@ pub(crate) struct Client {
     pub(crate) klass: String,
     pub(crate) role: String,
 
-    pub(crate) text_width: u16,
-
     pub(crate) min_ratio: f32,
     pub(crate) max_ratio: f32,
 
@@ -1028,7 +1026,7 @@ impl Client {
         !self.flags.intersects(ClientFlags::DEAD)
     }
 
-    pub(crate) fn format_modes(&self) -> Result<String> {
+    pub(crate) fn mode_string(&self) -> Result<String> {
         let mut x = 0;
         let mut mode_str =  [0; 6];
 
@@ -1332,13 +1330,13 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn find_next(subtle: &Subtle, screen_id: isize, jump_to_win: bool) -> Option<VecRef<Client>> {
-    debug!("{}: screen_id={}, jump={}", function_name!(), screen_id, jump_to_win);
+pub(crate) fn find_next(subtle: &Subtle, screen_idx: isize, jump_to_win: bool) -> Option<VecRef<Client>> {
+    debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
 
     // Pass 1: Check focus history of current screen
     for win in subtle.focus_history.iter() {
         if let Some(client) = subtle.find_client(*win) {
-            if client.screen_id == screen_id && client.is_alive() && client.is_visible(subtle)
+            if client.screen_id == screen_idx && client.is_alive() && client.is_visible(subtle)
                 && subtle.find_focus_win() != client.win
             {
                 return Some(client)
@@ -1348,7 +1346,7 @@ pub(crate) fn find_next(subtle: &Subtle, screen_id: isize, jump_to_win: bool) ->
 
     // Pass 2: Check client stacking list backwards of current screen
     for client in subtle.clients.iter() {
-        if client.screen_id == screen_id && client.is_alive() && client.is_visible(subtle)
+        if client.screen_id == screen_idx && client.is_alive() && client.is_visible(subtle)
             && subtle.find_focus_win() != client.win
         {
             return Some(client)
