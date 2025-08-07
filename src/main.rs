@@ -61,7 +61,7 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
 
     // Check and update screens
     for (screen_idx, screen) in subtle.screens.iter_mut().enumerate() {
-        screen.view_id = if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 };
+        screen.view_idx.set(if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 });
     }
 
     Ok(())
