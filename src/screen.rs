@@ -1,4 +1,3 @@
-use std::cell::Cell;
 ///
 /// @package subtle-rs
 ///
@@ -11,6 +10,7 @@ use std::cell::Cell;
 ///
 
 use std::fmt;
+use std::cell::Cell;
 use bitflags::bitflags;
 use log::{debug, warn};
 use anyhow::{Context, Result};
@@ -25,7 +25,7 @@ use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{ClientFlags, WMState};
-use crate::panel::{Panel, PanelFlags};
+use crate::panel::{Panel, PanelAction, PanelFlags};
 use crate::style::Style;
 use crate::tagging::Tagging;
 
@@ -110,6 +110,16 @@ impl Screen {
             y: 0,
             width: self.base.width,
             height: subtle.panel_height}])?.check()?;
+
+        Ok(())
+    }
+
+    pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
+        for panel in self.panels.iter() {
+            panel.handle_action(subtle, action, is_bottom)?;
+        }
+
+        debug!("{}: screen={}", function_name!(), self);
 
         Ok(())
     }
@@ -542,8 +552,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 mut_panel.x = panel_x as i16;
             }
         }
-
-        println!("x={:?}, width={:?}", x, width);
     }
 
     debug!("{}", function_name!());
@@ -577,7 +585,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
             drop(panel);
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.render(subtle, screen.drawable)?
+                mut_panel.render(subtle, screen.drawable)?;
             }
         }
 

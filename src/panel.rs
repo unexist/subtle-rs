@@ -406,8 +406,8 @@ impl Panel {
         Ok(())
     }
 
-    pub(crate) fn handle_action(&self, subtle: &Subtle, action: PanelAction, is_bottom: bool) -> Result<()> {
-        if let PanelAction::MouseDown(x, y, button) = action {
+    pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
+        if let &PanelAction::MouseDown(x, y, button) = action {
             if self.flags.intersects(PanelFlags::VIEWS) {
                 let mut offset_x = self.x;
 
@@ -422,6 +422,8 @@ impl Panel {
                     // Check if x is in view rect
                     if x >= offset_x && x <= offset_x + self.text_widths[view_idx] as i16 {
                         view.focus(subtle, self.screen_id, true, false)?;
+
+                        break;
                     }
 
                     // Add view separator width if any

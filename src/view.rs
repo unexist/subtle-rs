@@ -1,4 +1,3 @@
-use std::cell::Cell;
 ///
 /// @package subtle-rs
 ///
@@ -11,6 +10,7 @@ use std::cell::Cell;
 ///
 
 use std::fmt;
+use std::cell::Cell;
 use bitflags::bitflags;
 use regex::{Regex, RegexBuilder};
 use anyhow::Result;
@@ -22,7 +22,7 @@ use x11rb::NONE;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
 use x11rb::wrapper::ConnectionExt;
 use crate::config::{Config, MixedConfigVal};
-use crate::{client, screen};
+use crate::{client};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 
@@ -88,15 +88,10 @@ impl View {
                         }
                     }
                 } else {
-                    screen.view_idx.set(screen_idx as isize);
+                    screen.view_idx.set(view_idx as isize);
                 }
             }
         }
-
-        // Finally configure and render
-        screen::configure(subtle)?;
-        screen::render(subtle)?;
-        screen::publish(subtle, false)?;
 
         if focus_next {
             // Restore focus on view
