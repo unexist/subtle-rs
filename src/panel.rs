@@ -255,7 +255,7 @@ impl Panel {
                 let mut view_width = 0u16;
 
                 if view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                    // TODO icons
+                    todo!(); // TODO icons
                 } else {
                     if let Some(font) = style.get_font(subtle) {
                         if let Ok((width, _, _)) = font.calc_text_width(conn, &view.name, false) {
@@ -293,9 +293,9 @@ impl Panel {
 
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
-            // TODO tray
+            todo!(); // TODO tray
         } else if self.flags.intersects(PanelFlags::ICON) {
-            // TODO icon
+            todo!(); // TODO icon
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
@@ -334,7 +334,7 @@ impl Panel {
 
                 // Draw icon and/or text
                 if view.flags.intersects(ViewFlags::MODE_ICON) {
-                    // TODO icons
+                    todo!(); // TODO icons
                 }
 
                 let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
@@ -342,7 +342,7 @@ impl Panel {
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
                     if view.flags.intersects(ViewFlags::MODE_ICON) {
-                        // TODO icons
+                        todo!(); // TODO icons
                     }
 
                     if let Some(font) = style.get_font(subtle) {
@@ -360,7 +360,7 @@ impl Panel {
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
                     if view.flags.intersects(ViewFlags::MODE_ICON) {
-                        // TODO icons
+                        todo!(); // TODO icons
                     }
 
                     self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
@@ -425,6 +425,7 @@ impl Panel {
 
 impl fmt::Display for Panel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "x={}, width={}, screen_id={}, flags={:?})", self.x, self.width, self.screen_id, self.flags)
+        write!(f, "x={}, width={}, screen_id={}, flags={:?})",
+               self.x, self.width, self.screen_id, self.flags)
     }
 }
