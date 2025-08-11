@@ -68,7 +68,7 @@ impl View {
                 // Check if view is visible on any screen
                 if subtle.visible_views.get().intersects(Tagging::from_bits_retain(1 << (view_idx + 1))) {
 
-                    // This makes sense oly with more than one screen - ignore otherwise
+                    // This only makes sense with more than one screen - ignore otherwise
                     if 1 < subtle.screens.len() {
 
                         // Find screen with view and swap
