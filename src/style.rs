@@ -364,9 +364,9 @@ macro_rules! update_panel_height {
 pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     // Inherit styles
     subtle.views_style.inherit(&subtle.all_style);
-    subtle.views_active_style.inherit(&subtle.all_style);
-    subtle.views_occupied_style.inherit(&subtle.all_style);
-    subtle.views_visible_style.inherit(&subtle.all_style);
+    subtle.views_active_style.inherit(&subtle.views_style);
+    subtle.views_occupied_style.inherit(&subtle.views_style);
+    subtle.views_visible_style.inherit(&subtle.views_style);
     subtle.title_style.inherit(&subtle.all_style);
     subtle.urgent_style.inherit(&subtle.all_style);
     subtle.panels_style.inherit(&subtle.all_style);
