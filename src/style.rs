@@ -205,6 +205,14 @@ macro_rules! set_border_color {
     };
 }
 
+macro_rules! set_border_width {
+    ($conn:expr, $values:expr, $style:expr, $field:ident) => {
+        if let Some(MixedConfigVal::I(border_width)) = $values.get(concat!("border_", stringify!($field), "_width")) {
+            $style.border.$field = *border_width as i16;
+        }
+    };
+}
+
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -304,6 +312,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 style.border.bottom = style.border.top;
                 style.border.left = style.border.top;
             }
+
+            set_border_width!(conn, style_values, style, top);
+            set_border_width!(conn, style_values, style, right);
+            set_border_width!(conn, style_values, style, bottom);
+            set_border_width!(conn, style_values, style, left);
 
             // Handle padding and margin
             if let Some(padding) = style_values.get("padding") {
