@@ -109,7 +109,8 @@ impl Screen {
             x: 0,
             y: 0,
             width: self.base.width,
-            height: subtle.panel_height}])?.check()?;
+            height: subtle.panel_height
+        }])?.check()?;
 
         Ok(())
     }
@@ -145,9 +146,9 @@ impl Default for Screen {
 
 impl fmt::Display for Screen {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(geom=(x={}, y={}, width={}, height={}, npanel={}, flags={:?}))",
+        write!(f, "(geom=(x={}, y={}, width={}, height={}, view_idx={}, panel_len={}, flags={:?}))",
                self.geom.x, self.geom.y, self.geom.width, self.geom.height,
-               self.panels.len(), self.flags)
+               self.view_idx.get(), self.panels.len(), self.flags)
     }
 }
 
@@ -585,6 +586,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
             drop(panel);
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
+                println!("render actual panel {} on screen {}", mut_panel, screen);
                 mut_panel.render(subtle, screen.drawable)?;
             }
         }
@@ -637,7 +639,8 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
         if screen.flags.intersects(ScreenFlags::BOTTOM_PANEL) {
             let aux = ConfigureWindowAux::default()
                 .x(screen.base.x as i32)
-                .y(screen.base.y as i32 + screen.base.height as i32 - subtle.panel_height as i32)
+                .y(screen.base.y as i32 + screen.base.height as i32
+                    - subtle.panel_height as i32)
                 .width(screen.base.width as u32)
                 .height(subtle.panel_height as u32)
                 .stack_mode(StackMode::ABOVE);

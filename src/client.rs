@@ -687,11 +687,11 @@ impl Client {
                     // Add panel heights without struts
                     if screen.flags.contains(ScreenFlags::TOP_PANEL) {
                         self.geom.y += subtle.panel_height as i16;
-                        self.geom.height -= subtle.panel_height as u16;
+                        self.geom.height -= subtle.panel_height;
                     }
 
                     if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
-                        self.geom.height -= subtle.panel_height as u16;
+                        self.geom.height -= subtle.panel_height;
                     }
                 }
             }
@@ -1316,11 +1316,11 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
         if screen.flags.contains(flags) {
             if screen.flags.contains(ScreenFlags::TOP_PANEL) {
                 bounds.y += subtle.panel_height as i16;
-                bounds.height -= subtle.panel_height as u16;
+                bounds.height -= subtle.panel_height;
             }
 
             if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
-                bounds.height -= subtle.panel_height as u16;
+                bounds.height -= subtle.panel_height;
             }
 
             flags &= !(screen.flags & (ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL));
