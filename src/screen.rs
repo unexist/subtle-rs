@@ -310,7 +310,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
                     // Set visible tags and views to ease lookups
                     visible_tags.insert(view.tags);
-                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_idx.get()));
+                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_idx.get() + 1));
 
                     if visible_tags.intersects(client.tags) {
                         // Keep screen when sticky
@@ -586,7 +586,6 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
             drop(panel);
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                println!("render actual panel {} on screen {}", mut_panel, screen);
                 mut_panel.render(subtle, screen.drawable)?;
             }
         }
