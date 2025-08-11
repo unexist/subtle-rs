@@ -112,7 +112,7 @@ pub(crate) struct Subtle {
 }
 
 impl Subtle {
-    pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<Client>> {
+    pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<'_, Client>> {
         for (client_idx, client) in self.clients.try_iter().enumerate() {
             if client.is_some() {
                 let client_win = client.unwrap().win;
@@ -126,7 +126,7 @@ impl Subtle {
         None
     }
 
-    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<Client>> {
+    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<'_, Client>> {
         for (client_idx, client) in self.clients.try_iter().enumerate() {
             if client.is_some() {
                 let client_win = client.unwrap().win;
@@ -140,7 +140,7 @@ impl Subtle {
         None
     }
 
-    pub(crate) fn find_focus_client(&self) -> Option<VecRef<Client>> {
+    pub(crate) fn find_focus_client(&self) -> Option<VecRef<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client(*win)
         }

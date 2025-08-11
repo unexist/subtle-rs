@@ -1330,7 +1330,7 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn find_next(subtle: &Subtle, screen_idx: isize, jump_to_win: bool) -> Option<VecRef<Client>> {
+pub(crate) fn find_next(subtle: &Subtle, screen_idx: isize, jump_to_win: bool) -> Option<VecRef<'_, Client>> {
     debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
 
     // Pass 1: Check focus history of current screen
