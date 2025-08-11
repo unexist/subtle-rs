@@ -108,8 +108,8 @@ impl Panel {
             return Ok(());
         }
 
-        let min_width = style.margin.left + style.margin.right;
-        let min_height: i16 = style.margin.top + style.margin.bottom;
+        let margin_width = style.margin.left + style.margin.right;
+        let margin_height: i16 = style.margin.top + style.margin.bottom;
 
         // Filling
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
@@ -117,8 +117,8 @@ impl Panel {
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
             x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
             y: style.margin.top,
-            width: width - min_width as u16,
-            height: subtle.panel_height - min_height as u16,
+            width: width - margin_width as u16,
+            height: subtle.panel_height - margin_height as u16,
         }])?.check()?;
 
         // Borders: Top
@@ -127,7 +127,7 @@ impl Panel {
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
             x: (self.x as u16 + style.margin.left as u16 + offset_x) as i16,
             y: style.margin.top,
-            width: width - min_width as u16,
+            width: width - margin_width as u16,
             height: style.border.top as u16,
         }])?.check()?;
 
@@ -135,10 +135,10 @@ impl Panel {
         conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
             .foreground(style.right as u32))?.check()?;
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
-            x: self.x + self.width  as i16 - style.border.right - style.margin.right + offset_x as i16,
+            x: self.x + width as i16 - style.border.right - style.margin.right + offset_x as i16,
             y: style.margin.top,
             width: style.border.right as u16,
-            height: subtle.panel_height - min_height as u16,
+            height: subtle.panel_height - margin_height as u16,
         }])?.check()?;
 
         // Borders: Bottom
@@ -147,7 +147,7 @@ impl Panel {
         conn.poly_fill_rectangle(drawable, subtle.draw_gc, &[Rectangle {
             x: self.x + style.margin.left + offset_x as i16,
             y: subtle.panel_height as i16 - style.border.bottom - style.margin.bottom,
-            width: self.width - min_width as u16,
+            width: width - margin_width as u16,
             height: style.border.bottom as u16,
         }])?.check()?;
 
@@ -158,7 +158,7 @@ impl Panel {
             x: self.x + style.margin.left + offset_x as i16,
             y: style.margin.top,
             width: style.border.left as u16,
-            height: subtle.panel_height - min_height as u16,
+            height: subtle.panel_height - margin_height as u16,
         }])?.check()?;
 
         Ok(())
@@ -369,8 +369,6 @@ impl Panel {
                     view_width += self.text_widths[view_idx];
                 }
 
-                offset_x += style.calc_spacing(CalcSpacing::Left) as u16;
-
                 // Set window background and border
                 self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
 
@@ -383,7 +381,7 @@ impl Panel {
                     self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
                 }
 
-                offset_x += max!(style.min_width as u16, view_width) - style.calc_spacing(CalcSpacing::Left) as u16;
+                offset_x += max!(style.min_width as u16, view_width);
 
                 // Draw view separator if any
                 if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
