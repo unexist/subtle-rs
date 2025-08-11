@@ -62,8 +62,6 @@ impl View {
     }
 
     pub(crate) fn focus(&self, subtle: &Subtle, screen_idx: usize, swap_views: bool, focus_next: bool) -> Result<()> {
-        println!("focus view={}", self);
-
         if let Some(screen) = subtle.screens.get(screen_idx) {
             if let Some(view_idx) = subtle.views.iter().position(|v| v == self) {
 

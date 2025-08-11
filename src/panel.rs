@@ -310,8 +310,6 @@ impl Panel {
                                 &subtle.separator_style)?;
         }
 
-        println!("render panel={}", self);
-
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
             todo!(); // TODO tray
