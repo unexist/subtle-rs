@@ -20,11 +20,12 @@ use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::NONE;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
-use x11rb::wrapper::ConnectionExt;
+use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::{client};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
+use crate::icon::Icon;
 
 bitflags! {
     #[derive(Default, Debug, Clone)]
@@ -46,6 +47,7 @@ pub(crate) struct View {
     pub(crate) regex: Option<Regex>,
 
     pub(crate) focus_win: Cell<Window>,
+    pub(crate) icon: Option<Icon>,
 }
 
 impl View {
@@ -124,6 +126,7 @@ impl PartialEq for View {
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for values in config.views.iter() {
+        let mut flags = ViewFlags::empty();
         let mut builder = ViewBuilder::default();
 
         if let Some(MixedConfigVal::S(name)) = values.get("name") {
@@ -136,7 +139,20 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 .build()?));
         }
 
-        // Apply tagging
+        if let Some(MixedConfigVal::B(icon_only)) = values.get("icon_only") && *icon_only {
+            flags.insert(ViewFlags::MODE_ICON_ONLY);
+        }
+
+        if let Some(MixedConfigVal::S(icon_file)) = values.get("icon") {
+            if let Ok(icon) = Icon::new(subtle, icon_file) {
+                flags.insert(ViewFlags::MODE_ICON);
+                builder.icon(Some(icon));
+            }
+        }
+
+        // Finally create view and apply tagging
+        builder.flags(flags);
+
         let mut view = builder.build()?;
 
         view.retag(subtle);
