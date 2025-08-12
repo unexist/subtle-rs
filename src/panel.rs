@@ -15,7 +15,7 @@ use log::debug;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
-use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
+use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Pixmap, Rectangle};
 use crate::client::ClientFlags;
 use crate::style::{CalcSpacing, Style, StyleFlags};
 use crate::subtle::Subtle;
@@ -193,6 +193,23 @@ impl Panel {
         Ok(())
     }
 
+    fn draw_icon(&self, subtle: &Subtle, icon: Pixmap, drawable: Drawable,
+                 offset_x: u16, width: u16, height: u16, style: &Style) -> Result<()>
+    {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        conn.change_gc(subtle.draw_gc, &ChangeGCAux::default()
+            .foreground(style.fg as u32)
+            .background(style.bg as u32))?.check()?;
+
+        conn.copy_area(icon, drawable, subtle.draw_gc, 0, 0,
+                        self.x + offset_x as i16,
+                        ((subtle.panel_height - height) / 2) as i16,
+                        width, height)?.check()?;
+
+        Ok(())
+    }
+
     pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
         let mut panel = Self {
             flags,
@@ -271,8 +288,10 @@ impl Panel {
                 // Update view width
                 let mut view_width = 0u16;
 
-                if view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                    todo!(); // TODO icons
+                if view.flags.intersects(ViewFlags::MODE_ICON_ONLY)
+                    && let Some(icon) = view.icon.as_ref()
+                {
+                    view_width = icon.width + style.calc_spacing(CalcSpacing::Width) as u16;
                 } else {
                     if let Some(font) = style.get_font(subtle) {
                         // Cache length of view name
@@ -281,7 +300,13 @@ impl Panel {
                         }
 
                         view_width = self.text_widths[view_idx]
-                            + style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
+                            + style.calc_spacing(CalcSpacing::Width) as u16;
+
+                        if view.flags.intersects(ViewFlags::MODE_ICON)
+                            && let Some(icon) = view.icon.as_ref()
+                        {
+                            view_width += icon.width + 3;
+                        }
                     }
                 }
 
@@ -306,7 +331,7 @@ impl Panel {
         if self.flags.intersects(PanelFlags::SEPARATOR_BEFORE)
             && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
         {
-            self.draw_separator(subtle, drawable, -subtle.separator_style.sep_width as u16,
+            self.draw_separator(subtle, drawable, subtle.separator_style.sep_width as u16,
                                 &subtle.separator_style)?;
         }
 
@@ -352,16 +377,21 @@ impl Panel {
                 self.pick_style(&subtle, &mut style, view_idx, view);
 
                 // Draw icon and/or text
-                if view.flags.intersects(ViewFlags::MODE_ICON) {
-                    todo!(); // TODO icons
+                if view.flags.intersects(ViewFlags::MODE_ICON)
+                    && let Some(icon) = view.icon.as_ref()
+                {
+                    self.draw_icon(subtle, icon.pixmap, drawable, offset_x,
+                                   icon.width, icon.height, &style)?;
                 }
 
-                let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16; // TODO icons
+                let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16;
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
-                    if view.flags.intersects(ViewFlags::MODE_ICON) {
-                        todo!(); // TODO icons
+                    if view.flags.intersects(ViewFlags::MODE_ICON)
+                        && let Some(icon) = view.icon.as_ref()
+                    {
+                        view_width += icon.width + 3;
                     }
 
                     view_width += self.text_widths[view_idx];
@@ -372,8 +402,10 @@ impl Panel {
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
-                    if view.flags.intersects(ViewFlags::MODE_ICON) {
-                        todo!(); // TODO icons
+                    if view.flags.intersects(ViewFlags::MODE_ICON)
+                        && let Some(icon) = view.icon.as_ref()
+                    {
+                        offset_x += icon.width + 3;
                     }
 
                     self.draw_text(subtle, drawable, offset_x, &view.name, &style)?;
