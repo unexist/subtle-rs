@@ -10,7 +10,7 @@
 ///
 
 use std::{fmt, fs};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ConnectionExt, CreateGCAux, ImageFormat, Pixmap};
 use crate::subtle::Subtle;
@@ -106,10 +106,11 @@ impl Icon {
         let conn = subtle.conn.get().unwrap();
         let default_screen = &conn.setup().roots[subtle.screen_num];
 
+        // Find pixmap format for default depth
         let formats = &conn.setup().pixmap_formats;
         let fmt = formats.iter()
             .find(|f| f.depth == default_screen.root_depth)
-            .expect("No pixmap format for depth");
+            .context("Failed to find pixmap format for depth")?;
         let bits_per_pixel = fmt.bits_per_pixel as usize;
 
         let (img_data, width, height) = load_from_file(subtle,
@@ -122,12 +123,12 @@ impl Icon {
 
         let icon_gc = conn.generate_id()?;
 
-        conn.create_gc(icon_gc, pixmap, &CreateGCAux::default())?;
+        conn.create_gc(icon_gc, pixmap, &CreateGCAux::default())?.check()?;
 
         conn.put_image(ImageFormat::Z_PIXMAP, pixmap, icon_gc, width,
             height, 0, 0, 0, default_screen.root_depth, &img_data)?.check()?;
 
-        conn.free_gc(icon_gc)?;
+        conn.free_gc(icon_gc)?.check()?;
 
         Ok(Self {
             pixmap,
