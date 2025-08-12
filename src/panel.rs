@@ -15,8 +15,9 @@ use log::debug;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::{max, min};
 use stdext::function_name;
-use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Pixmap, Rectangle};
+use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
+use crate::icon::Icon;
 use crate::style::{CalcSpacing, Style, StyleFlags};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
@@ -193,8 +194,7 @@ impl Panel {
         Ok(())
     }
 
-    fn draw_icon(&self, subtle: &Subtle, icon: Pixmap, drawable: Drawable,
-                 offset_x: u16, width: u16, height: u16, style: &Style) -> Result<()>
+    fn draw_icon(&self, subtle: &Subtle, icon: &Icon, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()>
     {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -202,10 +202,12 @@ impl Panel {
             .foreground(style.fg as u32)
             .background(style.bg as u32))?.check()?;
 
-        conn.copy_area(icon, drawable, subtle.draw_gc, 0, 0,
-                        self.x + offset_x as i16,
-                        ((subtle.panel_height - height) / 2) as i16,
-                        width, height)?.check()?;
+        conn.copy_plane(icon.pixmap, drawable, subtle.draw_gc, 0, 0,
+                        self.x + offset_x as i16 + style.border.right + style.margin.right,
+                        ((subtle.panel_height - icon.height) / 2) as i16,
+                        icon.width, icon.height, 1)?.check()?;
+
+        println!("offset_x={}, icon={}", offset_x, icon);
 
         Ok(())
     }
@@ -376,14 +378,6 @@ impl Panel {
 
                 self.pick_style(&subtle, &mut style, view_idx, view);
 
-                // Draw icon and/or text
-                if view.flags.intersects(ViewFlags::MODE_ICON)
-                    && let Some(icon) = view.icon.as_ref()
-                {
-                    self.draw_icon(subtle, icon.pixmap, drawable, offset_x,
-                                   icon.width, icon.height, &style)?;
-                }
-
                 let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16;
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
@@ -399,6 +393,13 @@ impl Panel {
 
                 // Set window background and border
                 self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
+
+                // Draw icon and/or text
+                if view.flags.intersects(ViewFlags::MODE_ICON)
+                    && let Some(icon) = view.icon.as_ref()
+                {
+                    self.draw_icon(subtle, icon, drawable, offset_x, &style)?;
+                }
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
                     // Add space between icon and text
