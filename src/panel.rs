@@ -203,7 +203,7 @@ impl Panel {
             .background(style.bg as u32))?.check()?;
 
         conn.copy_plane(icon.pixmap, drawable, subtle.draw_gc, 0, 0,
-                        self.x + offset_x as i16 + style.border.right + style.margin.right,
+                        self.x + offset_x as i16 + style.calc_spacing(CalcSpacing::Left),
                         ((subtle.panel_height - icon.height) / 2) as i16,
                         icon.width, icon.height, 1)?.check()?;
 
