@@ -12,7 +12,7 @@
 use std::{fmt, fs};
 use anyhow::{Context, Result};
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ConnectionExt, CreateGCAux, ImageFormat, Pixmap};
+use x11rb::protocol::xproto::{ConnectionExt, ImageFormat, Pixmap};
 use crate::subtle::Subtle;
 
 #[derive(Default, Debug, Clone)]
@@ -36,19 +36,19 @@ fn load_from_file(subtle: &Subtle, bits_per_pixel: usize, filename: &str) -> Res
         .lines()
         .find(|l| l.contains("_width"))
         .and_then(|l| l.split_whitespace().last())
-        .unwrap()
+        .context("Failed to find width field")?
         .parse::<usize>()?;
 
     let height= text
         .lines()
         .find(|l| l.contains("_height"))
         .and_then(|l| l.split_whitespace().last())
-        .unwrap()
+        .context("Failed to find height field")?
         .parse::<usize>()?;
 
     // Extract the pixel bytes inside {...}
-    let start = text.find('{').unwrap() + 1;
-    let end = text.find('}').unwrap();
+    let start = text.find('{').context("Failed to find '{'")? + 1;
+    let end = text.find('}').context("Failed to find '}'")?;
     let hex_data = &text[start..end];
 
     let bits: Vec<u8> = hex_data
@@ -60,14 +60,13 @@ fn load_from_file(subtle: &Subtle, bits_per_pixel: usize, filename: &str) -> Res
             } else {
                 // Strip "0x" and parse
                 let t = token.trim_start_matches("0x");
+
                 Some(u8::from_str_radix(t, 16).unwrap())
             }
         })
         .collect();
 
-    // Get display info
-    let conn = subtle.conn.get().unwrap();
-
+    // Calculate display bytes and stride
     let bytes_per_pixel = bits_per_pixel / 8;
     let stride = ((width * bits_per_pixel + 31) / 32) * 4;
 
@@ -82,18 +81,20 @@ fn load_from_file(subtle: &Subtle, bits_per_pixel: usize, filename: &str) -> Res
             let pixel_offset = y * stride + x * bytes_per_pixel;
             let pixel = &mut img_data[pixel_offset..];
 
-            if 0 != bit {
-                // Black
-                pixel[0] = 0; // B
+            // Set colors if required
+            let color = if 0 != bit { 255 } else { 0 };
 
-                if bytes_per_pixel > 1 { pixel[1] = 0; } // G
-                if bytes_per_pixel > 2 { pixel[2] = 0; } // R
-            } else {
-                // White
-                pixel[0] = 255; // B
+            // Blue
+            pixel[0] = color;
 
-                if bytes_per_pixel > 1 { pixel[1] = 255; } // G
-                if bytes_per_pixel > 2 { pixel[2] = 255; } // R
+            // Green
+            if bytes_per_pixel > 1 {
+                pixel[1] = color;
+            }
+
+            // Red
+            if bytes_per_pixel > 2 {
+                pixel[2] = color;
             }
         }
     }
@@ -116,19 +117,14 @@ impl Icon {
         let (img_data, width, height) = load_from_file(subtle,
                                                        bits_per_pixel, file_path)?;
 
+        // Create pixmap and put image
         let pixmap = conn.generate_id()?;
 
         conn.create_pixmap(default_screen.root_depth, pixmap, default_screen.root,
                            width, height)?.check()?;
 
-        let icon_gc = conn.generate_id()?;
-
-        conn.create_gc(icon_gc, pixmap, &CreateGCAux::default())?.check()?;
-
-        conn.put_image(ImageFormat::Z_PIXMAP, pixmap, icon_gc, width,
+        conn.put_image(ImageFormat::Z_PIXMAP, pixmap, subtle.draw_gc, width,
             height, 0, 0, 0, default_screen.root_depth, &img_data)?.check()?;
-
-        conn.free_gc(icon_gc)?.check()?;
 
         Ok(Self {
             pixmap,
