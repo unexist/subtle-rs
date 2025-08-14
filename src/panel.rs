@@ -443,48 +443,54 @@ impl Panel {
 
     pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
         if let &PanelAction::MouseDown(x, y, button) = action {
-            if self.flags.intersects(PanelFlags::VIEWS) {
-                let mut offset_x = self.x;
 
-                let mut style = Style::default();
+            // Check if x is in boundry box of panel
+            if x >= self.x && x <= self.x + self.width as i16 {
 
-                for (view_idx, view) in subtle.views.iter().enumerate() {
-                    // Skip dynamic views
-                    if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
-                        && !(subtle.client_tags.get().intersects(view.tags))
-                    {
-                        continue;
+                // Handle panel type
+                if self.flags.intersects(PanelFlags::VIEWS) {
+                    let mut offset_x = self.x;
+
+                    let mut style = Style::default();
+
+                    for (view_idx, view) in subtle.views.iter().enumerate() {
+                        // Skip dynamic views
+                        if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
+                            && !(subtle.client_tags.get().intersects(view.tags))
+                        {
+                            continue;
+                        }
+
+                        self.pick_style(&subtle, &mut style, view_idx, view);
+
+                        let mut view_width = style.calc_spacing(CalcSpacing::Width);
+
+                        // Add space between icon and text
+                        if view.flags.intersects(ViewFlags::MODE_ICON)
+                            && let Some(icon) = view.icon.as_ref()
+                        {
+                            view_width += (icon.width + ICON_TEXT_SPACING) as i16;
+                        }
+
+                        if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                            view_width += self.text_widths[view_idx] as i16;
+                        }
+
+
+                        // Check if x is in view rect
+                        if x >= offset_x && x <= offset_x + view_width {
+                            view.focus(subtle, self.screen_id, true, false)?;
+
+                            break;
+                        }
+
+                        // Add view separator width if any
+                        if subtle.views_style.sep_string.is_some() {
+                            view_width += subtle.views_style.sep_width;
+                        }
+
+                        offset_x += view_width;
                     }
-
-                    self.pick_style(&subtle, &mut style, view_idx, view);
-
-                    let mut view_width = style.calc_spacing(CalcSpacing::Width);
-
-                    // Add space between icon and text
-                    if view.flags.intersects(ViewFlags::MODE_ICON)
-                        && let Some(icon) = view.icon.as_ref()
-                    {
-                        view_width += (icon.width + ICON_TEXT_SPACING) as i16;
-                    }
-
-                    if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                        view_width += self.text_widths[view_idx] as i16;
-                    }
-
-
-                    // Check if x is in view rect
-                    if x >= offset_x && x <= offset_x + view_width {
-                        view.focus(subtle, self.screen_id, true, false)?;
-
-                        break;
-                    }
-
-                    // Add view separator width if any
-                    if subtle.views_style.sep_string.is_some() {
-                        view_width += subtle.views_style.sep_width;
-                    }
-
-                    offset_x += view_width;
                 }
             }
         }
