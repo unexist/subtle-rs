@@ -10,6 +10,7 @@
 ///
 
 use proptest::prelude::*;
+use x11rb::protocol::xproto::ModMask;
 use crate::grab;
 
 proptest! {
@@ -17,7 +18,7 @@ proptest! {
     #[test]
     fn should_parse_key_combinations(key in "([WCS]-){1,3}[a-z]") {
         if let Ok((_sym, _code, state, _is_mouse)) = grab::parse_keys(&*key) {
-            prop_assert!(0 < state);
+            prop_assert!(ModMask::ANY != state);
         } else {
             prop_assert!(false);
         }
@@ -31,7 +32,7 @@ proptest! {
         if let Ok((sym, code, state, is_mouse)) = grab::parse_keys(&*key) {
             prop_assert!(0 < sym);
             prop_assert!(0 < code);
-            prop_assert!(0 < state);
+            prop_assert!(ModMask::ANY != state);
             prop_assert!(is_mouse);
         } else {
             panic!();
