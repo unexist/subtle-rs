@@ -1216,6 +1216,7 @@ dependencies = [
  "stdext",
  "struct_iterable",
  "veccell",
+ "x11-keysymdef",
  "x11rb",
 ]
 
@@ -1558,6 +1559,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags 2.9.1",
+]
+
+[[package]]
+name = "x11-keysymdef"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbf416b13554005d6a7de7dda272ecdd76207a34c919af69bcf4bccbc971b258"
+dependencies = [
+ "lazy_static",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
