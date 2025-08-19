@@ -14,11 +14,12 @@ use std::sync::atomic;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ButtonPressEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, LeaveNotifyEvent, MapRequestEvent, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ButtonPressEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
-use crate::{client, screen};
+use crate::{client, grab, screen};
+use crate::grab::GrabFlags;
 use crate::panel::PanelAction;
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
@@ -143,6 +144,50 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
     }
 
     debug!("{}: win={}", function_name!(), event.event);
+
+    Ok(())
+}
+
+fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
+    // Hacky conversion
+    let bits: u16 = event.state.into();
+    let mod_mask = ModMask::from(bits & 0xFF);
+
+    println!("mod_mask={:?}", mod_mask);
+
+    if let Some(grab) = subtle.find_grab(event.detail, mod_mask) {
+        println!("grab={:?}", grab);
+    }
+
+    screen::update(subtle)?;
+    screen::render(subtle)?;
+
+    // Restore binds
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    grab::unset(subtle, default_screen.root)?;
+    grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
+
+    println!("{}: win={}", function_name!(), event.event);
+
+    Ok(())
+}
+
+fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    conn.set_modifier_mapping(&[event.first_keycode])?;
+
+    // Update grabs
+    if Mapping::KEYBOARD == event.request {
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+
+        grab::unset(subtle, default_screen.root)?;
+        grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
+    }
+
+    debug!("{}", function_name!());
 
     Ok(())
 }
@@ -304,7 +349,9 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     conn.flush()?;
 
     // Set grabs and focus first client if any
-    //sub_GrabSet(ROOT, SUB_GRAB_KEY) // TODO grabs
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
 
     if let Some(client) = client::find_next(subtle, 0, false) {
         client.focus(subtle, true)?;
@@ -323,6 +370,8 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::LeaveNotify(evt) => handle_leave(subtle, evt)?,
                 Event::Expose(evt) => handle_expose(subtle, evt)?,
                 Event::FocusIn(evt) => handle_focus_in(subtle, evt)?,
+                Event::KeyPress(evt) => handle_key_press(subtle, evt)?,
+                Event::MappingNotify(evt) => handle_mapping(subtle, evt)?,
                 Event::MapRequest(evt) => handle_map_request(subtle, evt)?,
                 Event::PropertyNotify(evt) => handle_property(subtle, evt)?,
                 Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
