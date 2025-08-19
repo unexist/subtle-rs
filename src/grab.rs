@@ -32,8 +32,8 @@ bitflags! {
         const CHAIN_LINK = 1 << 5; // Chain grab link
         const CHAIN_END = 1 << 6; // Chain grab end
 
-        const VIEW_FOCUS = 1 << 7; // Jump to view
-        const VIEW_SWAP = 1 << 8; // Jump to view
+        const VIEW_JUMP = 1 << 7; // Jump to view
+        const VIEW_SWITCH = 1 << 8; // Jump to view
         const VIEW_SELECT = 1 << 9; // Jump to view
 
         const SCREEN_JUMP = 1 << 10; // Jump to screen
@@ -57,7 +57,7 @@ bitflags! {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) struct Grab {
     pub(crate) flags: GrabFlags,
 
@@ -74,8 +74,7 @@ const XK_Pointer_Button1: u32 = 0xfee9;
 const XK_a: u32 = 0x0061;
 
 #[doc(hidden)]
-pub(crate) fn parse_keys(keys: &str) -> Result<(u32, Keycode, ModMask, bool)> {
-    let mut sym = 0u32;
+pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
     let mut code: Keycode = 0;
     let mut modifiers = ModMask::default();
     let mut is_mouse = false;
@@ -90,27 +89,23 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(u32, Keycode, ModMask, bool)> {
             "G" => modifiers |= ModMask::M5,
             _ => {
                 if key.starts_with("B") {
-                    let (_, btn) = key.split_at(1);
-
-                    sym = XK_Pointer_Button1;
-                    code = btn.parse::<Keycode>()?;
+                    code = key.get(1..).context("")?.parse::<Keycode>()?;
                     is_mouse = true;
+                } else {
+                    if let Some(sym) = x11_keysymdef::lookup_by_name(key) {
+                        code = Keycode::from(sym.unicode as u8);
+                    }
                 }
             }
         }
     }
 
-    Ok((sym, code, modifiers, is_mouse))
+    Ok((code, modifiers, is_mouse))
 }
 
 #[doc(hidden)]
 pub(crate) fn parse_name(name: &str) -> Result<GrabFlags> {
     Ok(match name {
-        "view_focus" => GrabFlags::VIEW_FOCUS,
-        "view_swap" => GrabFlags::VIEW_SWAP,
-        "view_select" => GrabFlags::VIEW_SELECT,
-
-        "screen_jump" => GrabFlags::SCREEN_JUMP,
         "subtle_reload" => GrabFlags::SUBTLE_RELOAD,
         "subtle_restart" => GrabFlags::SUBTLE_RESTART,
         "subtle_quit" => GrabFlags::SUBTLE_QUIT,
@@ -122,7 +117,18 @@ pub(crate) fn parse_name(name: &str) -> Result<GrabFlags> {
         "window_select" => GrabFlags::WINDOW_SELECT,
         "window_gravity" => GrabFlags::WINDOW_GRAVITY,
         "window_kill" => GrabFlags::WINDOW_KILL,
-        _ => return Err(anyhow!("Grab not found: {}", name))
+        _ => {
+            // Handle grabs with index
+            if name.starts_with("view_jump") {
+                GrabFlags::VIEW_JUMP
+            } else if name.starts_with("view_switch") {
+                GrabFlags::VIEW_SWITCH
+            } else if name.starts_with("screen_jump") {
+                GrabFlags::SCREEN_JUMP
+            } else {
+                return Err(anyhow!("Grab not found: {}", name))
+            }
+        }
     })
 }
 
@@ -133,78 +139,19 @@ impl Grab {
     pub(crate) fn new(name: &str, keys: &str) -> Result<Self> {
 
         // Parse name and keys
-        let key_flag = parse_name(name)?;
-        let (sym, code, modifiers, is_mouse) = parse_keys(keys)?;
+        let flags = parse_name(name)?;
+        let (code, modifiers, is_mouse) = parse_keys(keys)?;
 
-        let mut grab = Grab {
-            flags: key_flag,
-            modifiers: modifiers,
+        let grab = Grab {
+            flags: flags | if is_mouse { GrabFlags::MOUSE } else { GrabFlags::KEY },
+            code,
+            modifiers,
             ..Default::default()
         };
 
-        if is_mouse {
-            grab.flags.insert(GrabFlags::MOUSE);
-        } else {
-            grab.flags.insert(GrabFlags::KEY);
-        }
-
-        debug!("{}: {}", function_name!(), grab);
+        println!("{}: name={}, grab={}", function_name!(), name, grab);
 
         Ok(grab)
-    }
-
-    pub(crate) fn set(subtle: Subtle, win: Window, grab_mask: GrabFlags) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        let default_screen = &conn.setup().roots[subtle.screen_num];
-
-        // Unbind click-to-focus grab
-        if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
-            conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
-        }
-
-        for grab in subtle.grabs.iter() {
-            if grab.flags.intersects(grab_mask) {
-                if grab.flags.intersects(GrabFlags::KEY) {
-                    conn.grab_key(true, win, grab.modifiers, grab.code,
-                                  GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
-                } else if grab.flags.intersects(GrabFlags::MOUSE) {
-                    conn.grab_button(false, win,
-                                     EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
-                                     GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
-                                     ButtonIndex::try_from(grab.code)?,
-                                     grab.modifiers)?.check()?;
-                }
-
-            }
-        }
-
-        debug!("{}", function_name!());
-
-        Ok(())
-    }
-
-    pub(crate) fn unset(subtle: Subtle, win: Window) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        let default_screen = &conn.setup().roots[subtle.screen_num];
-
-        // pub const XCB_GRAB_ANY: xcb_grab_t = 0;
-        conn.ungrab_key(Keycode::from(0), win, ModMask::ANY)?.check()?;
-        conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
-
-        // Bind click-to-focus grab
-        if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
-            conn.grab_button(false, win,
-                             EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
-                             GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
-                             ButtonIndex::ANY, ModMask::ANY)?.check()?;
-        }
-
-
-        debug!("{}", function_name!());
-
-        Ok(())
     }
 }
 
@@ -225,7 +172,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Parse grabs
     subtle.grabs = config.grabs.iter()
         .map(|grab| Grab::new(grab.0, grab.1))
-        .filter_map(|res| res.ok()).collect();
+        .filter_map(|res| res.ok())
+        .collect();
 
     if 0 == subtle.gravities.len() {
         return Err(anyhow!("No grabs found"));
@@ -235,3 +183,58 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     Ok(())
 }
+
+pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    // Unbind click-to-focus grab
+    if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
+        conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
+    }
+
+    for grab in subtle.grabs.iter() {
+        if grab.flags.intersects(grab_mask) {
+            if grab.flags.intersects(GrabFlags::KEY) {
+                conn.grab_key(true, win, grab.modifiers, grab.code,
+                              GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
+            } else if grab.flags.intersects(GrabFlags::MOUSE) {
+                conn.grab_button(false, win,
+                                 EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
+                                 GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
+                                 ButtonIndex::try_from(grab.code)?,
+                                 grab.modifiers)?.check()?;
+            }
+
+        }
+    }
+
+    println!("{}: win={}, mask={:?}", function_name!(), win, grab_mask);
+
+    Ok(())
+}
+
+pub(crate) fn unset(subtle: &Subtle, win: Window) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    // pub const XCB_GRAB_ANY: xcb_grab_t = 0;
+    conn.ungrab_key(Keycode::from(0), win, ModMask::ANY)?.check()?;
+    conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
+
+    // Bind click-to-focus grab
+    if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
+        conn.grab_button(false, win,
+                         EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
+                         GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
+                         ButtonIndex::ANY, ModMask::ANY)?.check()?;
+    }
+
+
+    debug!("{}", function_name!());
+
+    Ok(())
+}
+
