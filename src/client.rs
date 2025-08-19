@@ -21,6 +21,8 @@ use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
+use crate::grab;
+use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
 use crate::screen::{Screen, ScreenFlags};
@@ -504,7 +506,7 @@ impl Client {
         // Unset current focus
         if let Some(win) = subtle.focus_history.borrow(0) && self.win != *win {
             if let Some(focus) = subtle.find_client(*win) {
-                //subGrabUnset // TODO Grabs
+                grab::unset(subtle, focus.win)?;
 
                 // Reorder focus history
                 // TODO
@@ -526,7 +528,7 @@ impl Client {
                 sequence: 0,
                 window: self.win,
                 type_: atoms.WM_PROTOCOLS,
-                data: [atoms.WM_TAKE_FOCUS, CURRENT_TIME, 0, 0, 0].try_into()?,
+                data: [atoms.WM_TAKE_FOCUS, CURRENT_TIME, 0, 0, 0].into(),
             })?.check()?;
         } else if self.flags.contains(ClientFlags::INPUT) {
             conn.set_input_focus(InputFocus::POINTER_ROOT, self.win, CURRENT_TIME)?.check()?;
@@ -534,7 +536,7 @@ impl Client {
 
         // Update focus
         //subtle.focus_history.remove()
-        //subGrabSet // TODO Grabs
+        grab::set(subtle, self.win, GrabFlags::MOUSE)?;
 
         // Exclude desktop and dock type windows
         if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
