@@ -21,7 +21,7 @@ use std::sync::Arc;
 use veccell::{VecCell, VecRef, VecRefMut};
 use x11rb::connection::Connection;
 use x11rb::NONE;
-use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Window};
+use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Keycode, ModMask, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::font::Font;
@@ -154,6 +154,16 @@ impl Subtle {
         }
 
         NONE
+    }
+
+    pub(crate) fn find_grab(&self, code: Keycode, modifiers: ModMask) -> Option<&Grab> {
+        for grab in self.grabs.iter() {
+            if grab.code == code && grab.modifiers == modifiers {
+                return Some(grab);
+            }
+        }
+
+        None
     }
 
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
