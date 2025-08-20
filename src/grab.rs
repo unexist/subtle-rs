@@ -81,6 +81,7 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
 
     for key in keys.split("-") {
         match key {
+            // Handle modifier keys
             "S" => modifiers |= ModMask::SHIFT,
             "C" => modifiers |= ModMask::CONTROL,
             "A" => modifiers |= ModMask::M1,
@@ -88,12 +89,15 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
             "W" => modifiers |= ModMask::M4,
             "G" => modifiers |= ModMask::M5,
             _ => {
-                if key.starts_with("B") {
-                    code = key.get(1..).context("")?.parse::<Keycode>()?;
+                // Handle mouse buttons
+                if 2 == key.len() && key.starts_with("B") {
+                    code = Keycode::from(ButtonIndex::try_from(
+                        key.get(1..).unwrap().parse::<u8>().context("Parsing failed")?)?);
                     is_mouse = true;
+                // Handle other keys
                 } else {
-                    if let Some(sym) = x11_keysymdef::lookup_by_name(key) {
-                        code = Keycode::from(sym.unicode as u8);
+                    if let Some(record) = x11_keysymdef::lookup_by_name(key) {
+                        code = Keycode::from(record.keysym as u8);
                     }
                 }
             }
@@ -154,7 +158,7 @@ impl Grab {
 
 impl fmt::Display for Grab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(code={}, state={:?}, app={:?})", self.code, self.modifiers, self.app)
+        write!(f, "(flags={:?}, code={}, state={:?}, app={:?})", self.flags, self.code, self.modifiers, self.app)
     }
 }
 
@@ -218,7 +222,7 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
                     conn.grab_button(false, win,
                                      EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
                                      GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
-                                     ButtonIndex::try_from(grab.code)?,
+                                     ButtonIndex::from(grab.code),
                                      grab.modifiers | *state)?.check()?;
                 }
             }
