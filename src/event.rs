@@ -245,8 +245,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             }
         }
     } else if atoms._NET_WM_STRUT == event.atom {
-        if let Some(mut client) = subtle.find_client_mut(event.window) {
-            client.set_strut(subtle)?;
+        if let Some(client) = subtle.find_client_mut(event.window) {
+            //client.set_strut(subtle)?;
 
             drop(client);
 
@@ -326,9 +326,10 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
 
 fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
     if event.owner == subtle.tray_win {
-        debug!("Tray not supported yet");
+        unimplemented!()
     } else if event.owner == subtle.support_win {
         warn!("Leaving the field");
+
         subtle.exterminate.store(false, atomic::Ordering::Relaxed);
     }
     
