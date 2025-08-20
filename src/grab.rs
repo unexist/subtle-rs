@@ -132,9 +132,6 @@ pub(crate) fn parse_name(name: &str) -> Result<GrabFlags> {
     })
 }
 
-//const MASK_STATES: Vec<i32> = vec![0, ModMask::LOCK, numlockmask, numlockmask | ModMask::LOCK];
-
-
 impl Grab {
     pub(crate) fn new(name: &str, keys: &str) -> Result<Self> {
 
@@ -164,10 +161,21 @@ impl fmt::Display for Grab {
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    // Get modifier mask
+    // Get modifier mask for numlock
     let reply = conn.get_modifier_mapping()?.reply()?;
 
-    println!("keycodes: {:?}", reply.keycodes);
+    if 0 < reply.keycodes_per_modifier() {
+        if let Some(numlock) = x11_keysymdef::lookup_by_name("Num_Lock") {
+            let modmasks: Vec<ModMask> = vec![ModMask::SHIFT, ModMask::LOCK, ModMask::CONTROL,
+                                              ModMask::M1, ModMask::M3, ModMask::M4, ModMask::M5];
+
+            for (idx, code) in reply.keycodes.iter().enumerate() {
+                if *code as u32 == numlock.keysym {
+                    subtle.numlockmask = u16::from(modmasks[idx / reply.keycodes_per_modifier() as usize])
+                }
+            }
+        }
+    }
 
     // Parse grabs
     subtle.grabs = config.grabs.iter()
@@ -194,19 +202,26 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
         conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
     }
 
+    let states: Vec<ModMask> = vec![ModMask::from(0u16), ModMask::LOCK,
+                                    ModMask::from(subtle.numlockmask),
+                                    ModMask::LOCK | subtle.numlockmask];
+
     for grab in subtle.grabs.iter() {
         if grab.flags.intersects(grab_mask) {
-            if grab.flags.intersects(GrabFlags::KEY) {
-                conn.grab_key(true, win, grab.modifiers, grab.code,
-                              GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
-            } else if grab.flags.intersects(GrabFlags::MOUSE) {
-                conn.grab_button(false, win,
-                                 EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
-                                 GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
-                                 ButtonIndex::try_from(grab.code)?,
-                                 grab.modifiers)?.check()?;
-            }
 
+            // FIXME: Ugly key/state grabbing
+            for state in states.iter() {
+                if grab.flags.intersects(GrabFlags::KEY) {
+                    conn.grab_key(true, win, grab.modifiers | *state, grab.code,
+                                  GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
+                } else if grab.flags.intersects(GrabFlags::MOUSE) {
+                    conn.grab_button(false, win,
+                                     EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
+                                     GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
+                                     ButtonIndex::try_from(grab.code)?,
+                                     grab.modifiers | *state)?.check()?;
+                }
+            }
         }
     }
 
