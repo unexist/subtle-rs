@@ -65,6 +65,7 @@ pub(crate) struct Subtle {
     pub(crate) step_size: i16,
     pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
+    pub(crate) numlockmask: u16,
 
     pub(crate) visible_tags: Cell<Tagging>,
     pub(crate) visible_views: Cell<Tagging>,
@@ -219,6 +220,7 @@ impl Default for Subtle {
             step_size: 0,
             snap_size: 0,
             default_gravity: 0,
+            numlockmask: 0,
 
             visible_tags: Cell::new(Tagging::empty()),
             visible_views: Cell::new(Tagging::empty()),
