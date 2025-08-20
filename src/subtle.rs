@@ -50,7 +50,7 @@ bitflags! {
         const RELOAD = 1 << 10; // Reload config
         const TRAY = 1 << 11; // Use tray
         const GRAVITY_TILING = 1 << 12; // Enable gravity tiling
-        const FOCUS_CLICK = 1 << 13; // Click to focus
+        const CLICK_TO_FOCUS = 1 << 13; // Click to focus
         const SKIP_POINTER_WARP = 1 << 14; // Skip pointer warp
         const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
     }
@@ -65,6 +65,7 @@ pub(crate) struct Subtle {
     pub(crate) step_size: i16,
     pub(crate) snap_size: u16,
     pub(crate) default_gravity: isize,
+
     pub(crate) numlockmask: u16,
 
     pub(crate) visible_tags: Cell<Tagging>,
@@ -301,7 +302,7 @@ impl From<&Config> for Subtle {
         apply_config_flag!("urgent_dialogs", SubtleFlags::URGENT);
         apply_config_flag!("honor_size_hints", SubtleFlags::RESIZE);
         apply_config_flag!("gravity_tiling", SubtleFlags::GRAVITY_TILING);
-        apply_config_flag!("click_to_focus", SubtleFlags::FOCUS_CLICK);
+        apply_config_flag!("click_to_focus", SubtleFlags::CLICK_TO_FOCUS);
         apply_config_flag!("skip_pointer_warp", SubtleFlags::SKIP_POINTER_WARP);
         apply_config_flag!("skip_urgent_warp", SubtleFlags::SKIP_URGENT_WARP);
 
