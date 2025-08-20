@@ -63,10 +63,10 @@ impl TryFrom<&MixedConfigVal> for Spacing {
     fn try_from(value: &MixedConfigVal) -> Result<Self, Self::Error> {
         match value {
             MixedConfigVal::I(val) => Ok(Self {
-                top: * val as i16,
-                right: * val as i16,
-                left: * val as i16,
-                bottom: * val as i16,
+                top: *val as i16,
+                right: *val as i16,
+                left: *val as i16,
+                bottom: *val as i16,
             }),
             MixedConfigVal::VI(val) => {
                 match val.len() {
