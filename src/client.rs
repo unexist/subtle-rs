@@ -593,7 +593,7 @@ impl Client {
 
         // Update focus
         //subtle.focus_history.remove()
-        grab::set(subtle, self.win, GrabFlags::MOUSE)?;
+        grab::set(subtle, self.win, GrabFlags::IS_MOUSE)?;
 
         // Exclude desktop and dock type windows
         if !self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {

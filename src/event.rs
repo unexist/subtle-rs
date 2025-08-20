@@ -167,7 +167,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     grab::unset(subtle, default_screen.root)?;
-    grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
+    grab::set(subtle, default_screen.root, GrabFlags::IS_KEY)?;
 
     println!("{}: win={}", function_name!(), event.event);
 
@@ -184,7 +184,7 @@ fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
         let default_screen = &conn.setup().roots[subtle.screen_num];
 
         grab::unset(subtle, default_screen.root)?;
-        grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
+        grab::set(subtle, default_screen.root, GrabFlags::IS_KEY)?;
     }
 
     debug!("{}", function_name!());
@@ -352,7 +352,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     // Set grabs and focus first client if any
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    grab::set(subtle, default_screen.root, GrabFlags::KEY)?;
+    grab::set(subtle, default_screen.root, GrabFlags::IS_KEY)?;
 
     if let Some(client) = client::find_next(subtle, 0, false) {
         client.focus(subtle, true)?;
