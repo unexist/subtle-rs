@@ -21,7 +21,7 @@ use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::grab;
+use crate::{grab, screen};
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
@@ -174,7 +174,7 @@ impl Client {
         // Update client
         let mut mode_flags = ClientFlags::empty();
 
-        client.set_strut(subtle)?;
+        //client.set_strut(subtle)?;
         client.set_size_hints(subtle, &mut mode_flags)?;
         client.set_wm_name(subtle)?;
         client.set_wm_state(subtle, WMState::WithdrawnState)?;
@@ -220,7 +220,29 @@ impl Client {
         Ok(client)
     }
 
-    pub(crate) fn set_strut(&mut self, subtle: &Subtle) -> Result<()> {
+    pub(crate) fn set_strut(&mut self, subtle: &mut Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let reply = conn.get_property(false, self.win, AtomEnum::CARDINAL,
+                                      atoms._NET_WM_STRUT, 0, 4)?.reply()?;
+
+        if 4 == reply.value.len() {
+            subtle.clients_style.padding.left = max!(subtle.clients_style.padding.left,
+                reply.value[0] as i16);
+            subtle.clients_style.padding.right = max!(subtle.clients_style.padding.right,
+                reply.value[1] as i16);
+            subtle.clients_style.padding.top = max!(subtle.clients_style.padding.top,
+                reply.value[2] as i16);
+            subtle.clients_style.padding.bottom = max!(subtle.clients_style.padding.bottom,
+                reply.value[3] as i16);
+
+            // Update screen and clients
+            screen::resize(subtle)?;
+            screen::configure(subtle)?;
+        }
+
+
         debug!("{}: client={}", function_name!(), self);
 
         Ok(())
