@@ -78,6 +78,13 @@ bitflags! {
         const TYPE_TOOLBAR = 1 << 19; // Toolbar type
         const TYPE_SPLASH = 1 << 20; // Splash type
         const TYPE_DIALOG = 1 << 21; // Dialog type
+
+        // Catch all for modes
+        const ALL_MODES = Self::MODE_FULL.bits() | Self::MODE_FLOAT.bits()
+            | Self::MODE_STICK.bits() | Self::MODE_STICK_SCREEN.bits()
+            | Self::MODE_URGENT.bits() | Self::MODE_RESIZE.bits()
+            | Self::MODE_ZAPHOD.bits() | Self::MODE_FIXED.bits()
+            | Self::MODE_CENTER.bits() | Self::MODE_BORDERLESS.bits();
     }
 }
 
@@ -176,13 +183,13 @@ impl Client {
         client.set_wm_hints(subtle, &mut mode_flags)?;
         client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         client.set_net_wm_state(subtle, &mut mode_flags)?;
-        //client.set_transient
+        client.set_transient(subtle, &mut mode_flags)?;
         client.retag(subtle, &mut mode_flags)?;
         client.toggle(subtle, &mut mode_flags, false)?;
 
         // Set leader window
-        let leader = conn.get_property(false, client.win, AtomEnum::WINDOW,
-                                       atoms.WM_CLIENT_LEADER, 0, 1)?.reply()?.value;
+        let leader = conn.get_property(false, client.win, atoms.WM_CLIENT_LEADER,
+                                       AtomEnum::WINDOW, 0, 1)?.reply()?.value;
 
         if !leader.is_empty() && NONE != leader[0] as u32 {
             client.leader = leader[0] as Window;
@@ -487,6 +494,34 @@ impl Client {
                 mode_flags.insert(ClientFlags::MODE_STICK);
             } else if atoms._NET_WM_STATE_DEMANDS_ATTENTION == state as Atom {
                 mode_flags.insert(ClientFlags::MODE_URGENT);
+            }
+        }
+
+        debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_transient(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        let trans = conn.get_property(false, self.win, AtomEnum::WM_TRANSIENT_FOR,
+                          AtomEnum::WINDOW, 0, 1)?.reply()?.value;
+
+        if !trans.is_empty() {
+            // Check if transient windows should be urgent
+            mode_flags.insert(if subtle.flags.intersects(SubtleFlags::URGENT) {
+                ClientFlags::MODE_FLOAT | ClientFlags::MODE_URGENT
+            } else {
+                ClientFlags::MODE_FLOAT
+            });
+
+            // Find parent window
+            if let Some(parent) = subtle.find_client(trans[0] as Window) {
+               mode_flags.insert(parent.flags & ClientFlags::ALL_MODES);
+
+                self.tags.insert(parent.tags);
+                self.screen_id = parent.screen_id;
             }
         }
 
