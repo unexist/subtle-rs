@@ -23,8 +23,8 @@ use crate::subtle::{Subtle, SubtleFlags};
 bitflags! {
     #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct GrabFlags: u32 {
-        const KEY = 1 << 0; // Key grab
-        const MOUSE = 1 << 1; // Mouse grab
+        const IS_KEY = 1 << 0; // Key grab
+        const IS_MOUSE = 1 << 1; // Mouse grab
         const SPAWN = 1 << 2; // Spawn an app
         const PROC = 1 << 3; // Grab with proc
 
@@ -64,14 +64,8 @@ pub(crate) struct Grab {
     pub(crate) code: Keycode,
     pub(crate) modifiers: ModMask,
 
-    pub(crate) app: Option<String>,
+    pub(crate) shell_cmd: Option<String>,
 }
-
-#[allow(non_upper_case_globals)]
-const XK_Pointer_Button1: u32 = 0xfee9;
-
-#[allow(non_upper_case_globals)]
-const XK_a: u32 = 0x0061;
 
 #[doc(hidden)]
 pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
@@ -144,7 +138,7 @@ impl Grab {
         let (code, modifiers, is_mouse) = parse_keys(keys)?;
 
         let grab = Grab {
-            flags: flags | if is_mouse { GrabFlags::MOUSE } else { GrabFlags::KEY },
+            flags: flags | if is_mouse { GrabFlags::IS_MOUSE } else { GrabFlags::IS_KEY },
             code,
             modifiers,
             ..Default::default()
@@ -158,7 +152,7 @@ impl Grab {
 
 impl fmt::Display for Grab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(flags={:?}, code={}, state={:?}, app={:?})", self.flags, self.code, self.modifiers, self.app)
+        write!(f, "(flags={:?}, code={}, state={:?}, app={:?})", self.flags, self.code, self.modifiers, self.shell_cmd)
     }
 }
 
@@ -169,13 +163,13 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let reply = conn.get_modifier_mapping()?.reply()?;
 
     if 0 < reply.keycodes_per_modifier() {
-        if let Some(numlock) = x11_keysymdef::lookup_by_name("Num_Lock") {
-            let modmasks: Vec<ModMask> = vec![ModMask::SHIFT, ModMask::LOCK, ModMask::CONTROL,
-                                              ModMask::M1, ModMask::M3, ModMask::M4, ModMask::M5];
+        if let Some(record) = x11_keysymdef::lookup_by_name("Num_Lock") {
+            let mod_masks: Vec<ModMask> = vec![ModMask::SHIFT, ModMask::LOCK, ModMask::CONTROL,
+                                               ModMask::M1, ModMask::M3, ModMask::M4, ModMask::M5];
 
             for (idx, code) in reply.keycodes.iter().enumerate() {
-                if *code as u32 == numlock.keysym {
-                    subtle.numlockmask = u16::from(modmasks[idx / reply.keycodes_per_modifier() as usize])
+                if *code as u32 == record.keysym {
+                    subtle.numlockmask = u16::from(mod_masks[idx / reply.keycodes_per_modifier() as usize])
                 }
             }
         }
@@ -202,23 +196,25 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     // Unbind click-to-focus grab
-    if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
+    if subtle.flags.intersects(SubtleFlags::CLICK_TO_FOCUS) && default_screen.root != win {
         conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
     }
 
-    let states: Vec<ModMask> = vec![ModMask::from(0u16), ModMask::LOCK,
-                                    ModMask::from(subtle.numlockmask),
-                                    ModMask::LOCK | subtle.numlockmask];
+    let states: [ModMask; 4] = [ModMask::from(0u16), ModMask::LOCK,
+        ModMask::from(subtle.numlockmask),
+        ModMask::LOCK | subtle.numlockmask];
 
+    // Bind grabs
     for grab in subtle.grabs.iter() {
         if grab.flags.intersects(grab_mask) {
 
             // FIXME: Ugly key/state grabbing
             for state in states.iter() {
-                if grab.flags.intersects(GrabFlags::KEY) {
-                    conn.grab_key(true, win, grab.modifiers | *state, grab.code,
+                if grab.flags.intersects(GrabFlags::IS_KEY) {
+                    conn.grab_key(true, default_screen.root,
+                                  grab.modifiers | *state, grab.code,
                                   GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
-                } else if grab.flags.intersects(GrabFlags::MOUSE) {
+                } else if grab.flags.intersects(GrabFlags::IS_MOUSE) {
                     conn.grab_button(false, win,
                                      EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
                                      GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
@@ -244,7 +240,7 @@ pub(crate) fn unset(subtle: &Subtle, win: Window) -> Result<()> {
     conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
 
     // Bind click-to-focus grab
-    if subtle.flags.intersects(SubtleFlags::FOCUS_CLICK) && default_screen.root != win {
+    if subtle.flags.intersects(SubtleFlags::CLICK_TO_FOCUS) && default_screen.root != win {
         conn.grab_button(false, win,
                          EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
                          GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
