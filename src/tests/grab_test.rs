@@ -17,7 +17,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(10))]
     #[test]
     fn should_parse_key_combinations(key in "([WCS]-){1,3}[a-z]") {
-        if let Ok((_sym, _code, state, _is_mouse)) = grab::parse_keys(&*key) {
+        if let Ok((_code, state, _is_mouse)) = grab::parse_keys(&*key) {
             prop_assert!(ModMask::ANY != state);
         } else {
             prop_assert!(false);
@@ -29,8 +29,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(5))]
     #[test]
     fn should_parse_mouse(key in "([WCS]-){1,3}B[1-9]") {
-        if let Ok((sym, code, state, is_mouse)) = grab::parse_keys(&*key) {
-            prop_assert!(0 < sym);
+        if let Ok((code, state, is_mouse)) = grab::parse_keys(&*key) {
             prop_assert!(0 < code);
             prop_assert!(ModMask::ANY != state);
             prop_assert!(is_mouse);
