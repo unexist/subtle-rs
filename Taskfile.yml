@@ -43,6 +43,7 @@ tasks:
       - cargo clean
 
   background:
+    aliases: [bg]
     cmds:
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
 
