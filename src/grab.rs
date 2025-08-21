@@ -86,7 +86,7 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
                 // Handle mouse buttons
                 if 2 == key.len() && key.starts_with("B") {
                     code = Keycode::from(ButtonIndex::try_from(
-                        key.get(1..).unwrap().parse::<u8>().context("Parsing failed")?)?);
+                        key.get(1..).unwrap().parse::<u8>().context("Parsing of mouse button failed")?)?);
                     is_mouse = true;
                 // Handle other keys
                 } else {
