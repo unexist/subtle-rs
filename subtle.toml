@@ -80,13 +80,22 @@ font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
 #font = "xft:sans-8"
 
 # Style for the all views
-#[[style]]
-#kind = "views"
+[[style]]
+kind = "views"
+#border = [ "#757575", 2 ]
+border_color = "#757575"
+border_width = 2
 
 # Style for the active views
 [[style]]
 kind = "views_active"
 foreground = "#fecf35"
+
+border_width = 2
+border_top_color = "#ff0000"
+border_right_color = "#00ff00"
+border_bottom_color = "#0000ff"
+border_left_color = "#ff00ff"
 
 # Style for occupied views (views with clients)
 [[style]]
@@ -484,68 +493,68 @@ height = 100
 
 [grabs]
 # Jump to view1, view2, ...
-view_jump1 = "W-S-1"
-view_jump2 = "W-S-2"
-view_jump3 = "W-S-3"
-view_jump4 = "W-S-4"
+view_jump1 = "A-S-1"
+view_jump2 = "A-S-2"
+view_jump3 = "A-S-3"
+view_jump4 = "A-S-4"
 
 # Switch current view
-view_switch1 = "W-1"
-view_switch2 = "W-2"
-view_switch3 = "W-3"
-view_switch4 = "W-4"
+view_switch1 = "A-1"
+view_switch2 = "A-2"
+view_switch3 = "A-3"
+view_switch4 = "A-4"
 
 # Select next and prev view */
 view_next = "KP_Add"
 view_prev = "KP_Subtract"
 
 # Move mouse to screen1, screen2, ...
-screen_jump1 = "W-A-1"
-screen_jump2 = "W-A-2"
-screen_jump3 = "W-A-3"
-screen_jump4 = "W-A-4"
+screen_jump1 = "A-1"
+screen_jump2 = "A-2"
+screen_jump3 = "A-3"
+screen_jump4 = "A-4"
 
 # Force reload of config and sublets
-subtle_reload = "W-C-r"
+subtle_reload = "A-C-r"
 
 # Force restart of subtle
-subtle_restart = "W-C-S-r"
+subtle_restart = "A-C-S-r"
 
 # Quit subtle
-subtle_quit = "W-C-q"
+subtle_quit = "A-C-q"
 
 # Move current window
-window_move = "W-B1"
+window_move = "A-B1"
 
 # Resize current window
-window_resize = "W-B3"
+window_resize = "A-B3"
 
 # Toggle floating mode of window
-window_float = "W-f"
+window_float = "A-f"
 
 # Toggle fullscreen mode of window
-window_full = "W-space"
+window_full = "A-space"
 
 # Toggle sticky mode of window (will be visible on all views)
-window_stick = "W-s"
+window_stick = "A-s"
 
 # Toggle zaphod mode of window (will span across all screens)
-window_zaphod = "W-equal"
+window_zaphod = "A-equal"
 
 # Raise window
-window_raise = "W-r"
+window_raise = "A-r"
 
 # Lower window
-window_lower = "W-l"
+window_lower = "A-l"
 
 # Select next windows
-window_left = "W-Left"
-window_down = "W-Down"
-window_up = "W-Up"
-window_right = "W-Right"
+window_left = "A-Left"
+window_down = "A-Down"
+window_up = "A-Up"
+window_right = "A-Right"
 
 # Kill current window
-window_kill = "W-S-k"
+window_kill = "A-S-k"
 
 # Cycle between given gravities
 #gravity_cycles = [
@@ -858,19 +867,24 @@ gravity = "center"
 [[view]]
 name = "terms"
 match = "terms"
-icon = "/usr/share/icons/icon.xbm"
+icon_only = false
+icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
 [[view]]
 name = "wwww"
 match = "browser"
+icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
 [[view]]
 name = "gimp"
 match = "gimp_.*"
+icon_only = true
+icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
 [[view]]
 name = "dev"
 match = "editor"
+icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
 #
 # == Screens
