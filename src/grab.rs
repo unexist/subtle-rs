@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 ///
 /// @package subtle-rs
 ///
@@ -11,6 +10,7 @@ use std::collections::HashMap;
 ///
 
 use std::fmt;
+use std::collections::HashMap;
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use log::debug;
@@ -74,8 +74,6 @@ pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycod
     let mut modifiers = ModMask::default();
     let mut is_mouse = false;
 
-    println!("modifiers={:?}", modifiers);
-
     for key in keys.split("-") {
         match key {
             // Handle modifier keys
@@ -97,9 +95,6 @@ pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycod
                     let record = x11_keysymdef::lookup_by_name(key).context("Keysym not found")?;
 
                     code = *keysyms_to_keycode.get(&record.keysym).context("Keycode not found")?;
-
-                    println!("keys={}, record={:?}, keycode={}, modifieirs={:?}",
-                             keys, record, code, modifiers);
                 }
             }
         }
@@ -151,7 +146,7 @@ impl Grab {
             ..Default::default()
         };
 
-        println!("{}: name={}, grab={}", function_name!(), name, grab);
+        debug!("{}: name={}, grab={}", function_name!(), name, grab);
 
         Ok(grab)
     }
@@ -226,9 +221,7 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
             for mod_state in mod_states.iter() {
                 if grab.flags.intersects(GrabFlags::IS_KEY) {
                     conn.grab_key(true, default_screen.root,
-                                  //ModMask::ANY, grab.code,
                                   grab.modifiers | *mod_state, grab.code,
-                                  //grab.modifiers | *mod_state, grab.code,
                                   GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
                 } else if grab.flags.intersects(GrabFlags::IS_MOUSE) {
                     conn.grab_button(false, win,
@@ -241,7 +234,7 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
         }
     }
 
-    println!("{}: win={}, mask={:?}", function_name!(), win, grab_mask);
+    debug!("{}: win={}, mask={:?}", function_name!(), win, grab_mask);
 
     Ok(())
 }
