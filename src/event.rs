@@ -149,11 +149,9 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
 }
 
 fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
-    // Hacky conversion
-    let bits: u16 = event.state.into();
-    let mod_mask = ModMask::from(bits & 0xFF);
-
-    println!("mod_mask={:?}", mod_mask);
+    // Limit mod mask to relevant ones
+    let mod_mask = ModMask::from(event.state.bits()
+        & (ModMask::SHIFT | ModMask::CONTROL | ModMask::M1 | ModMask::M4));
 
     if let Some(grab) = subtle.find_grab(event.detail, mod_mask) {
         println!("grab={:?}", grab);
