@@ -169,7 +169,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     grab::unset(subtle, default_screen.root)?;
     grab::set(subtle, default_screen.root, GrabFlags::IS_KEY)?;
 
-    println!("{}: win={}", function_name!(), event.event);
+    debug!("{}: win={}, keycode={}", function_name!(), event.event, event.detail);
 
     Ok(())
 }
