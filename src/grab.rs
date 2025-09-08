@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 ///
 /// @package subtle-rs
 ///
@@ -16,7 +17,7 @@ use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::NONE;
-use x11rb::protocol::xproto::{ButtonIndex, ConnectionExt, EventMask, GrabMode, Keycode, ModMask, Window};
+use x11rb::protocol::xproto::{ButtonIndex, ConnectionExt, EventMask, GrabMode, Keycode, Keysym, ModMask, Window};
 use crate::config::Config;
 use crate::subtle::{Subtle, SubtleFlags};
 
@@ -68,10 +69,12 @@ pub(crate) struct Grab {
 }
 
 #[doc(hidden)]
-pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
+pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<(Keycode, ModMask, bool)> {
     let mut code: Keycode = 0;
     let mut modifiers = ModMask::default();
     let mut is_mouse = false;
+
+    println!("modifiers={:?}", modifiers);
 
     for key in keys.split("-") {
         match key {
@@ -86,13 +89,17 @@ pub(crate) fn parse_keys(keys: &str) -> Result<(Keycode, ModMask, bool)> {
                 // Handle mouse buttons
                 if 2 == key.len() && key.starts_with("B") {
                     code = Keycode::from(ButtonIndex::try_from(
-                        key.get(1..).unwrap().parse::<u8>().context("Parsing of mouse button failed")?)?);
+                        key.get(1..).unwrap()
+                            .parse::<u8>().context("Parsing of mouse button failed")?)?);
                     is_mouse = true;
                 // Handle other keys
                 } else {
-                    if let Some(record) = x11_keysymdef::lookup_by_name(key) {
-                        code = Keycode::from(record.keysym as u8);
-                    }
+                    let record = x11_keysymdef::lookup_by_name(key).context("Keysym not found")?;
+
+                    code = *keysyms_to_keycode.get(&record.keysym).context("Keycode not found")?;
+
+                    println!("keys={}, record={:?}, keycode={}, modifieirs={:?}",
+                             keys, record, code, modifiers);
                 }
             }
         }
@@ -131,11 +138,11 @@ pub(crate) fn parse_name(name: &str) -> Result<GrabFlags> {
 }
 
 impl Grab {
-    pub(crate) fn new(name: &str, keys: &str) -> Result<Self> {
+    pub(crate) fn new(name: &str, keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<Self> {
 
         // Parse name and keys
         let flags = parse_name(name)?;
-        let (code, modifiers, is_mouse) = parse_keys(keys)?;
+        let (code, modifiers, is_mouse) = parse_keys(keys, keysyms_to_keycode)?;
 
         let grab = Grab {
             flags: flags | if is_mouse { GrabFlags::IS_MOUSE } else { GrabFlags::IS_KEY },
@@ -152,32 +159,38 @@ impl Grab {
 
 impl fmt::Display for Grab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(flags={:?}, code={}, state={:?}, app={:?})", self.flags, self.code, self.modifiers, self.shell_cmd)
+        write!(f, "(flags={:?}, code={}, state={:?}, app={:?})",
+               self.flags, self.code, self.modifiers, self.shell_cmd)
     }
 }
 
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    // Get modifier mask for numlock
-    let reply = conn.get_modifier_mapping()?.reply()?;
+    // Get keyboard mapping
+    let mapping = conn.get_keyboard_mapping(conn.setup().min_keycode,
+        conn.setup().max_keycode - conn.setup().min_keycode + 1)?.reply()?;
 
-    if 0 < reply.keycodes_per_modifier() {
-        if let Some(record) = x11_keysymdef::lookup_by_name("Num_Lock") {
-            let mod_masks: Vec<ModMask> = vec![ModMask::SHIFT, ModMask::LOCK, ModMask::CONTROL,
-                                               ModMask::M1, ModMask::M3, ModMask::M4, ModMask::M5];
+    // Build reverse map of keysyms to keycode
+    let mut keysyms_to_keycode = HashMap::new();
 
-            for (idx, code) in reply.keycodes.iter().enumerate() {
-                if *code as u32 == record.keysym {
-                    subtle.numlockmask = u16::from(mod_masks[idx / reply.keycodes_per_modifier() as usize])
-                }
-            }
+    for (idx, chunk) in mapping.keysyms
+        .chunks(mapping.keysyms_per_keycode as usize)
+        .enumerate()
+    {
+        let keycode = conn.setup().min_keycode + idx as u8;
+
+        // Just copy the first sym without modifiers
+        if let Some(&keysym) = chunk.first() && 0 != keycode {
+            keysyms_to_keycode.insert(keysym, keycode);
         }
     }
 
     // Parse grabs
     subtle.grabs = config.grabs.iter()
-        .map(|grab| Grab::new(grab.0, grab.1))
+        .map(|(grab_name, grab_keys)| {
+            Grab::new(grab_name, grab_keys, &keysyms_to_keycode)
+        })
         .filter_map(|res| res.ok())
         .collect();
 
@@ -200,26 +213,29 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
         conn.ungrab_button(ButtonIndex::ANY, win, ModMask::ANY)?.check()?;
     }
 
-    let states: [ModMask; 4] = [ModMask::from(0u16), ModMask::LOCK,
-        ModMask::from(subtle.numlockmask),
-        ModMask::LOCK | subtle.numlockmask];
+    let mod_states: [ModMask; 4] = [ModMask::from(0u16),
+        ModMask::LOCK, // Scrolllock
+        ModMask::M2, // Numlock
+        ModMask::M2 | ModMask::LOCK];
 
     // Bind grabs
     for grab in subtle.grabs.iter() {
         if grab.flags.intersects(grab_mask) {
 
             // FIXME: Ugly key/state grabbing
-            for state in states.iter() {
+            for mod_state in mod_states.iter() {
                 if grab.flags.intersects(GrabFlags::IS_KEY) {
                     conn.grab_key(true, default_screen.root,
-                                  grab.modifiers | *state, grab.code,
+                                  //ModMask::ANY, grab.code,
+                                  grab.modifiers | *mod_state, grab.code,
+                                  //grab.modifiers | *mod_state, grab.code,
                                   GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
                 } else if grab.flags.intersects(GrabFlags::IS_MOUSE) {
                     conn.grab_button(false, win,
                                      EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
                                      GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
                                      ButtonIndex::from(grab.code),
-                                     grab.modifiers | *state)?.check()?;
+                                     grab.modifiers | *mod_state)?.check()?;
                 }
             }
         }
