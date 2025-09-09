@@ -52,7 +52,7 @@ pub(crate) enum RestackOrder {
 }
 
 bitflags! {
-    #[derive(Default, Debug, Copy, Clone)]
+    #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct ClientFlags: u32 {
         const DEAD = 1 << 0;  // Dead window
         const FOCUS = 1 << 1; // Send focus message
