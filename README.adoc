@@ -14,4 +14,4 @@ tagging rules in the config.
 
 - https://subtle.de
 - https://subtle.rs
-- https://duktape.org/
+- https://rhai.rs/
