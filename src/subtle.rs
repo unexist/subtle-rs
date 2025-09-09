@@ -158,7 +158,7 @@ impl Subtle {
 
     pub(crate) fn find_grab(&self, code: Keycode, modifiers: ModMask) -> Option<&Grab> {
         for grab in self.grabs.iter() {
-            if grab.code == code && grab.modifiers == modifiers {
+            if grab.keycode == code && grab.modifiers == modifiers {
                 return Some(grab);
             }
         }

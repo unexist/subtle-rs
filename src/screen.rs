@@ -332,7 +332,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
             // After all screens are checked..
             if 0 < visible {
-                client.set_wm_state(subtle, WMState::NormalState)?;
+                client.set_wm_state(subtle, WMState::Normal)?;
                 client.map(subtle)?;
 
                 // Warp after gravity and screen have been set if not disabled
@@ -357,7 +357,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                     mut_client.arrange(subtle, gravity_idx, screen_id as isize)?;
                 }
             } else {
-                client.set_wm_state(subtle, WMState::WithdrawnState)?;
+                client.set_wm_state(subtle, WMState::Withdrawn)?;
                 client.unmap(subtle)?;
 
                 // Drop and re-borrow mut this time
