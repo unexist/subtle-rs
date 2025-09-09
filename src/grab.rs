@@ -18,6 +18,8 @@ use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::NONE;
 use x11rb::protocol::xproto::{ButtonIndex, ConnectionExt, EventMask, GrabMode, Keycode, Keysym, ModMask, Window};
+use crate::client;
+use crate::client::ClientFlags;
 use crate::config::Config;
 use crate::subtle::{Subtle, SubtleFlags};
 
@@ -26,51 +28,58 @@ bitflags! {
     pub(crate) struct GrabFlags: u32 {
         const IS_KEY = 1 << 0; // Key grab
         const IS_MOUSE = 1 << 1; // Mouse grab
-        const SPAWN = 1 << 2; // Spawn an app
-        const PROC = 1 << 3; // Grab with proc
+        const COMMAND = 1 << 2; // Run a command
 
-        const CHAIN_START = 1 << 4; // Chain grab start
-        const CHAIN_LINK = 1 << 5; // Chain grab link
-        const CHAIN_END = 1 << 6; // Chain grab end
+        const VIEW_JUMP = 1 << 3; // Jump to view
+        const VIEW_SWITCH = 1 << 4; // Jump to view
+        const VIEW_SELECT = 1 << 5; // Jump to view
 
-        const VIEW_JUMP = 1 << 7; // Jump to view
-        const VIEW_SWITCH = 1 << 8; // Jump to view
-        const VIEW_SELECT = 1 << 9; // Jump to view
+        const SCREEN_JUMP = 1 << 6; // Jump to screen
+        const SUBTLE_RELOAD = 1 << 7; // Reload subtle
+        const SUBTLE_RESTART = 1 << 8; // Restart subtle
+        const SUBTLE_QUIT = 1 << 9; // Quit subtle
 
-        const SCREEN_JUMP = 1 << 10; // Jump to screen
-        const SUBTLE_RELOAD = 1 << 11; // Reload subtle
-        const SUBTLE_RESTART = 1 << 12; // Restart subtle
-        const SUBTLE_QUIT = 1 << 13; // Quit subtle
-
-        const WINDOW_MOVE = 1 << 14; // Resize window
-        const WINDOW_RESIZE = 1 << 15; // Move window
-        const WINDOW_TOGGLE = 1 << 16; // Toggle window
-        const WINDOW_STACK = 1 << 17; // Stack window
-        const WINDOW_SELECT = 1 << 18; // Select window
-        const WINDOW_GRAVITY = 1 << 19; // Set gravity of window
-        const WINDOW_KILL = 1 << 20; // Kill window
-
-        /* Grab directions flags */
-        const DIRECTION_UP = 1 << 0; // Direction up
-        const DIRECTION_RIGHT = 1 << 1; // Direction right
-        const DIRECTION_DOWN = 1 << 2; // Direction down
-        const DIRECTION_LEFT = 1 << 3; // Direction left
+        const WINDOW_MOVE = 1 << 10; // Move window
+        const WINDOW_RESIZE = 1 << 11; // Resize window
+        const WINDOW_MODE = 1 << 12; // Toggle window mode
+        const WINDOW_RESTACK = 1 << 13; // Restack window
+        const WINDOW_SELECT = 1 << 14; // Select window
+        const WINDOW_GRAVITY = 1 << 15; // Set gravity of window
+        const WINDOW_KILL = 1 << 16; // Kill window
     }
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum DirectionOrder {
+    Up = 0,
+    Right = 1,
+    Down = 2,
+    Left = 3,
+}
+
+#[derive(Default, Debug)]
+pub(crate) enum GrabAction {
+    #[default]
+    None,
+    Index(u32),
+    Command(String),
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct Grab {
     pub(crate) flags: GrabFlags,
 
-    pub(crate) code: Keycode,
+    pub(crate) keycode: Keycode,
     pub(crate) modifiers: ModMask,
 
-    pub(crate) shell_cmd: Option<String>,
+    pub(crate) action: GrabAction,
 }
+
 
 #[doc(hidden)]
 pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<(Keycode, ModMask, bool)> {
-    let mut code: Keycode = 0;
+    let mut keycode: Keycode = 0;
     let mut modifiers = ModMask::default();
     let mut is_mouse = false;
 
@@ -86,47 +95,67 @@ pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycod
             _ => {
                 // Handle mouse buttons
                 if 2 == key.len() && key.starts_with("B") {
-                    code = Keycode::from(ButtonIndex::try_from(
+                    keycode = Keycode::from(ButtonIndex::try_from(
                         key.get(1..).unwrap()
                             .parse::<u8>().context("Parsing of mouse button failed")?)?);
                     is_mouse = true;
                 // Handle other keys
                 } else {
-                    let record = x11_keysymdef::lookup_by_name(key).context("Keysym not found")?;
+                    let record = x11_keysymdef::lookup_by_name(key)
+                        .context(format!("Key name not found: {}", key))?;
 
-                    code = *keysyms_to_keycode.get(&record.keysym).context("Keycode not found")?;
+                    keycode = *keysyms_to_keycode.get(&record.keysym).context("Keysym not found")?;
                 }
             }
         }
     }
 
-    Ok((code, modifiers, is_mouse))
+    Ok((keycode, modifiers, is_mouse))
 }
 
 #[doc(hidden)]
-pub(crate) fn parse_name(name: &str) -> Result<GrabFlags> {
+pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
     Ok(match name {
-        "subtle_reload" => GrabFlags::SUBTLE_RELOAD,
-        "subtle_restart" => GrabFlags::SUBTLE_RESTART,
-        "subtle_quit" => GrabFlags::SUBTLE_QUIT,
+        "subtle_reload" => (GrabFlags::SUBTLE_RELOAD, GrabAction::None),
+        "subtle_restart" => (GrabFlags::SUBTLE_RESTART, GrabAction::None),
+        "subtle_quit" => (GrabFlags::SUBTLE_QUIT, GrabAction::None),
 
-        "window_move" => GrabFlags::WINDOW_MOVE,
-        "window_resize" => GrabFlags::WINDOW_RESIZE,
-        "window_toggle" => GrabFlags::WINDOW_TOGGLE,
-        "window_stack" => GrabFlags::WINDOW_STACK,
-        "window_select" => GrabFlags::WINDOW_SELECT,
-        "window_gravity" => GrabFlags::WINDOW_GRAVITY,
-        "window_kill" => GrabFlags::WINDOW_KILL,
+        "window_move" => (GrabFlags::WINDOW_MOVE, GrabAction::None),
+        "window_resize" => (GrabFlags::WINDOW_RESIZE, GrabAction::None),
+        "window_toggle" => (GrabFlags::WINDOW_MODE, GrabAction::None),
+        "window_stack" => (GrabFlags::WINDOW_RESTACK, GrabAction::None),
+        "window_select" => (GrabFlags::WINDOW_SELECT, GrabAction::None),
+        "window_gravity" => (GrabFlags::WINDOW_GRAVITY, GrabAction::None),
+        "window_kill" => (GrabFlags::WINDOW_KILL, GrabAction::None),
+
+        // Window modes
+        "window_float" => (GrabFlags::WINDOW_MODE, GrabAction::Index(ClientFlags::MODE_FLOAT.bits())),
+        "window_full" => (GrabFlags::WINDOW_MODE, GrabAction::Index(ClientFlags::MODE_FULL.bits())),
+        "window_stick" => (GrabFlags::WINDOW_MODE, GrabAction::Index(ClientFlags::MODE_STICK.bits())),
+        "window_zaphod" => (GrabFlags::WINDOW_MODE, GrabAction::Index(ClientFlags::MODE_ZAPHOD.bits())),
+
+        // Window restack
+        "window_raise" => (GrabFlags::WINDOW_RESTACK,
+                           GrabAction::Index(client::RestackOrder::Up as u32)),
+        "window_lower" => (GrabFlags::WINDOW_RESTACK,
+                           GrabAction::Index(client::RestackOrder::Down as u32)),
+
+        // Window select
+        "window_left" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Left as u32)),
+        "window_down" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Down as u32)),
+        "window_right" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Right as u32)),
+        "window_up" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Up as u32)),
+
         _ => {
             // Handle grabs with index
             if name.starts_with("view_jump") {
-                GrabFlags::VIEW_JUMP
+                (GrabFlags::VIEW_JUMP, GrabAction::Index(name[9..].parse()?))
             } else if name.starts_with("view_switch") {
-                GrabFlags::VIEW_SWITCH
+                (GrabFlags::VIEW_SWITCH, GrabAction::Index(name[11..].parse()?))
             } else if name.starts_with("screen_jump") {
-                GrabFlags::SCREEN_JUMP
+                (GrabFlags::SCREEN_JUMP, GrabAction::Index(name[11..].parse()?))
             } else {
-                return Err(anyhow!("Grab not found: {}", name))
+                (GrabFlags::COMMAND, GrabAction::Command(name.to_string()))
             }
         }
     })
@@ -136,13 +165,14 @@ impl Grab {
     pub(crate) fn new(name: &str, keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<Self> {
 
         // Parse name and keys
-        let flags = parse_name(name)?;
-        let (code, modifiers, is_mouse) = parse_keys(keys, keysyms_to_keycode)?;
+        let (flags, action) = parse_name(name)?;
+        let (keycode, modifiers, is_mouse) = parse_keys(keys, keysyms_to_keycode)?;
 
         let grab = Grab {
             flags: flags | if is_mouse { GrabFlags::IS_MOUSE } else { GrabFlags::IS_KEY },
-            code,
+            keycode,
             modifiers,
+            action,
             ..Default::default()
         };
 
@@ -155,7 +185,7 @@ impl Grab {
 impl fmt::Display for Grab {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(flags={:?}, code={}, state={:?}, app={:?})",
-               self.flags, self.code, self.modifiers, self.shell_cmd)
+               self.flags, self.keycode, self.modifiers, self.action)
     }
 }
 
@@ -221,13 +251,13 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
             for mod_state in mod_states.iter() {
                 if grab.flags.intersects(GrabFlags::IS_KEY) {
                     conn.grab_key(true, default_screen.root,
-                                  grab.modifiers | *mod_state, grab.code,
+                                  grab.modifiers | *mod_state, grab.keycode,
                                   GrabMode::ASYNC, GrabMode::ASYNC)?.check()?;
                 } else if grab.flags.intersects(GrabFlags::IS_MOUSE) {
                     conn.grab_button(false, win,
                                      EventMask::BUTTON_PRESS | EventMask::BUTTON_RELEASE,
                                      GrabMode::ASYNC, GrabMode::ASYNC, NONE, NONE,
-                                     ButtonIndex::from(grab.code),
+                                     ButtonIndex::from(grab.keycode),
                                      grab.modifiers | *mod_state)?.check()?;
                 }
             }
