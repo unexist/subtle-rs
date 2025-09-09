@@ -148,6 +148,14 @@ impl Subtle {
         None
     }
 
+    pub(crate) fn find_focus_client_mut(&self) -> Option<VecRefMut<'_, Client>> {
+        if let Some(win) = self.focus_history.borrow(0) {
+            return self.find_client_mut(*win)
+        }
+
+        None
+    }
+
     pub(crate) fn find_focus_win(&self) -> Window {
         if let Some(win) = self.focus_history.borrow(0) && NONE != *win {
             return *win
