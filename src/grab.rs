@@ -24,7 +24,7 @@ use crate::config::Config;
 use crate::subtle::{Subtle, SubtleFlags};
 
 bitflags! {
-    #[derive(Default, Debug, Copy, Clone)]
+    #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct GrabFlags: u32 {
         const IS_KEY = 1 << 0; // Key grab
         const IS_MOUSE = 1 << 1; // Mouse grab
