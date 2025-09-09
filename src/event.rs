@@ -19,7 +19,7 @@ use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, WMState};
 use crate::{client, grab, screen};
-use crate::grab::GrabFlags;
+use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
@@ -150,10 +150,43 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
 
 fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     // Limit mod mask to relevant ones
-    let mod_mask = ModMask::from(event.state.bits()
+    let relevant_modifiers = ModMask::from(event.state.bits()
         & (ModMask::SHIFT | ModMask::CONTROL | ModMask::M1 | ModMask::M4));
 
-    if let Some(grab) = subtle.find_grab(event.detail, mod_mask) {
+    if let Some(grab) = subtle.find_grab(event.detail, relevant_modifiers) {
+        let flag = grab.flags.difference(GrabFlags::IS_KEY | GrabFlags::IS_MOUSE);
+
+        match flag {
+            GrabFlags::VIEW_SWITCH | GrabFlags::VIEW_SELECT => {
+                if let GrabAction::Index(idx) = grab.action {
+                    if let Some(view) = subtle.views.get(idx as usize - 1) {
+                        let mut screen_id: isize = -1;
+
+                        // Find screen: Prefer screen of current window
+                        if subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP)
+                            && let Some(client) = subtle.find_focus_client()
+                            && client.is_visible(subtle)
+                        {
+                            screen_id = client.screen_id;
+                        } else if let Some((maybe_screen_id, _)) = subtle.find_screen_by_xy(
+                            event.event_x, event.event_y)
+                        {
+                            screen_id = maybe_screen_id as isize;
+                        }
+
+                        view.focus(subtle, screen_id as usize,
+                                   GrabFlags::VIEW_SWITCH == flag, true)?;
+
+                        // Finally configure and render
+                        screen::configure(subtle)?;
+                        screen::render(subtle)?;
+                    }
+                }
+
+            },
+            _ => {},
+        }
+
         println!("grab={:?}", grab);
     }
 
@@ -297,7 +330,7 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
         // Set withdrawn state (see ICCCM 4.1.4)
-        let _ = client.set_wm_state(subtle, WMState::WithdrawnState);
+        let _ = client.set_wm_state(subtle, WMState::Withdrawn);
 
         // Ignore our generated unmap events
         if client.flags.contains(ClientFlags::UNMAP) {
