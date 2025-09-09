@@ -164,10 +164,10 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                         // Find screen: Prefer screen of current window
                         if subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP)
-                            && let Some(client) = subtle.find_focus_client()
-                            && client.is_visible(subtle)
+                            && let Some(focus) = subtle.find_focus_client()
+                            && focus.is_visible(subtle)
                         {
-                            screen_id = client.screen_id;
+                            screen_id = focus.screen_id;
                         } else if let Some((maybe_screen_id, _)) = subtle.find_screen_by_xy(
                             event.event_x, event.event_y)
                         {
@@ -184,6 +184,34 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                 }
 
             },
+            GrabFlags::WINDOW_MODE => {
+                if let Some(mut focus) = subtle.find_focus_client_mut() {
+                    if let GrabAction::Index(bits) = grab.action {
+                        let mut mode_flags = ClientFlags::from_bits(bits)
+                            .context("Unknown client flags")?;
+
+                        focus.toggle(subtle, &mut mode_flags, true)?;
+
+                        // Update screen and focus
+                        if focus.is_visible(subtle) || ClientFlags::MODE_STICK == mode_flags {
+
+                            // Find next and focus
+                            if !focus.is_visible(subtle) {
+                                if let Some(next) = client::find_next(subtle, focus.screen_id, false) {
+                                    next.focus(subtle, true)?;
+                                }
+                            }
+
+                            drop(focus);
+
+                            // Finally configure, update and render
+                            screen::configure(subtle)?;
+                            screen::update(subtle)?;
+                            screen::render(subtle)?;
+                        }
+                    }
+                }
+            }
             _ => {},
         }
 
