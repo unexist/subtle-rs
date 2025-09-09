@@ -40,15 +40,15 @@ macro_rules! ignore_if_dead {
 #[repr(u8)]
 #[derive(Copy, Clone)]
 pub(crate) enum WMState {
-    WithdrawnState = 0,
-    NormalState = 1,
+    Withdrawn = 0,
+    Normal = 1,
 }
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum RestackOrder {
-    RestackDown = 0,
-    RestackUp = 1,
+    Down = 0,
+    Up = 1,
 }
 
 bitflags! {
@@ -177,7 +177,7 @@ impl Client {
         //client.set_strut(subtle)?;
         client.set_size_hints(subtle, &mut mode_flags)?;
         client.set_wm_name(subtle)?;
-        client.set_wm_state(subtle, WMState::WithdrawnState)?;
+        client.set_wm_state(subtle, WMState::Withdrawn)?;
         client.set_wm_protocols(subtle)?;
         client.set_wm_type(subtle, &mut mode_flags)?;
         client.set_wm_hints(subtle, &mut mode_flags)?;
@@ -763,7 +763,7 @@ impl Client {
         if self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL
             | ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK)
         {
-            restack_clients(RestackOrder::RestackUp)?;
+            restack_clients(RestackOrder::Up)?;
         }
 
         // EWMH: State and flags
