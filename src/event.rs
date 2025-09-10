@@ -11,6 +11,7 @@
 
 use anyhow::{Context, Result};
 use std::sync::atomic;
+use std::sync::atomic::Ordering;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -182,8 +183,8 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                         screen::render(subtle)?;
                     }
                 }
-
             },
+
             GrabFlags::WINDOW_MODE => {
                 if let Some(mut focus) = subtle.find_focus_client_mut() {
                     if let GrabAction::Index(bits) = grab.action {
@@ -212,6 +213,17 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                     }
                 }
             }
+
+            GrabFlags::WINDOW_KILL => {
+                if let Some(focus) = subtle.find_focus_client_mut() {
+                    focus.close(subtle)?;
+                }
+            },
+
+            GrabFlags::SUBTLE_QUIT => {
+                subtle.shutdown.store(true, Ordering::Relaxed);
+            },
+
             _ => {},
         }
 
@@ -358,7 +370,7 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
         // Set withdrawn state (see ICCCM 4.1.4)
-        let _ = client.set_wm_state(subtle, WMState::Withdrawn);
+        client.set_wm_state(subtle, WMState::Withdrawn)?;
 
         // Ignore our generated unmap events
         if client.flags.contains(ClientFlags::UNMAP) {
