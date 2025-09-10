@@ -10,6 +10,7 @@
 ///
 
 use std::fmt;
+use std::cmp::PartialEq;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
@@ -21,7 +22,7 @@ use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::{grab, screen};
+use crate::{ewmh, grab, screen};
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
@@ -1118,6 +1119,43 @@ impl Client {
         String::from_utf8(mode_str[0..x].to_vec()).map_err(|e| anyhow!(e))
     }
 
+    pub(crate) fn close(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        // Honor window preferences (see ICCCM 4.1.2.7, 4.2.8.1)
+        if self.flags.intersects(ClientFlags::CLOSE) {
+           ewmh::send_message(subtle, self.win, atoms.WM_PROTOCOLS,
+                              &[atoms.WM_DELETE_WINDOW, CURRENT_TIME, 0, 0, 0])?;
+        } else {
+            let screen_id = if let Some(focus) = subtle.find_focus_client()
+                && focus.win == self.win { self.screen_id } else { -1 };
+
+            // Kill it manually
+            conn.kill_client(self.win)?.check()?;
+
+            //subtle.clients.remove
+            //self.kill(subtle);
+
+            publish(subtle, false)?;
+
+            screen::configure(subtle)?;
+            screen::update(subtle)?;
+            screen::render(subtle)?;
+
+            // Update focus if necessary
+            if -1 == screen_id {
+                if let Some(next) = find_next(subtle, screen_id, false) {
+                    next.focus(subtle, true)?;
+                }
+            }
+        }
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
+
     pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -1345,6 +1383,12 @@ impl fmt::Display for Client {
                self.geom.x, self.geom.y, self.geom.width, self.geom.height,
                self.flags.contains(ClientFlags::INPUT), self.flags.contains(ClientFlags::FOCUS),
                self.tags)
+    }
+}
+
+impl PartialEq for Client {
+    fn eq(&self, other: &Self) -> bool {
+        self.win == other.win
     }
 }
 
