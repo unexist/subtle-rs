@@ -389,7 +389,7 @@ fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
     } else if event.owner == subtle.support_win {
         warn!("Leaving the field");
 
-        subtle.exterminate.store(false, atomic::Ordering::Relaxed);
+        subtle.shutdown.store(false, atomic::Ordering::Relaxed);
     }
     
     debug!("{}: win={}, tray={}, support={}",
@@ -417,7 +417,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
         client.focus(subtle, true)?;
     }
 
-    while !subtle.exterminate.load(atomic::Ordering::SeqCst) {
+    while !subtle.shutdown.load(atomic::Ordering::SeqCst) {
         conn.flush()?;
 
         if let Some(event) = conn.poll_for_event()? {

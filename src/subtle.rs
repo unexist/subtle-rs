@@ -71,7 +71,7 @@ pub(crate) struct Subtle {
     pub(crate) client_tags: Cell<Tagging>,
     pub(crate) urgent_tags: Cell<Tagging>,
 
-    pub(crate) exterminate: Arc<AtomicBool>,
+    pub(crate) shutdown: Arc<AtomicBool>,
     pub(crate) conn: OnceCell<RustConnection>,
     pub(crate) screen_num: usize,
 
@@ -233,7 +233,7 @@ impl Default for Subtle {
             client_tags: Cell::new(Tagging::empty()),
             urgent_tags: Cell::new(Tagging::empty()),
 
-            exterminate: Arc::new(AtomicBool::new(false)),
+            shutdown: Arc::new(AtomicBool::new(false)),
             conn: OnceCell::new(),
             screen_num: 0,
 
