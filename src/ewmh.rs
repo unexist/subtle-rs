@@ -14,7 +14,7 @@ use log::debug;
 use stdext::function_name;
 use struct_iterable::Iterable;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::ConnectionExt;
+use x11rb::protocol::xproto::{Atom, ClientMessageEvent, ConnectionExt, EventMask, Window};
 use crate::config::Config;
 use crate::subtle::{Subtle, SubtleFlags};
 
@@ -79,6 +79,19 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.flags.insert(SubtleFlags::EWMH);
     
     debug!("{}", function_name!());
+
+    Ok(())
+}
+
+pub(crate) fn send_message(subtle: &Subtle, win: Window, message_type: Atom, data32: &[u32; 5]) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+
+    conn.send_event(false, win, EventMask::NO_EVENT, &ClientMessageEvent::new(
+        32,
+        win,
+        message_type,
+        *data32
+    ))?.check()?;
 
     Ok(())
 }
