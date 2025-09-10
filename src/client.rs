@@ -1156,7 +1156,7 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn kill(&self, subtle: &mut Subtle) -> Result<()> {
+    pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
