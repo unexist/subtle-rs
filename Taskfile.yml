@@ -47,6 +47,11 @@ tasks:
     cmds:
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
 
+  xephyr:
+    cmds:
+      - Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -screen 640x480 {{.DISPLAY}} &
+      - xsetroot -d {{.DISPLAY}} -solid "#595959"
+
   release:
     cmds:
       - cargo build --release
