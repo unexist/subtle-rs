@@ -509,10 +509,10 @@ view_next = "KP_Add"
 view_prev = "KP_Subtract"
 
 # Move mouse to screen1, screen2, ...
-screen_jump1 = "A-1"
-screen_jump2 = "A-2"
-screen_jump3 = "A-3"
-screen_jump4 = "A-4"
+screen_jump1 = "A-C-1"
+screen_jump2 = "A-C-2"
+screen_jump3 = "A-C-3"
+screen_jump4 = "A-C-4"
 
 # Force reload of config and sublets
 subtle_reload = "A-C-r"
