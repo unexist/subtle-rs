@@ -48,8 +48,11 @@ tasks:
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
 
   xephyr:
+    aliases: [x]
     cmds:
-      - Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -screen 640x480 {{.DISPLAY}} &
+      - |
+        Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 \
+          -screen 640x480 -resizeable -reset {{.DISPLAY}} &
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
 
   release:
