@@ -105,7 +105,7 @@ fn main() -> Result<()> {
     display::scan(&mut subtle)?;
 
     // Run event handler
-    event::event_loop(&mut subtle)?;
+    event::event_loop(&subtle)?;
 
     // Tidy up
     ewmh::finish(&subtle)?;
