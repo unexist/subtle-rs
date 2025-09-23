@@ -248,7 +248,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    conn.set_modifier_mapping(&[event.first_keycode])?;
+    //conn.set_modifier_mapping(&[event.first_keycode])?;
 
     // Update grabs
     if Mapping::KEYBOARD == event.request {
@@ -346,15 +346,11 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         client.flags.remove(ClientFlags::DEAD);
         client.flags.insert(ClientFlags::ARRANGE);
 
-        drop(client);
-
         screen::configure(subtle)?;
         screen::update(subtle)?;
         screen::render(subtle)?;
     } else if let Ok(client) = Client::new(subtle, event.window) {
-        //subtle.clients.push(client);
-
-        drop(client);
+        subtle.add_client(client);
 
         screen::configure(subtle)?;
         screen::update(subtle)?;
@@ -377,8 +373,8 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
             client.flags.remove(ClientFlags::UNMAP);
         } else {
             // Kill client
-            //subtle.clients.pop(client);
-            //client.kill(subtle);
+            subtle.remove_client(&client);
+            client.kill(subtle)?;
 
             drop(client);
 
