@@ -289,13 +289,17 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     let mut client_tags = Tagging::empty();
 
     // Either check each client or just get visible clients
-    if 0 < subtle.clients.len() {
+    let mut clients = subtle.clients.borrow_mut();
+
+    if 0 < clients.len() {
         // Check each client
-        for (client_idx, client) in subtle.clients.iter().enumerate() {
+        for client_idx in 0..clients.len() {
             let mut gravity_idx: isize = 0;
             let mut screen_id: usize = 0;
             let mut view_idx: usize = 0;
             let mut visible = 0;
+
+            let client = clients.get_mut(client_idx).unwrap();
 
             // Ignore dead or just iconified clients
             if client.flags.intersects(ClientFlags::DEAD) {
@@ -351,21 +355,13 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                                        AtomEnum::CARDINAL, &[screen_id as u32])?.check()?;
 
                 // Drop and re-borrow mut this time
-                drop(client);
-
-                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
-                    mut_client.arrange(subtle, gravity_idx, screen_id as isize)?;
-                }
+                client.arrange(subtle, gravity_idx, screen_id as isize)?;
             } else {
                 client.set_wm_state(subtle, WMState::Withdrawn)?;
                 client.unmap(subtle)?;
 
                 // Drop and re-borrow mut this time
-                drop(client);
-
-                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
-                    mut_client.flags.insert(ClientFlags::UNMAP);
-                }
+                client.flags.insert(ClientFlags::UNMAP);
             }
         }
     } else {
