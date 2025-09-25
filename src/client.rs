@@ -1086,37 +1086,30 @@ impl Client {
         !self.flags.intersects(ClientFlags::DEAD)
     }
 
-    pub(crate) fn mode_string(&self) -> Result<String> {
-        let mut x = 0;
-        let mut mode_str =  [0; 6];
+    pub(crate) fn mode_string(&self) -> String {
+        let mut mode_str =  String::with_capacity(6);
 
         // Collect window modes
         if self.flags.intersects(ClientFlags::MODE_FULL) {
-            mode_str[x] = '+' as u8;
-            x += 1;
+            mode_str.push_str("+");
         }
         if self.flags.intersects(ClientFlags::MODE_FLOAT) {
-            mode_str[x] = '^' as u8;
-            x += 1;
+            mode_str.push_str("^");
         }
         if self.flags.intersects(ClientFlags::MODE_STICK) {
-            mode_str[x] = '*' as u8;
-            x += 1;
+            mode_str.push_str("*");
         }
         if self.flags.intersects(ClientFlags::MODE_RESIZE) {
-            mode_str[x] = '-' as u8;
-            x += 1;
+            mode_str.push_str("-");
         }
         if self.flags.intersects(ClientFlags::MODE_ZAPHOD) {
-            mode_str[x] = '=' as u8;
-            x += 1;
+            mode_str.push_str("=");
         }
         if self.flags.intersects(ClientFlags::MODE_FIXED) {
-            mode_str[x] = '!' as u8;
-            x += 1;
+            mode_str.push_str("!");
         }
 
-        String::from_utf8(mode_str[0..x].to_vec()).map_err(|e| anyhow!(e))
+        mode_str
     }
 
     pub(crate) fn close(&self, subtle: &Subtle) -> Result<()> {
