@@ -244,24 +244,24 @@ impl Panel {
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
                 if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
-                    if let Ok(mode_str) = focus.mode_string() {
-                        // Font offset, panel border and padding
-                        if let Some(font) = subtle.title_style.get_font(subtle) {
-                            // Cache length of mode string
-                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
-                                self.text_widths[0] = width;
-                            }
+                    let mode_str = focus.mode_string();
 
-                            // Cache length of actual title
-                            if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
-                                self.text_widths[1] = width;
-                            }
-
-                            // Finally update actual length
-                            self.width = self.text_widths[0]
-                                + min!(subtle.clients_style.right as u16, self.text_widths[1])
-                                + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
+                    // Font offset, panel border and padding
+                    if let Some(font) = subtle.title_style.get_font(subtle) {
+                        // Cache length of mode string
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &mode_str, false) {
+                            self.text_widths[0] = width;
                         }
+
+                        // Cache length of actual title
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
+                            self.text_widths[1] = width;
+                        }
+
+                        // Finally update actual length
+                        self.width = self.text_widths[0]
+                            + min!(subtle.clients_style.right as u16, self.text_widths[1])
+                            + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                     }
 
                     // Ensure min-width
@@ -355,10 +355,16 @@ impl Panel {
                     self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
 
                     // Draw modes and title
-                    if let Ok(mode_str) = focus.mode_string() {
-                        self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
+                    let mode_str= focus.mode_string();
 
-                        offset_x += mode_str.len() as u16;
+                    self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
+
+                    // TODO: CACHE!
+                    if let Some(font) = subtle.title_style.get_font(subtle) {
+                        // Cache length of mode string
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &mode_str, false) {
+                            offset_x += width;
+                        }
                     }
 
                     self.draw_text(subtle, drawable, offset_x, &focus.name, &subtle.title_style)?;
