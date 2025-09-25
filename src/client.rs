@@ -1,3 +1,4 @@
+use std::cell::Ref;
 ///
 /// @package subtle-rs
 ///
@@ -17,7 +18,6 @@ use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::debug;
 use stdext::function_name;
-use veccell::VecRef;
 use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
@@ -1240,7 +1240,7 @@ impl Client {
         // Pass 1: Count clients with this gravity
         let mut used = 0u16;
 
-        for client in subtle.clients.iter() {
+        for client in subtle.clients.borrow().iter() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
@@ -1272,7 +1272,7 @@ impl Client {
         // Pass 2: Update geometry of every client with this gravity
         let mut pos = 0;
 
-        for (client_idx, client) in subtle.clients.iter().enumerate() {
+        for (client_idx, client) in subtle.clients.borrow().iter().enumerate() {
             if client.gravity_id == gravity_id && client.screen_id == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
@@ -1296,7 +1296,7 @@ impl Client {
                 }
 
                 // Finally update client
-                if let Some(mut mut_client) = subtle.clients.borrow_mut(client_idx) {
+                if let Some(mut_client) = subtle.clients.borrow_mut().get_mut(client_idx) {
                     mut_client.geom = geom;
 
                     mut_client.move_resize(subtle, &screen.geom)?;
@@ -1433,7 +1433,7 @@ fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn find_next(subtle: &Subtle, screen_idx: isize, jump_to_win: bool) -> Option<VecRef<'_, Client>> {
+pub(crate) fn find_next(subtle: &'_ Subtle, screen_idx: isize, jump_to_win: bool) -> Option<Ref<'_, Client>> {
     debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
 
     // Pass 1: Check focus history of current screen
@@ -1448,29 +1448,22 @@ pub(crate) fn find_next(subtle: &Subtle, screen_idx: isize, jump_to_win: bool) -
     }
 
     // Pass 2: Check client stacking list backwards of current screen
-    for client in subtle.clients.iter() {
-        if client.screen_id == screen_idx && client.is_alive() && client.is_visible(subtle)
-            && subtle.find_focus_win() != client.win
-        {
+    if let Ok(client) = Ref::filter_map(subtle.clients.borrow(), |clients| {
+        clients.iter().find(|c| c.screen_id == screen_idx && c.is_alive() && c.is_visible(subtle))
+    }) {
+        return Some(client)
+    }
+
+    // Pass 3: Check client stacking list backwards of any visible screen
+    if 1 < subtle.clients.borrow().len() && jump_to_win {
+        if let Ok(client) = Ref::filter_map(subtle.clients.borrow(), |clients| {
+            clients.iter().find(|c| c.is_alive() && c.is_visible(subtle) && subtle.find_focus_win() != c.win)
+        }) {
             return Some(client)
         }
     }
 
-    // Pass 3: Check client stacking list backwards of any visible screen
-    if 1 < subtle.clients.len() && jump_to_win {
-        for idx in (0..subtle.clients.len() - 1).rev() {
-            if let Some(client) = subtle.clients.borrow(idx) {
-                if client.is_alive() && client.is_visible(subtle)
-                    && subtle.find_focus_win() != client.win
-                {
-                    return Some(client)
-                }
-            }
-        }
-    }
-
-    // TODO pick any
-    subtle.clients.borrow(0)
+    None
 }
 
 pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
@@ -1485,10 +1478,10 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.len());
+    let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.borrow().len());
 
     // Sort clients from top to bottom
-    for (client_idx, client) in subtle.clients.iter().enumerate() {
+    for (client_idx, client) in subtle.clients.borrow().iter().enumerate() {
         wins.push(client.win);
     }
 
@@ -1506,7 +1499,8 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: nclients={}, restack={}", function_name!(), subtle.clients.len(), restack_windows);
+    debug!("{}: nclients={}, restack={}", function_name!(),
+        subtle.clients.borrow().len(), restack_windows);
 
     Ok(())
 }

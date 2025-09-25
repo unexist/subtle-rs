@@ -15,10 +15,11 @@ use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
 use bitflags::bitflags;
-use std::cell::{Cell, OnceCell};
+use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use veccell::{VecCell, VecRef, VecRefMut};
+use stdext::vec::VecExt;
+use veccell::VecCell;
 use x11rb::connection::Connection;
 use x11rb::NONE;
 use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Keycode, ModMask, Window};
@@ -104,7 +105,7 @@ pub(crate) struct Subtle {
     pub(crate) fonts: Vec<Font>,
 
     pub(crate) screens: Vec<Screen>,
-    pub(crate) clients: VecCell<Client>,
+    pub(crate) clients: RefCell<Vec<Client>>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
     pub(crate) tags: Vec<Tag>,
@@ -112,35 +113,19 @@ pub(crate) struct Subtle {
 }
 
 impl Subtle {
-    pub(crate) fn find_client(&self, win: Window) -> Option<VecRef<'_, Client>> {
-        for (client_idx, client) in self.clients.try_iter().enumerate() {
-            if client.is_some() {
-                let client_win = client.unwrap().win;
-
-                if win == client_win {
-                    return self.clients.borrow(client_idx);
-                }
-            }
-        }
-
-        None
+    pub(crate) fn find_client(&'_ self, win: Window) -> Option<Ref<'_, Client>> {
+        Ref::filter_map(self.clients.borrow(), |clients| {
+            clients.iter().find(|c| c.win == win)
+        }).ok()
     }
 
-    pub(crate) fn find_client_mut(&self, win: Window) -> Option<VecRefMut<'_, Client>> {
-        for (client_idx, client) in self.clients.try_iter().enumerate() {
-            if client.is_some() {
-                let client_win = client.unwrap().win;
-
-                if win == client_win {
-                    return self.clients.borrow_mut(client_idx);
-                }
-            }
-        }
-
-        None
+    pub(crate) fn find_client_mut(&'_ self, win: Window) -> Option<RefMut<'_, Client>> {
+        RefMut::filter_map(self.clients.borrow_mut(), |clients| {
+            clients.iter_mut().find(|c| c.win == win)
+        }).ok()
     }
 
-    pub(crate) fn find_focus_client(&self) -> Option<VecRef<'_, Client>> {
+    pub(crate) fn find_focus_client(&'_ self) -> Option<Ref<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client(*win)
         }
@@ -148,7 +133,7 @@ impl Subtle {
         None
     }
 
-    pub(crate) fn find_focus_client_mut(&self) -> Option<VecRefMut<'_, Client>> {
+    pub(crate) fn find_focus_client_mut(&'_ self) -> Option<RefMut<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client_mut(*win)
         }
@@ -157,7 +142,9 @@ impl Subtle {
     }
 
     pub(crate) fn find_focus_win(&self) -> Window {
-        if let Some(win) = self.focus_history.borrow(0) && NONE != *win {
+        if let Some(win) = self.focus_history.borrow(0)
+            && NONE != *win
+        {
             return *win
         }
 
@@ -214,6 +201,14 @@ impl Subtle {
 
         None
     }
+
+    pub(crate) fn add_client(&self, client: Client) {
+        self.clients.borrow_mut().push(client);
+    }
+
+    pub(crate) fn remove_client(&self, client: &Client) {
+        self.clients.borrow_mut().remove_item(client);
+    }
 }
 
 impl Default for Subtle {
@@ -265,7 +260,7 @@ impl Default for Subtle {
 
             fonts: Vec::new(),
             screens: Vec::new(),
-            clients: VecCell::new(),
+            clients: RefCell::new(Vec::new()),
             gravities: Vec::new(),
             grabs: Vec::new(),
             tags: Vec::new(),
