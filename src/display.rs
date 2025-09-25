@@ -153,7 +153,7 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
+pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
@@ -166,7 +166,7 @@ pub(crate) fn scan(subtle: &mut Subtle) -> Result<()> {
                 MapState::VIEWABLE => {
                     let client = Client::new(subtle, win);
 
-                    subtle.clients.push(client?);
+                    subtle.add_client(client?);
                 },
                 _ => {},
             }

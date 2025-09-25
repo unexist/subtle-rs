@@ -88,7 +88,7 @@ fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
 }
 
 fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
-    if let Some(client) = subtle.find_client_mut(event.event) {
+    if let Some(client) = subtle.find_client(event.event) {
         if !subtle.flags.intersects(SubtleFlags::CLICK_TO_FOCUS) {
             client.focus(subtle, false)?;
         }
@@ -248,7 +248,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    conn.set_modifier_mapping(&[event.first_keycode])?;
+    //conn.set_modifier_mapping(&[event.first_keycode])?;
 
     // Update grabs
     if Mapping::KEYBOARD == event.request {
