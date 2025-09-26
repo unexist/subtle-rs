@@ -19,6 +19,7 @@ pub(crate) enum MixedConfigVal {
     S(String),
     VI(Vec<i32>),
     VS(Vec<String>),
+    M(HashMap<String, Vec<String>>),
     I(i32),
     B(bool),
 }
@@ -56,7 +57,7 @@ pub(crate) struct Config {
     pub(crate) gravities: Vec<HashMap<String, MixedConfigVal>>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) grabs: HashMap<String, String>,
+    pub(crate) grabs: HashMap<String, MixedConfigVal>,
 
     #[config_arg(name = "tag", multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) tags: Vec<HashMap<String, MixedConfigVal>>,
