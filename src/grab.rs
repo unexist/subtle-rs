@@ -20,7 +20,7 @@ use x11rb::NONE;
 use x11rb::protocol::xproto::{ButtonIndex, ConnectionExt, EventMask, GrabMode, Keycode, Keysym, ModMask, Window};
 use crate::client;
 use crate::client::ClientFlags;
-use crate::config::Config;
+use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{Subtle, SubtleFlags};
 
 bitflags! {
@@ -63,6 +63,7 @@ pub(crate) enum GrabAction {
     #[default]
     None,
     Index(u32),
+    List(Vec<usize>),
     Command(String),
 }
 
@@ -212,12 +213,31 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     }
 
     // Parse grabs
-    subtle.grabs = config.grabs.iter()
-        .map(|(grab_name, grab_keys)| {
-            Grab::new(grab_name, grab_keys, &keysyms_to_keycode)
-        })
-        .filter_map(|res| res.ok())
-        .collect();
+    for (grab_name, value) in config.grabs.iter() {
+        match value {
+            MixedConfigVal::S(grab_keys) => {
+                if let Ok(grab) = Grab::new(grab_name, grab_keys, &keysyms_to_keycode) {
+                    subtle.grabs.push(grab);
+                }
+            }
+            MixedConfigVal::M(items) => {
+                for (grab_keys, gravities) in items.iter() {
+                    if let Ok(mut grab) = Grab::new("window_gravity", grab_keys, &keysyms_to_keycode) {
+                        let mut gravity_ids = Vec::with_capacity(gravities.len());
+
+                        for grav_name in gravities {
+                            if let Some(grav_id) = subtle.gravities.iter().position(|grav| grav.name.eq(grav_name)) {
+                                gravity_ids.push(grav_id);
+                            }
+                        }
+
+                        grab.action = GrabAction::List(gravity_ids);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
 
     if 0 == subtle.gravities.len() {
         return Err(anyhow!("No grabs found"));
