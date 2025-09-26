@@ -557,17 +557,16 @@ window_right = "A-Right"
 window_kill = "A-S-k"
 
 # Cycle between given gravities
-#gravity_cycles = [
-#    { "W-KP_7" = [ "top_left", "top_left66", "top_left33" ] },
-#    { "W-KP_8" = [ "top", "top66", "top33" ] },
-#    { "W-KP_9" = [ "top_right", "top_right66", "top_right33" ] },
-#    { "W-KP_4" = [ "left", "left66", "left33" ] },
-#    { "W-KP_5" = [ "center", "center66", "center33" ] },
-#    { "W-KP_6" = [ "right", "right66", "right33" ] },
-#    { "W-KP_1" = [ "bottom_left", "bottom_left66", "bottom_left33" ] },
-#    { "W-KP_2" = [ "bottom", "bottom66", "bottom33" ] },
-#    { "W-KP_3" = [ "bottom_right", "bottom_right66", "bottom_right33" ] }
-#]
+[grabs.gravity_cycles]
+"W-KP_7" = [ "top_left", "top_left66", "top_left33" ]
+"W-KP_8" = [ "top", "top66", "top33" ]
+"W-KP_9" = [ "top_right", "top_right66", "top_right33" ]
+"W-KP_4" = [ "left", "left66", "left33" ]
+"W-KP_5" = [ "center", "center66", "center33" ]
+"W-KP_6" = [ "right", "right66", "right33" ]
+"W-KP_1" = [ "bottom_left", "bottom_left66", "bottom_left33" ]
+"W-KP_2" = [ "bottom", "bottom66", "bottom33" ]
+"W-KP_3" = [ "bottom_right", "bottom_right66", "bottom_right33" ]
 
 #
 # == Tags
