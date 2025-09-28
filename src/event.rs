@@ -18,7 +18,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ButtonPressEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
-use crate::client::{Client, ClientFlags, WMState};
+use crate::client::{Client, ClientFlags, RestackOrder, WMState};
 use crate::{client, grab, screen};
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
@@ -213,6 +213,46 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                     }
                 }
             }
+
+            GrabFlags::WINDOW_GRAVITY => {
+                if let Some(mut focus) = subtle.find_focus_client_mut() {
+                    if let GrabAction::List(gravity_ids) = &grab.action {
+                        // Remove float and fullscreen mode
+                        if focus.flags.intersects(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL) {
+                            let mut mode_flags = focus.flags & (ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL);
+                            focus.toggle(subtle, &mut mode_flags, true)?;
+
+                            screen::configure(subtle)?;
+                            screen::update(subtle)?;
+
+                            focus.gravity_id = -1; // Reset
+                        }
+
+                        // Find next gravity or fallback to first
+                        let mut new_gravity_id = *gravity_ids.first().context("No gravity ID")?;
+
+                        for (idx, gravity_id) in gravity_ids.iter().enumerate() {
+                            if focus.gravity_id == *gravity_id as isize {
+                                if idx < gravity_ids.len() {
+                                    new_gravity_id = idx + 1;
+                                }
+
+                                break;
+                            }
+                        }
+
+                        // Finally update client
+                        let screen_id = focus.screen_id;
+                        focus.arrange(subtle, new_gravity_id as isize, screen_id)?;
+
+                        client::restack_clients(RestackOrder::Up)?;
+
+                        if !subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP) {
+                            focus.warp_pointer(subtle)?;
+                        }
+                    }
+                }
+            },
 
             GrabFlags::WINDOW_KILL => {
                 if let Some(focus) = subtle.find_focus_client_mut() {
