@@ -177,6 +177,8 @@ impl Grab {
             ..Default::default()
         };
 
+        println!("grab={:?}, name={}, keys={}", grab, name, keys);
+
         debug!("{}: name={}, grab={}", function_name!(), name, grab);
 
         Ok(grab)
@@ -232,6 +234,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                         }
 
                         grab.action = GrabAction::List(gravity_ids);
+
+                        subtle.grabs.push(grab);
                     }
                 }
             }
