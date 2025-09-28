@@ -83,19 +83,19 @@ font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
 [[style]]
 kind = "views"
 #border = [ "#757575", 2 ]
-border_color = "#757575"
-border_width = 2
+#border_color = "#757575"
+#border_width = 2
 
 # Style for the active views
 [[style]]
-kind = "views_active"
+ubntlesubtleind = "views_active"
 foreground = "#fecf35"
 
-border_width = 2
-border_top_color = "#ff0000"
-border_right_color = "#00ff00"
-border_bottom_color = "#0000ff"
-border_left_color = "#ff00ff"
+#border_width = 2
+#border_top_color = "#ff0000"
+#border_right_color = "#00ff00"
+#border_bottom_color = "#0000ff"
+#border_left_color = "#ff00ff"
 
 # Style for occupied views (views with clients)
 [[style]]
@@ -126,7 +126,7 @@ foreground = "#ff9800"
 # Style for active/inactive windows
 [[style]]
 kind = "clients"
-active = "#303030"
+active = "#757575"
 inactive = "#202020"
 margin = 5
 padding = 5
