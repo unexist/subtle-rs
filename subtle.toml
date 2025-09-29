@@ -88,7 +88,7 @@ kind = "views"
 
 # Style for the active views
 [[style]]
-ubntlesubtleind = "views_active"
+kind = "views_active"
 foreground = "#fecf35"
 
 #border_width = 2
