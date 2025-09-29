@@ -177,8 +177,6 @@ impl Grab {
             ..Default::default()
         };
 
-        println!("grab={:?}, name={}, keys={}", grab, name, keys);
-
         debug!("{}: name={}, grab={}", function_name!(), name, grab);
 
         Ok(grab)
