@@ -319,10 +319,10 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                     if visible_tags.intersects(client.tags) {
                         // Keep screen when sticky
                         if client.flags.intersects(ClientFlags::MODE_STICK)
-                            && let Some(client_screen) = subtle.screens.get(client.screen_id as usize)
+                            && let Some(client_screen) = subtle.screens.get(client.screen_idx as usize)
                         {
                             view_idx = client_screen.view_idx.get() as usize;
-                            screen_id = client.screen_id as usize;
+                            screen_id = client.screen_idx as usize;
                         } else {
                             view_idx = screen.view_idx.get() as usize;
                             screen_id = screen_idx;

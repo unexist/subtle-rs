@@ -62,7 +62,7 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
             && subtle.flags.contains(SubtleFlags::RESIZE)
             || client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE)
         {
-            let maybe_screen = subtle.screens.get(client.screen_id as usize);
+            let maybe_screen = subtle.screens.get(client.screen_idx as usize);
         }
     // Unmanaged window
     } else {
@@ -168,7 +168,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                             && let Some(focus) = subtle.find_focus_client()
                             && focus.is_visible(subtle)
                         {
-                            screen_id = focus.screen_id;
+                            screen_id = focus.screen_idx;
                         } else if let Some((maybe_screen_id, _)) = subtle.find_screen_by_xy(
                             event.event_x, event.event_y)
                         {
@@ -198,7 +198,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                             // Find next and focus
                             if !focus.is_visible(subtle) {
-                                if let Some(next) = client::find_next(subtle, focus.screen_id, false) {
+                                if let Some(next) = client::find_next(subtle, focus.screen_idx, false) {
                                     next.focus(subtle, true)?;
                                 }
                             }
@@ -225,14 +225,14 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                             screen::configure(subtle)?;
                             screen::update(subtle)?;
 
-                            focus.gravity_id = -1; // Reset
+                            focus.gravity_idx = -1; // Reset
                         }
 
                         // Find next gravity or fallback to first
                         let mut new_gravity_id = *gravity_ids.first().context("No gravity ID")?;
 
                         for (idx, gravity_id) in gravity_ids.iter().enumerate() {
-                            if focus.gravity_id == *gravity_id as isize {
+                            if focus.gravity_idx == *gravity_id as isize {
                                 if idx < gravity_ids.len() {
                                     new_gravity_id = idx + 1;
                                 }
@@ -242,7 +242,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                         }
 
                         // Finally update client
-                        let screen_id = focus.screen_id;
+                        let screen_id = focus.screen_idx;
                         focus.arrange(subtle, new_gravity_id as isize, screen_id)?;
 
                         client::restack_clients(RestackOrder::Up)?;
