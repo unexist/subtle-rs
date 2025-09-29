@@ -851,13 +851,13 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn arrange(&mut self, subtle: &Subtle, gravity_id: isize, screen_id: isize) -> Result<()> {
+    pub(crate) fn arrange(&mut self, subtle: &Subtle, gravity_idx: isize, screen_idx: isize) -> Result<()> {
         ignore_if_dead!(self);
 
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        let screen = subtle.screens.get(screen_id as usize)
+        let screen = subtle.screens.get(screen_idx as usize)
             .context("Screen not found?")?;
 
         // Check flags
@@ -882,15 +882,15 @@ impl Client {
             conn.configure_window(self.win, &aux)?.check()?;
         } else if self.flags.contains(ClientFlags::MODE_FLOAT) {
             if self.flags.contains(ClientFlags::ARRANGE)
-                || (-1 != screen_id && self.screen_idx != screen_id)
+                || (-1 != screen_idx && self.screen_idx != screen_idx)
             {
                 if let Some(old_screen) = subtle.screens.get(
                     (if -1 != self.screen_idx { self.screen_idx } else { 0 }) as usize)
                 {
-                    if screen_id != self.screen_idx {
+                    if screen_idx != self.screen_idx {
                         self.geom.x = self.geom.x - old_screen.geom.x + screen.geom.x;
                         self.geom.y = self.geom.y - old_screen.geom.y + screen.geom.y;
-                        self.screen_idx = screen_id;
+                        self.screen_idx = screen_idx;
                     }
                 }
 
@@ -917,20 +917,20 @@ impl Client {
 
             //XLowerWindow() // TODO
         } else {
-            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_idx != gravity_id
-                || self.screen_idx != screen_id
+            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_idx != gravity_idx
+                || self.screen_idx != screen_idx
             {
                 let old_gravity_id = self.gravity_idx;
                 let old_screen_id = self.screen_idx;
 
                 // Set values
-                if -1 != screen_id {
-                    self.screen_idx = screen_id;
+                if -1 != screen_idx {
+                    self.screen_idx = screen_idx;
                 }
 
-                if -1 != gravity_id {
-                    self.gravity_idx = gravity_id;
-                    self.gravities[screen.view_idx.get() as usize] = gravity_id as usize;
+                if -1 != gravity_idx {
+                    self.gravity_idx = gravity_idx;
+                    self.gravities[screen.view_idx.get() as usize] = gravity_idx as usize;
                 }
 
                 // Gravity tiling
@@ -943,13 +943,13 @@ impl Client {
                     self.gravity_tile(subtle, old_gravity_id, old_screen_id)?;
                 }
 
-                let maybe_gravity = subtle.gravities.get(gravity_id as usize);
+                let maybe_gravity = subtle.gravities.get(gravity_idx as usize);
 
                 if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
                     && (maybe_gravity.is_some()
                     && maybe_gravity.unwrap().flags.contains(GravityFlags::HORZ | GravityFlags::VERT))
                 {
-                    self.gravity_tile(subtle, gravity_id, if -1 == screen_id { 0 } else { screen_id })?;
+                    self.gravity_tile(subtle, gravity_idx, if -1 == screen_idx { 0 } else { screen_idx })?;
                 } else {
                     let mut bounds = screen.geom;
 
