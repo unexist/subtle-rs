@@ -115,8 +115,8 @@ pub(crate) struct Client {
     pub(crate) base_width: u16,
     pub(crate) base_height: u16,
 
-    pub(crate) screen_id: isize,
-    pub(crate) gravity_id: isize,
+    pub(crate) screen_idx: isize,
+    pub(crate) gravity_idx: isize,
     
     pub(crate) geom: Rectangle,
 
@@ -153,8 +153,8 @@ impl Client {
             flags: ClientFlags::INPUT,
             win,
 
-            screen_id: 0,
-            gravity_id: -1,
+            screen_idx: 0,
+            gravity_idx: -1,
 
             geom: Rectangle {
                 x: geom_reply.x,
@@ -198,12 +198,12 @@ impl Client {
         }
 
         // EWMH: Gravity, screen, desktop, extents
-        let data: [u32; 1] = [client.gravity_id as u32];
+        let data: [u32; 1] = [client.gravity_idx as u32];
 
         conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_GRAVITY,
             AtomEnum::CARDINAL, &data)?.check()?;
 
-        let data: [u32; 1] = [client.screen_id as u32];
+        let data: [u32; 1] = [client.screen_idx as u32];
 
         conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
                                AtomEnum::CARDINAL, &data)?.check()?;
@@ -472,7 +472,7 @@ impl Client {
                 if let Some(group_lead) = subtle.find_client(wm_hints.window_group.unwrap()) {
                     self.flags = group_lead.flags; // TODO *flags |= (k->flags & MODES_ALL);
                     self.tags = group_lead.tags;
-                    self.screen_id = group_lead.screen_id;
+                    self.screen_idx = group_lead.screen_idx;
                 }
             }
 
@@ -545,7 +545,7 @@ impl Client {
                mode_flags.insert(parent.flags & ClientFlags::ALL_MODES);
 
                 self.tags.insert(parent.tags);
-                self.screen_id = parent.screen_id;
+                self.screen_idx = parent.screen_idx;
             }
         }
 
@@ -644,8 +644,8 @@ impl Client {
                 if set_gravity {
                     // Set gravity for untagged views
                     for (view_idx, view) in subtle.views.iter().enumerate() {
-                        if !view.tags.contains(self.tags) && -1 != self.gravity_id {
-                            self.gravities[view_idx] = self.gravity_id as usize;
+                        if !view.tags.contains(self.tags) && -1 != self.gravity_idx {
+                            self.gravities[view_idx] = self.gravity_idx as usize;
                         }
                     }
                 }
@@ -657,12 +657,12 @@ impl Client {
                         if let Some(win) = subtle.focus_history.borrow(0) {
                             if let Some(focus) = subtle.find_client(*win) {
                                 if focus.is_visible(subtle) {
-                                    self.screen_id = focus.screen_id;
+                                    self.screen_idx = focus.screen_idx;
                                 }
                             }
                         }
                     } else if let Some((idx, _)) = subtle.find_screen_by_pointer() {
-                        self.screen_id = idx as isize;
+                        self.screen_idx = idx as isize;
                     }
                 }
             }
@@ -682,7 +682,7 @@ impl Client {
                 // Apparently, some broken clients just violate that, so we exclude fixed
                 // windows with min != screen size from fullscreen
                 if self.flags.contains(ClientFlags::MODE_FIXED) {
-                    if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
+                    if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
                         if screen.base.width != self.min_width || screen.base.height != self.min_height {
                             mode_flags.remove(ClientFlags::MODE_FULL);
                         }
@@ -721,7 +721,7 @@ impl Client {
                 self.flags.remove(ClientFlags::MODE_FLOAT);
                 self.flags.insert(ClientFlags::ARRANGE);
             } else {
-                if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
+                if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
                     debug!("client={}, screen={}", self, screen);
                     // Set to screen center
                     self.geom.x = screen.geom.x + (screen.geom.width as i16 - self.geom.width as i16 - 2 * 1) / 2; // TODO BORDER
@@ -742,7 +742,7 @@ impl Client {
 
             // Special treatment
             if mode_flags.contains(ClientFlags::TYPE_DESKTOP) {
-                if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
+                if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
                     self.geom = screen.base;
 
                     // Add panel heights without struts
@@ -857,7 +857,8 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        let screen = subtle.screens.get(screen_id as usize).unwrap();
+        let screen = subtle.screens.get(screen_id as usize)
+            .context("Screen not found?")?;
 
         // Check flags
         if self.flags.contains(ClientFlags::MODE_FULL) {
@@ -870,7 +871,7 @@ impl Client {
                     .width(subtle.width as u32)
                     .height(subtle.height as u32)
                     .stack_mode(StackMode::ABOVE);
-            } else if let Some(screen) = subtle.screens.get(self.screen_id as usize) {
+            } else if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
                 aux = aux.x(screen.base.x as i32)
                     .y(screen.base.y as i32)
                     .width(screen.base.width as u32)
@@ -881,15 +882,15 @@ impl Client {
             conn.configure_window(self.win, &aux)?.check()?;
         } else if self.flags.contains(ClientFlags::MODE_FLOAT) {
             if self.flags.contains(ClientFlags::ARRANGE)
-                || (-1 != screen_id && self.screen_id != screen_id)
+                || (-1 != screen_id && self.screen_idx != screen_id)
             {
                 if let Some(old_screen) = subtle.screens.get(
-                    (if -1 != self.screen_id { self.screen_id } else { 0 }) as usize)
+                    (if -1 != self.screen_idx { self.screen_idx } else { 0 }) as usize)
                 {
-                    if screen_id != self.screen_id {
+                    if screen_id != self.screen_idx {
                         self.geom.x = self.geom.x - old_screen.geom.x + screen.geom.x;
                         self.geom.y = self.geom.y - old_screen.geom.y + screen.geom.y;
-                        self.screen_id = screen_id;
+                        self.screen_idx = screen_id;
                     }
                 }
 
@@ -916,19 +917,20 @@ impl Client {
 
             //XLowerWindow() // TODO
         } else {
-            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_id != gravity_id
-                || self.screen_id != screen_id
+            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_idx != gravity_id
+                || self.screen_idx != screen_id
             {
-                let old_gravity_id = self.gravity_id;
-                let old_screen_id = self.screen_id;
+                let old_gravity_id = self.gravity_idx;
+                let old_screen_id = self.screen_idx;
 
                 // Set values
                 if -1 != screen_id {
-                    self.screen_id = screen_id;
+                    self.screen_idx = screen_id;
                 }
 
                 if -1 != gravity_id {
-                    self.gravity_id = gravity_id;
+                    self.gravity_idx = gravity_id;
+                    self.gravities[screen.view_idx.get() as usize] = gravity_id as usize;
                 }
 
                 // Gravity tiling
@@ -967,7 +969,7 @@ impl Client {
 
         // EWMH: Gravity
         conn.change_property32(PropMode::REPLACE, self.win, atoms.SUBTLE_CLIENT_GRAVITY,
-                               AtomEnum::CARDINAL,&[self.gravity_id as u32])?.check()?;
+                               AtomEnum::CARDINAL,&[self.gravity_idx as u32])?.check()?;
 
         conn.flush()?;
 
@@ -1128,7 +1130,7 @@ impl Client {
                               &[atoms.WM_DELETE_WINDOW, CURRENT_TIME, 0, 0, 0])?;
         } else {
             let screen_id = if let Some(focus) = subtle.find_focus_client()
-                && focus.win == self.win { self.screen_id } else { -1 };
+                && focus.win == self.win { self.screen_idx } else { -1 };
 
             // Kill it manually
             conn.kill_client(self.win)?.check()?;
@@ -1173,11 +1175,11 @@ impl Client {
 
         // Tile remaining clients if necessary
         if self.is_visible(subtle) {
-            if let Some(gravity) = subtle.gravities.get(self.gravity_id as usize) {
+            if let Some(gravity) = subtle.gravities.get(self.gravity_idx as usize) {
                if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
                    || gravity.flags.contains(GravityFlags::HORZ | GravityFlags::VERT)
                {
-                   self.gravity_tile(subtle, self.gravity_id, self.screen_id)?;
+                   self.gravity_tile(subtle, self.gravity_idx, self.screen_idx)?;
                }
             }
         }
@@ -1240,7 +1242,7 @@ impl Client {
         let mut used = 0u16;
 
         for client in subtle.clients.borrow().iter() {
-            if client.gravity_id == gravity_id && client.screen_id == screen_id
+            if client.gravity_idx == gravity_id && client.screen_idx == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
@@ -1272,7 +1274,7 @@ impl Client {
         let mut pos = 0;
 
         for (client_idx, client) in subtle.clients.borrow().iter().enumerate() {
-            if client.gravity_id == gravity_id && client.screen_id == screen_id
+            if client.gravity_idx == gravity_id && client.screen_idx == screen_id
                 && subtle.visible_tags.get().contains(client.tags)
                 && !client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL)
             {
@@ -1396,7 +1398,7 @@ fn get_default_gravity(subtle: &Subtle) -> isize {
 
     // Get gravity from focus client
     if -1 == subtle.default_gravity && let Some(focus) = subtle.find_focus_client() {
-        grav = focus.gravity_id;
+        grav = focus.gravity_idx;
     }
 
     grav
@@ -1438,7 +1440,7 @@ pub(crate) fn find_next(subtle: &'_ Subtle, screen_idx: isize, jump_to_win: bool
     // Pass 1: Check focus history of current screen
     for win in subtle.focus_history.iter() {
         if let Some(client) = subtle.find_client(*win) {
-            if client.screen_id == screen_idx && client.is_alive() && client.is_visible(subtle)
+            if client.screen_idx == screen_idx && client.is_alive() && client.is_visible(subtle)
                 && subtle.find_focus_win() != client.win
             {
                 return Some(client)
@@ -1448,7 +1450,7 @@ pub(crate) fn find_next(subtle: &'_ Subtle, screen_idx: isize, jump_to_win: bool
 
     // Pass 2: Check client stacking list backwards of current screen
     if let Ok(client) = Ref::filter_map(subtle.clients.borrow(), |clients| {
-        clients.iter().find(|c| c.screen_id == screen_idx && c.is_alive() && c.is_visible(subtle))
+        clients.iter().find(|c| c.screen_idx == screen_idx && c.is_alive() && c.is_visible(subtle))
     }) {
         return Some(client)
     }
