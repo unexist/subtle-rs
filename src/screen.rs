@@ -306,7 +306,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            // Set available client tags to ease lookups
+            // Store available client tags to ease lookups
             client_tags.insert(client.tags);
 
             for (screen_idx, screen) in subtle.screens.iter().enumerate() {
