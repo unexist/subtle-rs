@@ -12,6 +12,7 @@ use std::cell::Ref;
 
 use std::fmt;
 use std::cmp::PartialEq;
+use std::ops::{BitAnd, BitOr, BitXor};
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
@@ -758,7 +759,10 @@ impl Client {
         }
 
         // Finally toggle mode flags only
-        self.flags.insert(*mode_flags); // TODO  c->flags = ((c->flags & ~MODES_ALL) | ((c->flags & MODES_ALL) ^ (flags & MODES_ALL)));
+        // TODO  c->flags = ((c->flags & ~MODES_ALL) | ((c->flags & MODES_ALL) ^ (flags & MODES_ALL)));
+        self.flags = self.flags.bitand(ClientFlags::ALL_MODES.complement())
+            .bitor(self.flags.bitand(ClientFlags::ALL_MODES))
+            .bitxor(mode_flags.bitand(ClientFlags::ALL_MODES));
 
         // Sort for keeping stacking order
         if self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL
@@ -911,51 +915,53 @@ impl Client {
                 .height(self.geom.height as u32))?.check()?;
 
             //XLowerWindow() // TODO
-        } else if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_id != gravity_id
-            || self.screen_id != screen_id
-        {
-            let old_gravity_id = self.gravity_id;
-            let old_screen_id = self.screen_id;
+        } else {
+            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_id != gravity_id
+                || self.screen_id != screen_id
+            {
+                let old_gravity_id = self.gravity_id;
+                let old_screen_id = self.screen_id;
 
-            // Set values
-            if -1 != screen_id {
-                self.screen_id = screen_id;
-            }
+                // Set values
+                if -1 != screen_id {
+                    self.screen_id = screen_id;
+                }
 
-            if -1 != gravity_id {
-                self.gravity_id = gravity_id;
-            }
+                if -1 != gravity_id {
+                    self.gravity_id = gravity_id;
+                }
 
-            // Gravity tiling
-            let maybe_old_gravity = subtle.gravities.get(old_gravity_id as usize);
+                // Gravity tiling
+                let maybe_old_gravity = subtle.gravities.get(old_gravity_id as usize);
 
-            if -1 != old_screen_id && (subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
-                || maybe_old_gravity.is_some() &&
+                if -1 != old_screen_id && (subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
+                    || maybe_old_gravity.is_some() &&
                     maybe_old_gravity.unwrap().flags.contains(GravityFlags::HORZ | GravityFlags::VERT))
-            {
-                self.gravity_tile(subtle, old_gravity_id, old_screen_id)?;
-            }
+                {
+                    self.gravity_tile(subtle, old_gravity_id, old_screen_id)?;
+                }
 
-            let maybe_gravity = subtle.gravities.get(gravity_id as usize);
+                let maybe_gravity = subtle.gravities.get(gravity_id as usize);
 
-            if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
-                && (maybe_gravity.is_some()
+                if subtle.flags.contains(SubtleFlags::GRAVITY_TILING)
+                    && (maybe_gravity.is_some()
                     && maybe_gravity.unwrap().flags.contains(GravityFlags::HORZ | GravityFlags::VERT))
-            {
-                self.gravity_tile(subtle, gravity_id, if -1 == screen_id { 0 } else { screen_id })?;
-            } else {
-                let mut bounds = screen.geom;
+                {
+                    self.gravity_tile(subtle, gravity_id, if -1 == screen_id { 0 } else { screen_id })?;
+                } else {
+                    let mut bounds = screen.geom;
 
-                // Set size for bounds
-                if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
-                    calc_zaphod(subtle, &mut bounds)?;
+                    // Set size for bounds
+                    if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
+                        calc_zaphod(subtle, &mut bounds)?;
+                    }
+
+                    if maybe_gravity.is_some() {
+                        maybe_gravity.unwrap().calc_geometry(&bounds, &mut self.geom);
+                    }
+
+                    self.move_resize(subtle, &bounds)?;
                 }
-
-                if maybe_gravity.is_some() {
-                    maybe_gravity.unwrap().calc_geometry(&bounds, &mut self.geom);
-                }
-
-                self.move_resize(subtle, &bounds)?;
             }
         }
 
