@@ -294,9 +294,9 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     if 0 < clients.len() {
         // Check each client
         for client_idx in 0..clients.len() {
-            let mut gravity_idx: isize = 0;
-            let mut screen_id: usize = 0;
-            let mut view_idx: usize = 0;
+            let mut new_gravity_idx: isize = 0;
+            let mut new_screen_idx: usize = 0;
+            let mut new_view_idx: usize = 0;
             let mut visible = 0;
 
             let client = clients.get_mut(client_idx).unwrap();
@@ -321,14 +321,14 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                         if client.flags.intersects(ClientFlags::MODE_STICK)
                             && let Some(client_screen) = subtle.screens.get(client.screen_idx as usize)
                         {
-                            view_idx = client_screen.view_idx.get() as usize;
-                            screen_id = client.screen_idx as usize;
+                            new_view_idx = client_screen.view_idx.get() as usize;
+                            new_screen_idx = client.screen_idx as usize;
                         } else {
-                            view_idx = screen.view_idx.get() as usize;
-                            screen_id = screen_idx;
+                            new_view_idx = screen.view_idx.get() as usize;
+                            new_screen_idx = screen_idx;
                         }
 
-                        gravity_idx = client.gravities[screen.view_idx.get() as usize] as isize;
+                        new_gravity_idx = client.gravities[screen.view_idx.get() as usize] as isize;
                         visible += 1;
                     }
                 }
@@ -336,6 +336,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
             // After all screens are checked..
             if 0 < visible {
+                client.arrange(subtle, new_gravity_idx, new_screen_idx as isize)?;
                 client.set_wm_state(subtle, WMState::Normal)?;
                 client.map(subtle)?;
 
@@ -349,13 +350,13 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
                 // EWMH: Desktop, screen
                 conn.change_property32(PropMode::REPLACE, client.win, atoms._NET_WM_DESKTOP,
-                                       AtomEnum::CARDINAL, &[view_idx as u32])?.check()?;
+                                       AtomEnum::CARDINAL, &[new_view_idx as u32])?.check()?;
 
                 conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
-                                       AtomEnum::CARDINAL, &[screen_id as u32])?.check()?;
+                                       AtomEnum::CARDINAL, &[new_screen_idx as u32])?.check()?;
 
                 // Drop and re-borrow mut this time
-                client.arrange(subtle, gravity_idx, screen_id as isize)?;
+                client.arrange(subtle, new_gravity_idx, new_screen_idx as isize)?;
             } else {
                 client.set_wm_state(subtle, WMState::Withdrawn)?;
                 client.unmap(subtle)?;
