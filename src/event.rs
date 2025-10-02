@@ -82,6 +82,28 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
 }
 
 fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
+    // Check if we know the window
+    if let Some(client) = subtle.find_client(event.window) {
+        client.kill(subtle)?;
+
+        drop(client);
+
+        subtle.remove_client_by_win(event.window);
+
+        client::publish(subtle, false)?;
+
+        screen::configure(subtle)?;
+        screen::update(subtle)?;
+        screen::render(subtle)?;
+    } else {
+        // Check if window is client leader
+        for client in subtle.clients.borrow_mut().iter_mut() {
+            if client.leader == event.window {
+                client.flags.insert(ClientFlags::DEAD);
+            }
+        }
+    }
+
     debug!("{}: win={}", function_name!(), event.window);
 
     Ok(())
