@@ -18,7 +18,6 @@ use bitflags::bitflags;
 use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use stdext::vec::VecExt;
 use veccell::VecCell;
 use x11rb::connection::Connection;
 use x11rb::NONE;
