@@ -47,6 +47,11 @@ tasks:
     cmds:
       - xsetroot -d {{.DISPLAY}} -solid "#595959"
 
+  alacritty:
+    aliases: [term]
+    cmds:
+      - zsh -c "DISPLAY={{.DISPLAY}} alacritty &"
+
   xephyr:
     aliases: [x]
     cmds:
