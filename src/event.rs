@@ -15,7 +15,7 @@ use std::sync::atomic::Ordering;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ButtonPressEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder, WMState};
@@ -55,7 +55,7 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
     // Move/restack -> Synthetic + real ConfigureNotify
     // Resize       -> Real ConfigureNotify
 
-    // Check window
+    // Check if we know the window
     if let Some(client) = subtle.find_client_mut(event.window) {
         // Check flags if the request is important
         if !client.flags.contains(ClientFlags::MODE_FULL)
@@ -77,6 +77,21 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
 
         conn.configure_window(event.window, &aux)?.check()?;
     }
+
+    Ok(())
+}
+
+fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<()> {
+    let atoms = subtle.atoms.get().unwrap();
+
+    // Check if we know the window
+    if let Some(client) = subtle.find_client(event.window) {
+        if atoms._NET_CLOSE_WINDOW == event.type_ {
+            print!("CLOSE");
+        }
+    }
+
+    debug!("{}: win={}", function_name!(), event.window);
 
     Ok(())
 }
@@ -495,6 +510,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 Event::ButtonPress(evt) => handle_button_press(subtle, evt)?,
                 Event::ConfigureNotify(evt) => handle_configure(subtle, evt)?,
                 Event::ConfigureRequest(evt) => handle_configure_request(subtle, evt)?,
+                Event::ClientMessage(evt) => handle_client_message(subtle, evt)?,
                 Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
                 Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
                 Event::LeaveNotify(evt) => handle_leave(subtle, evt)?,
