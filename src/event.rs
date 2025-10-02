@@ -412,11 +412,11 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
         if client.flags.contains(ClientFlags::UNMAP) {
             client.flags.remove(ClientFlags::UNMAP);
         } else {
-            // Kill client
-            subtle.remove_client(&client);
             client.kill(subtle)?;
 
             drop(client);
+
+            subtle.remove_client_by_win(event.window);
 
             client::publish(subtle, false)?;
 

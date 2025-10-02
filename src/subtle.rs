@@ -206,8 +206,8 @@ impl Subtle {
         self.clients.borrow_mut().push(client);
     }
 
-    pub(crate) fn remove_client(&self, client: &Client) {
-        self.clients.borrow_mut().remove_item(client);
+    pub(crate) fn remove_client_by_win(&self, win: Window) {
+        self.clients.borrow_mut().retain(|c| c.win != win);
     }
 }
 
