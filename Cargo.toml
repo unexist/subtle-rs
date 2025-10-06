@@ -5,7 +5,7 @@ authors = [
     "Christoph Kappel <christoph@unexist.dev>"
 ]
 license-file = "LICENSE"
-homepage = "https://unexist.dev"
+homepage = "https://subtle.rs"
 repository = "https://hg.unexist.dev/subtle-rs"
 edition = "2024"
 exclude = ["/Taskfile.yml"]
