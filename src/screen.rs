@@ -460,7 +460,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         }
 
         // Calculate spacer and fix sizes
-        for i in 0..4 {
+        for i in 0..spacer.len() {
             if 0 < spacer[i] {
                 spacer_width[i] = (screen.base.width - width[i]) / spacer[i];
                 fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
