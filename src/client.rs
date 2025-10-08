@@ -627,7 +627,7 @@ impl Client {
         let atoms = subtle.atoms.get().unwrap();
 
         // Set arrange for certain modes
-        if mode_flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_STICK | ClientFlags::MODE_FULL
+        if mode_flags.intersects(ClientFlags::MODE_FLOAT | ClientFlags::MODE_STICK | ClientFlags::MODE_FULL
             | ClientFlags::MODE_ZAPHOD | ClientFlags::MODE_BORDERLESS | ClientFlags::MODE_CENTER)
         {
             self.flags.insert(ClientFlags::ARRANGE);
