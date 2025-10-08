@@ -14,7 +14,7 @@ use std::fmt;
 use std::cmp::PartialEq;
 use std::ops::{BitAnd, BitOr, BitXor};
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
-use bitflags::bitflags;
+use bitflags::{bitflags};
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::debug;
@@ -861,7 +861,7 @@ impl Client {
             .context("Screen not found?")?;
 
         // Check flags
-        if self.flags.contains(ClientFlags::MODE_FULL) {
+        if self.flags.intersects(ClientFlags::MODE_FULL) {
             let mut aux = ConfigureWindowAux::default();
 
             // Use all screens in zaphod mode
@@ -880,8 +880,8 @@ impl Client {
             }
 
             conn.configure_window(self.win, &aux)?.check()?;
-        } else if self.flags.contains(ClientFlags::MODE_FLOAT) {
-            if self.flags.contains(ClientFlags::ARRANGE)
+        } else if self.flags.intersects(ClientFlags::MODE_FLOAT) {
+            if self.flags.intersects(ClientFlags::ARRANGE)
                 || (-1 != screen_idx && self.screen_idx != screen_idx)
             {
                 if let Some(old_screen) = subtle.screens.get(
@@ -903,8 +903,8 @@ impl Client {
                     .width(self.geom.width as u32)
                     .height(self.geom.height as u32))?.check()?;
             }
-        } else if self.flags.contains(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
-            if self.flags.contains(ClientFlags::TYPE_DESKTOP) {
+        } else if self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK) {
+            if self.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                 self.geom = screen.geom;
             }
 
@@ -917,7 +917,7 @@ impl Client {
 
             //XLowerWindow() // TODO
         } else {
-            if self.flags.contains(ClientFlags::ARRANGE) || self.gravity_idx != gravity_idx
+            if self.flags.intersects(ClientFlags::ARRANGE) || self.gravity_idx != gravity_idx
                 || self.screen_idx != screen_idx
             {
                 let old_gravity_id = self.gravity_idx;
