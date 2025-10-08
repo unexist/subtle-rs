@@ -358,17 +358,19 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 // Drop and re-borrow mut this time
                 client.arrange(subtle, new_gravity_idx, new_screen_idx as isize)?;
             } else {
+                // Ignore next unmap
+                client.flags.insert(ClientFlags::UNMAP);
+
                 client.set_wm_state(subtle, WMState::Withdrawn)?;
                 client.unmap(subtle)?;
-
-                // Drop and re-borrow mut this time
-                client.flags.insert(ClientFlags::UNMAP);
             }
         }
     } else {
         // Check views of each screen
         for screen in subtle.screens.iter() {
-            if -1 != screen.view_idx.get() && let Some(view) = subtle.views.get(screen.view_idx.get() as usize) {
+            if -1 != screen.view_idx.get() && let Some(view) = subtle.views
+                .get(screen.view_idx.get() as usize)
+            {
                 visible_tags |= view.tags;
                 visible_views |= Tagging::from_bits_retain(1 << (screen.view_idx.get() + 1));
             }
