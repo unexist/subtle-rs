@@ -95,14 +95,16 @@ impl View {
 
         if focus_next {
             // Restore focus on view
-            if let Some(focus) = subtle.find_client(self.focus_win.get()) {
-                if !subtle.visible_tags.get().intersects(focus.tags) {
+            if let Some(focus_client) = subtle.find_client(self.focus_win.get()) {
+                if !subtle.visible_tags.get().intersects(focus_client.tags) {
                     self.focus_win.set(NONE);
                 } else {
-                    focus.focus(subtle, true)?;
+                    focus_client.focus(subtle, true)?;
                 }
-            } else if let Some(focus) = client::find_next(subtle, screen_idx as isize, false) {
-                focus.focus(subtle, true)?;
+            } else if let Some(focus_client) = client::find_next(subtle,
+                                                                 screen_idx as isize, false)
+            {
+                focus_client.focus(subtle, true)?;
             }
         }
 

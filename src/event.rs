@@ -172,8 +172,8 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
         drop(client);
 
         // Update focus history
-        if let Some(mut focus) = subtle.focus_history.borrow_mut(0) {
-            *focus = event.event;
+        if let Some(mut focus_win) = subtle.focus_history.borrow_mut(0) {
+            *focus_win = event.event;
         }
 
         // Update screen
