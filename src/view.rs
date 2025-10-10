@@ -23,6 +23,7 @@ use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::{client};
+use crate::client::ClientFlags;
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 use crate::icon::Icon;
@@ -96,10 +97,12 @@ impl View {
         if focus_next {
             // Restore focus on view
             if let Some(focus_client) = subtle.find_client(self.focus_win.get()) {
-                if !subtle.visible_tags.get().intersects(focus_client.tags) {
-                    self.focus_win.set(NONE);
-                } else {
+                if subtle.visible_tags.get().intersects(focus_client.tags) ||
+                    focus_client.flags.intersects(ClientFlags::MODE_STICK | ClientFlags::TYPE_DESKTOP)
+                {
                     focus_client.focus(subtle, true)?;
+                } else {
+                    self.focus_win.set(NONE);
                 }
             } else if let Some(focus_client) = client::find_next(subtle,
                                                                  screen_idx as isize, false)
