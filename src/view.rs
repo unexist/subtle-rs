@@ -97,9 +97,7 @@ impl View {
         if focus_next {
             // Restore focus on view
             if let Some(focus_client) = subtle.find_client(self.focus_win.get()) {
-                if subtle.visible_tags.get().intersects(focus_client.tags) ||
-                    focus_client.flags.intersects(ClientFlags::MODE_STICK | ClientFlags::TYPE_DESKTOP)
-                {
+                if focus_client.is_visible(subtle) {
                     focus_client.focus(subtle, true)?;
                 } else {
                     self.focus_win.set(NONE);
