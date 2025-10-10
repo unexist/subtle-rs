@@ -1,4 +1,3 @@
-use std::cell::Ref;
 ///
 /// @package subtle-rs
 ///
@@ -13,6 +12,7 @@ use std::cell::Ref;
 use std::fmt;
 use std::cmp::PartialEq;
 use std::ops::{BitAnd, BitOr, BitXor};
+use std::cell::Ref;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::{bitflags};
 use anyhow::{anyhow, Context, Result};
