@@ -32,6 +32,7 @@ mod font;
 mod panel;
 mod spacing;
 mod icon;
+mod tray;
 
 use std::env;
 use std::env::current_exe;
