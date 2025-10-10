@@ -1,7 +1,7 @@
 ///
 /// @package subtle-rs
 ///
-/// @file Client functions
+/// @file Tray functions
 /// @copyright 2025-present Christoph Kappel <christoph@unexist.dev>
 /// @version $Id$
 ///
