@@ -23,7 +23,6 @@ use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::{client};
-use crate::client::ClientFlags;
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 use crate::icon::Icon;
