@@ -235,12 +235,16 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                             // Find next and focus
                             if !focus.is_visible(subtle) {
-                                if let Some(next) = client::find_next(subtle, focus.screen_idx, false) {
-                                    next.focus(subtle, true)?;
-                                }
-                            }
+                                let screen_idx = focus.screen_idx;
 
-                            drop(focus);
+                                drop(focus);
+
+                                if let Some(next_client) = client::find_next(subtle, screen_idx, false) {
+                                    next_client.focus(subtle, true)?;
+                                }
+                            } else {
+                                drop(focus);
+                            }
 
                             // Finally configure, update and render
                             screen::configure(subtle)?;
