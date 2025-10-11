@@ -14,9 +14,10 @@ use bitflags::bitflags;
 use anyhow::Result;
 use log::debug;
 use stdext::function_name;
-use x11rb::CURRENT_TIME;
+use x11rb::{CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
+use crate::ewmh::WMState;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -90,11 +91,15 @@ impl Tray {
 
         conn.ungrab_server()?;
 
-        let tray = Self {
+        let mut tray = Self {
             win,
 
             ..Self::default()
         };
+
+        // Update client
+        tray.set_wm_name(subtle)?;
+        tray.set_wm_state(subtle, WMState::Withdrawn)?;
 
         // Start embedding life cycle
         conn.change_property32(PropMode::REPLACE, tray.win, atoms._XEMBED,
@@ -104,6 +109,35 @@ impl Tray {
         debug!("{}: tray={}", function_name!(), tray);
 
         Ok(tray)
+    }
+
+    pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let wm_name = conn.get_property(false, self.win,
+                                        atoms.WM_NAME, AtomEnum::STRING,
+                                        0, u32::MAX)?.reply()?.value;
+        self.name = String::from_utf8(wm_name)?;
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
+    }
+
+
+    pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let data: [u8; 2] = [state as u8, NONE as u8];
+
+        conn.change_property(PropMode::REPLACE,
+                             self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
     }
 }
 
