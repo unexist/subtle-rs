@@ -18,6 +18,13 @@ use x11rb::protocol::xproto::{Atom, ClientMessageEvent, ConnectionExt, EventMask
 use crate::config::Config;
 use crate::subtle::{Subtle, SubtleFlags};
 
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub(crate) enum WMState {
+    Withdrawn = 0,
+    Normal = 1,
+}
+
 x11rb::atom_manager! {
     #[derive(Iterable)]
     pub Atoms: AtomsCookie {

@@ -24,6 +24,7 @@ use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::{ewmh, grab, screen};
+use crate::ewmh::WMState;
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
@@ -37,13 +38,6 @@ macro_rules! ignore_if_dead {
     ($client:tt) => {
         if $client.flags.contains(ClientFlags::DEAD) { return Ok(()); }
     };
-}
-
-#[repr(u8)]
-#[derive(Copy, Clone)]
-pub(crate) enum WMState {
-    Withdrawn = 0,
-    Normal = 1,
 }
 
 #[repr(u8)]
