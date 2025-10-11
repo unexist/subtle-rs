@@ -18,8 +18,9 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
-use crate::client::{Client, ClientFlags, RestackOrder, WMState};
+use crate::client::{Client, ClientFlags, RestackOrder};
 use crate::{client, grab, screen};
+use crate::ewmh::WMState;
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
 

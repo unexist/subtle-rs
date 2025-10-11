@@ -24,7 +24,8 @@ use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindow
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
-use crate::client::{ClientFlags, WMState};
+use crate::client::ClientFlags;
+use crate::ewmh::WMState;
 use crate::panel::{Panel, PanelAction, PanelFlags};
 use crate::style::Style;
 use crate::tagging::Tagging;
