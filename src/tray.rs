@@ -67,7 +67,7 @@ pub(crate) enum XEmbedFocus {
     Last = 2,
 }
 
-const XEMBED_MAPPED: i32 = 1 << 0; ///< Tray mapped
+const XEMBED_MAPPED: u8 = 1 << 0; ///< Tray mapped
 
 impl Tray {
     pub(crate) fn new(subtle: &Subtle, win: Window) -> Result<Self> {
@@ -154,6 +154,40 @@ impl Tray {
                 self.flags.insert(TrayFlags::CLOSE);
             }
         }
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_state(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+        let mut opcode: XEmbed = XEmbed::WindowActivate;
+
+        let xembed_info = conn.get_property(false, self.win, atoms._XEMBED_INFO,
+            atoms._XEMBED_INFO, 0, 2)?.reply()?.value;
+
+        println!("xembed_info={:?}", xembed_info);
+
+        if let Some(xembed_flags) = xembed_info.first() {
+            opcode = XEmbed::WindowActivate;
+
+            conn.map_window(self.win)?.check()?;
+            self.set_wm_state(subtle, WMState::Normal)?;
+        } else {
+            self.flags.insert(TrayFlags::UNMAP);
+
+            opcode = XEmbed::WindowDeactivate;
+
+            conn.unmap_window(self.win)?.check()?;
+            self.set_wm_state(subtle, WMState::Withdrawn)?;
+
+        }
+
+        conn.change_property32(PropMode::REPLACE, self.win, atoms._XEMBED,
+                               AtomEnum::CARDINAL, &[0xFFFFFF, CURRENT_TIME,
+                opcode as u32, 0, 0, 0])?.check()?;
 
         debug!("{}: client={}", function_name!(), self);
 
