@@ -17,6 +17,7 @@ use stdext::function_name;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
+use crate::client::ClientFlags;
 use crate::ewmh::WMState;
 use crate::subtle::Subtle;
 
@@ -99,6 +100,7 @@ impl Tray {
 
         // Update client
         tray.set_wm_name(subtle)?;
+        tray.set_wm_protocols(subtle)?;
         tray.set_wm_state(subtle, WMState::Withdrawn)?;
 
         // Start embedding life cycle
@@ -136,6 +138,24 @@ impl Tray {
                              self.win, atoms.WM_STATE, atoms.WM_STATE, 8, 2, &data)?;
 
         debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn set_wm_protocols(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        let protocols = conn.get_property(false, self.win, atoms.WM_PROTOCOLS,
+                                          AtomEnum::ATOM, 0, u32::MAX)?.reply()?.value;
+
+        for protocol in protocols {
+            if atoms.WM_DELETE_WINDOW == protocol as u32 {
+                self.flags.insert(TrayFlags::CLOSE);
+            }
+        }
+
+        debug!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
