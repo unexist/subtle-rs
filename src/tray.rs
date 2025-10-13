@@ -18,6 +18,7 @@ use x11rb::{CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::client::ClientFlags;
+use crate::ewmh;
 use crate::ewmh::WMState;
 use crate::subtle::Subtle;
 
@@ -185,9 +186,8 @@ impl Tray {
 
         }
 
-        conn.change_property32(PropMode::REPLACE, self.win, atoms._XEMBED,
-                               AtomEnum::CARDINAL, &[0xFFFFFF, CURRENT_TIME,
-                opcode as u32, 0, 0, 0])?.check()?;
+        ewmh::send_message(subtle, self.win, atoms._XEMBED, &[CURRENT_TIME,
+            opcode as u32, 0, 0, 0])?;
 
         debug!("{}: client={}", function_name!(), self);
 
