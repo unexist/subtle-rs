@@ -18,7 +18,7 @@ use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, ConnectionExt, CreateGCAux, CreateWindowAux, EventMask, FillStyle, FontWrapper, InputFocus, JoinStyle, LineStyle, MapState, PropMode, SubwindowMode, Time, WindowClass, GX};
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
-use crate::{client, Config, Subtle};
+use crate::{client, ewmh, Config, Subtle};
 use crate::client::Client;
 use crate::subtle::SubtleFlags;
 
@@ -142,8 +142,6 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     // Acquire session selection
     conn.set_selection_owner(subtle.support_win, session, Time::CURRENT_TIME)?.check()?;
     
-    let reply = conn.get_selection_owner(session)?.reply()?;
-    
     if conn.get_selection_owner(session)?.reply()?.owner != subtle.support_win {
         return Err(anyhow!("Failed replacing current window manager"))
     }
@@ -174,6 +172,46 @@ pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
     }
     
     client::publish(subtle, false)?;
+
+    debug!("{}", function_name!());
+
+    Ok(())
+}
+
+pub(crate) fn select_tray(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    // Acquire tray selection
+    conn.set_selection_owner(subtle.tray_win, atoms._NET_SYSTEM_TRAY_S, CURRENT_TIME)?.check()?;
+
+    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S)?.reply()?.owner != subtle.tray_win {
+        return Err(anyhow!("Failed getting system tray selection"))
+    }
+
+    // Send manager info
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    ewmh::send_message(subtle, default_screen.root, atoms.MANAGER, &[CURRENT_TIME,
+        atoms._NET_SYSTEM_TRAY_S, subtle.tray_win, 0, 0])?;
+
+    debug!("{}", function_name!());
+
+    Ok(())
+}
+
+pub(crate) fn deselect_tray(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S)?.reply()?.owner == subtle.tray_win {
+        conn.set_selection_owner(NONE, atoms._NET_SYSTEM_TRAY_S, CURRENT_TIME)?.check()?;
+
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+
+        conn.delete_property(default_screen.root, atoms._NET_SYSTEM_TRAY_S)?.check()?;
+
+    }
 
     debug!("{}", function_name!());
 
