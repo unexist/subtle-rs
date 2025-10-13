@@ -19,7 +19,7 @@ use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNot
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
-use crate::{client, grab, screen};
+use crate::{client, display, grab, screen};
 use crate::ewmh::WMState;
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
@@ -495,6 +495,11 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     screen::update(subtle)?;
     screen::render(subtle)?;
 
+    // Set tray selection
+    if subtle.flags.intersects(SubtleFlags::TRAY) {
+        display::select_tray(subtle)?;
+    }
+
     conn.flush()?;
 
     // Set grabs and focus first client if any
@@ -534,6 +539,11 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
                 },
             }
         }
+    }
+
+    // Drop tray selection
+    if subtle.flags.intersects(SubtleFlags::TRAY) {
+        display::deselect_tray(subtle)?;
     }
     
     Ok(())
