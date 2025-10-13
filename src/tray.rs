@@ -17,7 +17,6 @@ use stdext::function_name;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::client::ClientFlags;
 use crate::ewmh;
 use crate::ewmh::WMState;
 use crate::subtle::Subtle;
