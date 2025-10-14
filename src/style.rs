@@ -228,6 +228,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.urgent_style.reset(-1);
     subtle.separator_style.reset(-1);
     subtle.clients_style.reset(0);
+    subtle.tray_style.reset(0);
     subtle.top_panel_style.reset(-1);
     subtle.bottom_panel_style.reset(-1);
     // TODO tray
@@ -267,6 +268,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.clients_style;
                 },
+                "trays" => style = &mut subtle.tray_style,
                 "title" => {
                     if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
                         subtle.title_style.min_width = *width as i16;
