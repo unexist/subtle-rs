@@ -413,7 +413,14 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             client.toggle(subtle, &mut enable_only, true)?;
             client.set_motif_wm_hints(subtle, &mut mode_flags)?;
         }
+    } else if atoms._XEMBED_INFO == event.atom {
+        if let Some(mut tray) = subtle.find_tray_mut(event.window) {
+            tray.set_state(subtle)?;
+            panel::update(subtle)?;
+            panel::render(subtle)?;
+        }
     }
+
     // TODO tray
 
     debug!("{}: win={}, atom={}", function_name!(), event.window, event.atom);
