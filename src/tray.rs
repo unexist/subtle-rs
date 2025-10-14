@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use anyhow::Result;
 use log::debug;
 use stdext::function_name;
+use strum_macros::FromRepr;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
@@ -40,7 +41,7 @@ pub(crate) struct Tray {
 }
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, FromRepr)]
 pub(crate) enum XEmbed {
     EmbeddedNotify = 0, // Start embedding
     WindowActivate = 1, // Tray has focus
