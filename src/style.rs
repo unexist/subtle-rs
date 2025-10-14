@@ -370,6 +370,7 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     subtle.views_occupied_style.inherit(&subtle.views_style);
     subtle.views_visible_style.inherit(&subtle.views_style);
     subtle.title_style.inherit(&subtle.all_style);
+    subtle.tray_style.inherit(&subtle.all_style);
     subtle.urgent_style.inherit(&subtle.all_style);
     subtle.panels_style.inherit(&subtle.all_style);
     subtle.top_panel_style.inherit(&subtle.all_style);
@@ -394,6 +395,7 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     update_panel_height!(subtle, views_occupied_style);
     update_panel_height!(subtle, views_visible_style);
     update_panel_height!(subtle, title_style);
+    update_panel_height!(subtle, tray_style);
     update_panel_height!(subtle, urgent_style);
     update_panel_height!(subtle, panels_style);
     update_panel_height!(subtle, top_panel_style);
