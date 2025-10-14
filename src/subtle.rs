@@ -29,6 +29,7 @@ use crate::grab::Grab;
 use crate::screen::Screen;
 use crate::style::Style;
 use crate::tagging::Tagging;
+use crate::tray::Tray;
 
 const HISTORY_SIZE: usize = 5;
 
@@ -98,6 +99,7 @@ pub(crate) struct Subtle {
     pub(crate) panels_style: Style,
     pub(crate) separator_style: Style,
     pub(crate) clients_style: Style,
+    pub(crate) tray_style: Style,
     pub(crate) top_panel_style: Style,
     pub(crate) bottom_panel_style: Style,
 
@@ -105,6 +107,7 @@ pub(crate) struct Subtle {
 
     pub(crate) screens: Vec<Screen>,
     pub(crate) clients: RefCell<Vec<Client>>,
+    pub(crate) trays: RefCell<Vec<Tray>>,
     pub(crate) gravities: Vec<Gravity>,
     pub(crate) grabs: Vec<Grab>,
     pub(crate) tags: Vec<Tag>,
@@ -254,12 +257,14 @@ impl Default for Subtle {
             panels_style: Style::default(),
             separator_style: Style::default(),
             clients_style: Style::default(),
+            tray_style: Style::default(),
             top_panel_style: Style::default(),
             bottom_panel_style: Style::default(),
 
             fonts: Vec::new(),
             screens: Vec::new(),
             clients: RefCell::new(Vec::new()),
+            trays: RefCell::new(Vec::new()),
             gravities: Vec::new(),
             grabs: Vec::new(),
             tags: Vec::new(),
