@@ -23,7 +23,7 @@ use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::{ewmh, grab, screen};
+use crate::{ewmh, grab, panel, screen};
 use crate::ewmh::WMState;
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
@@ -1135,8 +1135,8 @@ impl Client {
             publish(subtle, false)?;
 
             screen::configure(subtle)?;
-            screen::update(subtle)?;
-            screen::render(subtle)?;
+            panel::update(subtle)?;
+            panel::render(subtle)?;
 
             // Update focus if necessary
             if -1 == screen_id {

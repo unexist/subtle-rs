@@ -19,7 +19,7 @@ use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNot
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
-use crate::{client, display, grab, screen};
+use crate::{client, display, grab, panel, screen};
 use crate::ewmh::WMState;
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
@@ -33,7 +33,7 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
 
         // Finally configure and render
         screen::configure(subtle)?;
-        screen::render(subtle)?;
+        panel::render(subtle)?;
         screen::publish(subtle, false)?;
     }
 
@@ -109,8 +109,8 @@ fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
         client::publish(subtle, false)?;
 
         screen::configure(subtle)?;
-        screen::update(subtle)?;
-        screen::render(subtle)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
     } else {
         // Check if window is client leader
         for client in subtle.clients.borrow_mut().iter_mut() {
@@ -153,7 +153,7 @@ fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     // Render only once
     if 0 == event.count {
-        screen::render(subtle)?;
+        panel::render(subtle)?;
     }
     
     debug!("{}: win={}, count={}", function_name!(), event.window, event.count);
@@ -178,8 +178,8 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
         }
 
         // Update screen
-        screen::update(subtle)?;
-        screen::render(subtle)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.event);
@@ -218,7 +218,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                         // Finally configure and render
                         screen::configure(subtle)?;
-                        screen::render(subtle)?;
+                        panel::render(subtle)?;
                     }
                 }
             },
@@ -248,8 +248,8 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                             // Finally configure, update and render
                             screen::configure(subtle)?;
-                            screen::update(subtle)?;
-                            screen::render(subtle)?;
+                            panel::update(subtle)?;
+                            panel::render(subtle)?;
                         }
                     }
                 }
@@ -264,7 +264,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                             focus.toggle(subtle, &mut mode_flags, true)?;
 
                             screen::configure(subtle)?;
-                            screen::update(subtle)?;
+                            panel::update(subtle)?;
 
                             focus.gravity_idx = -1; // Reset
                         }
@@ -311,8 +311,8 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
         println!("grab={:?}", grab);
     }
 
-    screen::update(subtle)?;
-    screen::render(subtle)?;
+    panel::update(subtle)?;
+    panel::render(subtle)?;
 
     // Restore binds
     let conn = subtle.conn.get().context("Failed to get connection")?;
@@ -356,8 +356,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             {
                 drop(client);
 
-                screen::update(subtle)?;
-                screen::render(subtle)?;
+                panel::update(subtle)?;
+                panel::render(subtle)?;
             }
         }
     } else if atoms.WM_NORMAL_HINTS == event.atom {
@@ -373,8 +373,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             if client.is_visible(subtle) {
                 drop(client);
 
-                screen::update(subtle)?;
-                screen::render(subtle)?;
+                panel::update(subtle)?;
+                panel::render(subtle)?;
             }
 
         }
@@ -392,8 +392,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             if client.is_visible(subtle) || client.flags.contains(ClientFlags::MODE_URGENT) {
                 drop(client);
 
-                screen::update(subtle)?;
-                screen::render(subtle)?;
+                panel::update(subtle)?;
+                panel::render(subtle)?;
             }
         }
     } else if atoms._NET_WM_STRUT == event.atom {
@@ -402,8 +402,8 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
 
             drop(client);
 
-            screen::update(subtle)?;
-            screen::render(subtle)?;
+            panel::update(subtle)?;
+            panel::render(subtle)?;
         }
     } else if atoms._MOTIF_WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
@@ -428,14 +428,14 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         client.flags.insert(ClientFlags::ARRANGE);
 
         screen::configure(subtle)?;
-        screen::update(subtle)?;
-        screen::render(subtle)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
     } else if let Ok(client) = Client::new(subtle, event.window) {
         subtle.add_client(client);
 
         screen::configure(subtle)?;
-        screen::update(subtle)?;
-        screen::render(subtle)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
     }
 
     debug!("{}: win={}", function_name!(), event.window);
@@ -462,8 +462,8 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
             client::publish(subtle, false)?;
 
             screen::configure(subtle)?;
-            screen::update(subtle)?;
-            screen::render(subtle)?;
+            panel::update(subtle)?;
+            panel::render(subtle)?;
         }
     }
 
@@ -492,8 +492,8 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
     // Update screen and panels
     screen::configure(subtle)?;
-    screen::update(subtle)?;
-    screen::render(subtle)?;
+    panel::update(subtle)?;
+    panel::render(subtle)?;
 
     // Set tray selection
     if subtle.flags.intersects(SubtleFlags::TRAY) {
