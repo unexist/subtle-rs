@@ -14,7 +14,7 @@ exclude = ["/Taskfile.yml"]
 env_logger = "0.11.8"
 log = "0.4.28"
 anyhow = "1.0.100"
-clap = { version = "4.5.48", features = ["derive"] }
+clap = { version = "4.5.49", features = ["derive"] }
 clap-config-file = "0.6.0"
 serde = { version = "1.0.227", features = ["derive"] }
 config = "0.15.18"
@@ -23,7 +23,7 @@ x11rb = { version = "0.13.2", features = ["randr", "xinerama", "xinput", "xkb", 
 x11-keysymdef = "0.2.0"
 signal-hook = "0.3.18"
 easy-min-max = "1.0.0"
-regex = "1.11.3"
+regex = "1.12.2"
 once_cell = "1.21.3"
 veccell = "0.4.0"
 exec = "0.3.1"
