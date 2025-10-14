@@ -127,6 +127,18 @@ impl Subtle {
         }).ok()
     }
 
+    pub(crate) fn find_tray(&'_ self, win: Window) -> Option<Ref<'_, Tray>> {
+        Ref::filter_map(self.trays.borrow(), |trays| {
+            trays.iter().find(|t| t.win == win)
+        }).ok()
+    }
+
+    pub(crate) fn find_tray_mut(&'_ self, win: Window) -> Option<RefMut<'_, Tray>> {
+        RefMut::filter_map(self.trays.borrow_mut(), |trays| {
+            trays.iter_mut().find(|c| c.win == win)
+        }).ok()
+    }
+
     pub(crate) fn find_focus_client(&'_ self) -> Option<Ref<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client(*win)
