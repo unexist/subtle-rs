@@ -15,14 +15,16 @@ use std::sync::atomic::Ordering;
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent};
+use x11rb::CURRENT_TIME;
+use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigWindow, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
-use crate::{client, display, grab, panel, screen};
+use crate::{client, display, ewmh, grab, panel, screen};
 use crate::ewmh::WMState;
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
+use crate::tray::{Tray, XEmbed, XEmbedFocus};
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
@@ -67,14 +69,36 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
         }
     // Unmanaged window
     } else {
-        let aux = ConfigureWindowAux::default()
-            .x(event.x as i32)
-            .y(event.y as i32)
-            .width(event.width as u32)
-            .height(event.height as u32)
-            .border_width(0)
-            .sibling(event.sibling)
-            .stack_mode(event.stack_mode);
+        let mut aux = ConfigureWindowAux::default();
+
+        // Manually check for set values - we cannot pass the mask directly
+        if event.value_mask.intersects(ConfigWindow::X) {
+            aux = aux.x(event.x as i32);
+        }
+
+        if event.value_mask.intersects(ConfigWindow::Y) {
+            aux = aux.y(event.y as i32);
+        }
+
+        if event.value_mask.intersects(ConfigWindow::WIDTH) {
+            aux = aux.width(event.width as u32)
+        }
+
+        if event.value_mask.intersects(ConfigWindow::HEIGHT) {
+            aux = aux.height(event.height as u32)
+        }
+
+        if event.value_mask.intersects(ConfigWindow::BORDER_WIDTH) {
+            aux = aux.border_width(0)
+        }
+
+        if event.value_mask.intersects(ConfigWindow::SIBLING) {
+            aux = aux.sibling(event.sibling)
+        }
+
+        if event.value_mask.intersects(ConfigWindow::STACK_MODE) {
+            aux = aux.stack_mode(event.stack_mode);
+        }
 
         conn.configure_window(event.window, &aux)?.check()?;
     }
@@ -86,7 +110,31 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
     let atoms = subtle.atoms.get().unwrap();
 
     // Check if we know the window
-    if let Some(client) = subtle.find_client(event.window) {
+    if event.window == subtle.tray_win {
+        if atoms._NET_SYSTEM_TRAY_OPCODE == event.type_ {
+            let data = event.data.as_data32();
+
+            match XEmbed::from_repr(data[1] as u8).context("Unknown tray opcode")? {
+                XEmbed::EmbeddedNotify => {
+                    if subtle.find_tray(data[2] as Window).is_none() {
+                        if let Ok(tray) = Tray::new(subtle, data[2] as Window) {
+                            subtle.add_tray(tray);
+
+                            screen::configure(subtle)?;
+                            panel::update(subtle)?;
+                            panel::render(subtle)?;
+                        }
+                    }
+                },
+                XEmbed::WindowActivate => {
+                    ewmh::send_message(subtle, data[2] as Window,
+                                       atoms._XEMBED, &[CURRENT_TIME, XEmbed::FocusIn as u32,
+                                           XEmbedFocus::Current as u32, 0, 0])?;
+                },
+                _ => {},
+            }
+        }
+    } else if let Some(client) = subtle.find_client(event.window) {
         if atoms._NET_CLOSE_WINDOW == event.type_ {
             print!("CLOSE");
         }
@@ -416,6 +464,7 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
     } else if atoms._XEMBED_INFO == event.atom {
         if let Some(mut tray) = subtle.find_tray_mut(event.window) {
             tray.set_state(subtle)?;
+
             panel::update(subtle)?;
             panel::render(subtle)?;
         }
