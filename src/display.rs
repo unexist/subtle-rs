@@ -30,9 +30,9 @@ const XC_SIZING: u16 = 120;
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
 
-    // Create support window
     let default_screen = &conn.setup().roots[screen_num];
 
+    // Create support window
     subtle.support_win = conn.generate_id()?;
 
     let aux = CreateWindowAux::default()
@@ -41,6 +41,17 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, default_screen.root,
                        -100, -100, 1, 1, 0,
+                       WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
+
+    // Create tray window
+    subtle.tray_win = conn.generate_id()?;
+
+    let aux = CreateWindowAux::default()
+        .event_mask(EventMask::KEY_PRESS | EventMask::BUTTON_PRESS)
+        .override_redirect(1);
+
+    conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.tray_win, default_screen.root,
+                       0, 0, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
     // Check extensions
