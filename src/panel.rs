@@ -363,10 +363,10 @@ impl Panel {
         }
 
         // Handle panel item type
-        if self.flags.intersects(PanelFlags::TRAY) {
-            self.draw_rect(subtle, drawable, 0, self.width, &subtle.tray_style)?;
-        } else if self.flags.intersects(PanelFlags::ICON) {
+        if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
+        } else if self.flags.intersects(PanelFlags::TRAY) {
+            self.draw_rect(subtle, drawable, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
             if let Some(focus) = subtle.find_focus_client() {
@@ -730,8 +730,19 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Set panel position
-            if panel.flags.intersects(PanelFlags::TRAY) {
-                // TODO tray
+            if panel.flags.intersects(PanelFlags::TRAY) && !subtle.trays.borrow().is_empty() {
+
+                // FIXME: Last one wins if used multiple times
+                conn.reparent_window(subtle.tray_win,
+                                     if 0 == panel_number { screen.top_panel_win } else { screen.bottom_panel_win },
+                                     x[offset] as i16 + subtle.tray_style.calc_spacing(CalcSpacing::Left),
+                                     subtle.tray_style.calc_spacing(CalcSpacing::Top)
+                )?.check()?;
+
+                conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
+                    .width(panel.width as u32 - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32)
+                    .height(subtle.panel_height as u32 - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32)
+                )?.check()?;
             }
 
             // Store x position before separator and spacer for later re-borrow
@@ -788,7 +799,8 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
             // Switch to bottom panel
             if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
                 conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
-                               screen.base.width, subtle.panel_height)?.check()?;
+                               screen.base.width, subtle.panel_height
+                )?.check()?;
 
                 screen.clear(subtle, &subtle.bottom_panel_style)?;
             }
