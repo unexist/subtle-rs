@@ -31,6 +31,7 @@ stdext = "0.3.3"
 struct_iterable = "0.1.1"
 hex_color = "3.0.0"
 derive_builder = "0.20.2"
+strum_macros = "0.27.2"
 
 [dev-dependencies]
 proptest = "1.8.0"

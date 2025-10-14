@@ -1208,6 +1208,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9426b2a0c03e6cc2ea8dbc0168dbbf943f88755e409fb91bcb8f6a268305f4a"
 
 [[package]]
+name = "strum_macros"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
+dependencies = [
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "subtle-rs"
 version = "0.1.0"
 dependencies = [
@@ -1229,6 +1241,7 @@ dependencies = [
  "signal-hook",
  "stdext",
  "struct_iterable",
+ "strum_macros",
  "veccell",
  "x11-keysymdef",
  "x11rb",
