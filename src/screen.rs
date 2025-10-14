@@ -12,7 +12,7 @@
 use std::fmt;
 use std::cell::Cell;
 use bitflags::bitflags;
-use log::{debug, warn};
+use log::debug;
 use anyhow::{Context, Result};
 use stdext::function_name;
 use veccell::VecCell;
@@ -26,7 +26,8 @@ use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::ClientFlags;
 use crate::ewmh::WMState;
-use crate::panel::{Panel, PanelAction, PanelFlags};
+use crate::panel;
+use crate::panel::{Panel, PanelAction};
 use crate::style::Style;
 use crate::tagging::Tagging;
 
@@ -153,67 +154,6 @@ impl fmt::Display for Screen {
     }
 }
 
-fn configure_panel(screen: &mut Screen, panels: &Vec<String>, is_bottom: bool) {
-    if !panels.is_empty() {
-        // Add bottom marker to first panel on bottom panel in linear vec
-        let mut flags = if is_bottom { PanelFlags::BOTTOM_MARKER } else { PanelFlags::empty() };
-        let mut last_panel_idx = -1;
-
-        for (panel_idx, panel_name) in panels.iter().enumerate() {
-            // Lookbehind to previous panel
-            if flags.intersects(PanelFlags::SPACER_BEFORE | PanelFlags::SEPARATOR_BEFORE) {
-                if -1 != last_panel_idx &&
-                    let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
-                {
-                    // Add spacer after panel item
-                    if flags.intersects(PanelFlags::SPACER_BEFORE) {
-                        last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
-                        flags.remove(PanelFlags::SPACER_BEFORE);
-                    }
-
-                    // Add separator after panel item
-                    if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                        last_panel.flags.insert(PanelFlags::SEPARATOR_BEFORE);
-                        flags.remove(PanelFlags::SEPARATOR_BEFORE);
-                    }
-                }
-            }
-
-            // Handle panel type
-            match panel_name.as_str() {
-                "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
-                "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
-                "center" => flags.insert(PanelFlags::CENTER),
-                "title" | "views" => {
-                    if let Some(panel) = Panel::new(
-                        PanelFlags::try_from(panel_name).unwrap_or_default() | flags)
-                    {
-                        screen.flags.insert(if is_bottom { ScreenFlags::BOTTOM_PANEL } else { ScreenFlags::TOP_PANEL });
-                        screen.panels.push(panel);
-                        flags.remove(PanelFlags::BOTTOM_MARKER);
-
-                        last_panel_idx += 1;
-                    }
-                },
-                _ => warn!("Unknown panel type: {}", panel_name),
-            }
-        }
-
-        // Add flags to last item
-        if -1 != last_panel_idx
-            && let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
-        {
-            if flags.intersects(PanelFlags::SPACER_BEFORE) {
-                last_panel.flags.insert(PanelFlags::SPACER_AFTER);
-            }
-
-            if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                last_panel.flags.insert(PanelFlags::SEPARATOR_AFTER);
-            }
-        }
-    }
-}
-
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -262,11 +202,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
-                configure_panel(screen, top_panels, false);
+                panel::parse(screen, top_panels, false);
             }
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
-                configure_panel(screen, bottom_panels, false);
+                panel::parse(screen, bottom_panels, false);
             }
 
             // Handle virtual
@@ -400,208 +340,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn update(subtle: &Subtle) -> Result<()> {
-    let conn = subtle.conn.get().unwrap();
 
-    // Update screens
-    for screen in subtle.screens.iter() {
-        let mut is_centered = false;
-        let mut panel_number = 0;
-        let mut offset = 0;
-
-        let mut x = [0; 4];
-        let mut nspacer = [0; 4];
-        let mut spacer_width = [0; 4];
-        let mut fix = [0; 4];
-        let mut width = [0; 4];
-        let mut spacer = [0; 4];
-
-        // Pass 1: Collect width for spacer sizes
-        for (panel_idx, panel) in screen.panels.iter().enumerate() {
-
-            // Check flags
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
-
-            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                panel_number = 1;
-                is_centered = false;
-            }
-
-            if panel.flags.intersects(PanelFlags::CENTER) {
-                is_centered = !is_centered;
-            }
-
-            // Offset selects panel variables for either center or not
-            offset = if is_centered { panel_number + 2 } else { panel_number };
-
-            if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
-                spacer[offset] += 1;
-            }
-
-            if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
-                spacer[offset] += 1;
-            }
-
-            if panel.flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                width[offset] += subtle.separator_style.sep_width as u16;
-            }
-
-            if panel.flags.intersects(PanelFlags::SEPARATOR_AFTER) {
-                width[offset] += subtle.separator_style.sep_width as u16;
-            }
-
-            // Drop and update panel item
-            drop(panel);
-
-            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.update(subtle)?;
-
-                width[offset] += mut_panel.width;
-            }
-        }
-
-        // Calculate spacer and fix sizes
-        for i in 0..spacer.len() {
-            if 0 < spacer[i] {
-                spacer_width[i] = (screen.base.width - width[i]) / spacer[i];
-                fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
-            }
-        }
-
-        // Reset values before next pass
-        panel_number = 0;
-        is_centered = false;
-
-        // Pass 2: Move and resize windows
-        for (panel_idx, panel) in screen.panels.iter().enumerate() {
-
-            // Check flags
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
-
-            // Switch to bottom panel and reset
-            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                panel_number = 1;
-                nspacer[0] = 0;
-                nspacer[2] = 0;
-                x[0] = 0;
-                x[2] = 0;
-                is_centered = false;
-            }
-
-            if panel.flags.intersects(PanelFlags::CENTER) {
-                is_centered = !is_centered;
-            }
-
-            // Offset select panels variables for either center or not
-            offset = if is_centered { panel_number + 2 } else { panel_number };
-
-            // Set start position of centered panel items
-            if is_centered && 0 == x[offset] {
-                x[offset] = (screen.base.width - width[offset]) / 2;
-            }
-
-            // Add separator before panel item
-            if panel.flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                x[offset] += subtle.separator_style.sep_width as u16;
-            }
-
-            // Add spacer before item
-            if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
-                x[offset] += spacer_width[offset];
-
-                // Increase last spacer size by rounding fix
-                nspacer[offset] += 1;
-
-                if nspacer[offset] == spacer[offset] {
-                    x[offset] += fix[offset];
-                }
-            }
-
-            // Set panel position
-            if panel.flags.intersects(PanelFlags::TRAY) {
-                // TODO tray
-            }
-
-            // Store x position before separator and spacer for later re-borrow
-            let panel_x = x[offset];
-
-            // Add separator after item
-            if panel.flags.intersects(PanelFlags::SEPARATOR_AFTER) {
-                x[offset] += subtle.separator_style.sep_width as u16;
-            }
-
-            // Add spacer after item
-            if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
-                x[offset] += spacer_width[offset];
-
-                // Increase last spacer size by rounding fix
-                nspacer[offset] += 1;
-
-                if nspacer[offset] == spacer[offset] {
-                    x[offset] += fix[offset];
-                }
-            }
-
-            x[offset] += panel.width;
-
-            // Drop and update panel item
-            drop(panel);
-
-            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.x = panel_x as i16;
-            }
-        }
-    }
-
-    debug!("{}", function_name!());
-
-    Ok(())
-}
-
-pub(crate) fn render(subtle: &Subtle) -> Result<()> {
-    let conn = subtle.conn.get().unwrap();
-
-    // Update screens
-    for screen in subtle.screens.iter() {
-        let panel_win = screen.top_panel_win;
-
-        screen.clear(subtle, &subtle.top_panel_style)?;
-
-        // Render panel items
-        for (panel_idx, panel) in screen.panels.iter().enumerate() {
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
-
-            // Switch to bottom panel
-            if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
-                               screen.base.width, subtle.panel_height)?.check()?;
-
-                screen.clear(subtle, &subtle.bottom_panel_style)?;
-            }
-
-            drop(panel);
-
-            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.render(subtle, screen.drawable)?;
-            }
-        }
-
-        conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
-                       screen.base.width, subtle.panel_height)?.check()?;
-    }
-
-    conn.flush()?;
-
-    debug!("{}", function_name!());
-
-    Ok(())
-}
 
 pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
