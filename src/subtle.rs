@@ -223,6 +223,14 @@ impl Subtle {
     pub(crate) fn remove_client_by_win(&self, win: Window) {
         self.clients.borrow_mut().retain(|c| c.win != win);
     }
+
+    pub(crate) fn add_tray(&self, tray: Tray) {
+        self.trays.borrow_mut().push(tray);
+    }
+
+    pub(crate) fn remove_tray_by_win(&self, win: Window) {
+        self.trays.borrow_mut().retain(|t| t.win != win);
+    }
 }
 
 impl Default for Subtle {
