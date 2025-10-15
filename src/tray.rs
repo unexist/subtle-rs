@@ -16,7 +16,8 @@ use log::debug;
 use stdext::function_name;
 use strum_macros::FromRepr;
 use x11rb::{CURRENT_TIME, NONE};
-use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConnectionExt, EventMask, PropMode, SetMode, Window};
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, EventMask, PropMode, SetMode, StackMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh;
 use crate::ewmh::WMState;
@@ -193,6 +194,56 @@ impl Tray {
 
         Ok(())
     }
+
+    pub(crate) fn close(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        // Honor window preferences (see ICCCM 4.1.2.7, 4.2.8.1)
+        if self.flags.intersects(TrayFlags::CLOSE) {
+            ewmh::send_message(subtle, self.win, atoms.WM_PROTOCOLS,
+                               &[atoms.WM_DELETE_WINDOW, CURRENT_TIME, 0, 0, 0])?;
+        } else {
+            // Kill it manually
+            conn.kill_client(self.win)?.check()?;
+
+            subtle.remove_tray_by_win(self.win);
+
+            self.kill(subtle)?;
+
+            publish(subtle, false)?;
+        }
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+        let atoms = subtle.atoms.get().unwrap();
+
+        // Remove _NET_WM_STATE (see EWMH 1.3)
+        conn.delete_property(self.win, atoms._NET_WM_STATE)?.check()?;
+
+        // Ignore further events
+        conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()
+            .event_mask(EventMask::NO_EVENT))?.check()?;
+
+        // Um-embed tray icon following XEmbed specs
+        conn.unmap_window(self.win)?.check()?;
+
+        let default_screen = &conn.setup().roots[subtle.screen_num];
+
+        conn.reparent_window(self.win, default_screen.root, 0, 0)?.check()?;
+        conn.map_window(self.win)?.check()?;
+        conn.configure_window(self.win, &ConfigureWindowAux::default()
+            .stack_mode(StackMode::TOP_IF))?.check()?;
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Tray {
@@ -206,3 +257,29 @@ impl PartialEq for Tray {
         self.win == other.win
     }
 }
+
+pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+    let atoms = subtle.atoms.get().unwrap();
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    let trays = subtle.trays.borrow();
+    let mut wins: Vec<u32> = Vec::with_capacity(trays.len());
+
+    // Sort clients from top to bottom
+    for (tray_idx, tray) in trays.iter().enumerate() {
+        wins.push(tray.win);
+    }
+
+    // EWMH: Client list and stacking list (same for us)
+    conn.change_property32(PropMode::REPLACE, default_screen.root, atoms.SUBTLE_TRAY_LIST,
+                           AtomEnum::WINDOW, &wins)?;
+
+    conn.flush()?;
+
+    debug!("{}: ntrays={}", function_name!(), trays.len());
+
+    Ok(())
+}
+
