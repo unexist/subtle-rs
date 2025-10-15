@@ -266,9 +266,9 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::TITLE) {
 
             // Find focus window
-            if let Some(focus) = subtle.find_focus_client() {
-                if focus.is_alive() && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP) {
-                    let mode_str = focus.mode_string();
+            if let Some(focus_client) = subtle.find_focus_client() {
+                if focus_client.is_alive() && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                    let mode_str = focus_client.mode_string();
 
                     // Font offset, panel border and padding
                     if let Some(font) = subtle.title_style.get_font(subtle) {
@@ -278,7 +278,7 @@ impl Panel {
                         }
 
                         // Cache length of actual title
-                        if let Ok((width, _, _)) = font.calc_text_width(conn, &focus.name, false) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &focus_client.name, false) {
                             self.text_widths[1] = width;
                         }
 
@@ -369,9 +369,9 @@ impl Panel {
             self.draw_rect(subtle, drawable, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
-            if let Some(focus) = subtle.find_focus_client() {
-                if focus.is_alive() && focus.is_visible(subtle)
-                    && !focus.flags.intersects(ClientFlags::TYPE_DESKTOP)
+            if let Some(focus_client) = subtle.find_focus_client() {
+                if focus_client.is_alive() && focus_client.is_visible(subtle)
+                    && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
                     let mut offset_x = subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
 
@@ -379,7 +379,7 @@ impl Panel {
                     self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
 
                     // Draw modes and title
-                    let mode_str= focus.mode_string();
+                    let mode_str= focus_client.mode_string();
 
                     self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
 
@@ -391,7 +391,7 @@ impl Panel {
                         }
                     }
 
-                    self.draw_text(subtle, drawable, offset_x, &focus.name, &subtle.title_style)?;
+                    self.draw_text(subtle, drawable, offset_x, &focus_client.name, &subtle.title_style)?;
                 }
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {

@@ -23,7 +23,7 @@ use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::{ewmh, grab, panel, screen};
+use crate::{ewmh, grab, screen};
 use crate::ewmh::WMState;
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
@@ -1123,27 +1123,17 @@ impl Client {
            ewmh::send_message(subtle, self.win, atoms.WM_PROTOCOLS,
                               &[atoms.WM_DELETE_WINDOW, CURRENT_TIME, 0, 0, 0])?;
         } else {
-            let screen_id = if let Some(focus) = subtle.find_focus_client()
-                && focus.win == self.win { self.screen_idx } else { -1 };
+            let screen_idx = if let Some(focus_client) = subtle.find_focus_client()
+                && focus_client.win == self.win { self.screen_idx } else { -1 };
 
             // Kill it manually
             conn.kill_client(self.win)?.check()?;
 
-            //subtle.clients.remove
-            //self.kill(subtle);
+            subtle.remove_client_by_win(self.win);
+
+            self.kill(subtle)?;
 
             publish(subtle, false)?;
-
-            screen::configure(subtle)?;
-            panel::update(subtle)?;
-            panel::render(subtle)?;
-
-            // Update focus if necessary
-            if -1 == screen_id {
-                if let Some(next) = find_next(subtle, screen_id, false) {
-                    next.focus(subtle, true)?;
-                }
-            }
         }
 
         debug!("{}: client={}", function_name!(), self);
@@ -1473,10 +1463,11 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    let mut wins: Vec<u32> = Vec::with_capacity(subtle.clients.borrow().len());
+    let clients = subtle.clients.borrow();
+    let mut wins: Vec<u32> = Vec::with_capacity(clients.len());
 
     // Sort clients from top to bottom
-    for (client_idx, client) in subtle.clients.borrow().iter().enumerate() {
+    for (client_idx, client) in clients.iter().enumerate() {
         wins.push(client.win);
     }
 
@@ -1494,8 +1485,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: nclients={}, restack={}", function_name!(),
-        subtle.clients.borrow().len(), restack_windows);
+    debug!("{}: nclients={}, restack={}", function_name!(), clients.len(), restack_windows);
 
     Ok(())
 }
