@@ -12,11 +12,13 @@
 use std::fmt;
 use bitflags::bitflags;
 use anyhow::Result;
+use easy_min_max::max;
 use log::debug;
 use stdext::function_name;
 use strum_macros::FromRepr;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::connection::Connection;
+use x11rb::properties::{WmSizeHints, WmSizeHintsSpecification};
 use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, EventMask, PropMode, SetMode, StackMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh;
@@ -96,11 +98,11 @@ impl Tray {
 
         let mut tray = Self {
             win,
-
             ..Self::default()
         };
 
         // Update client
+        tray.set_size_hints(subtle)?;
         tray.set_wm_name(subtle)?;
         tray.set_wm_protocols(subtle)?;
         tray.set_wm_state(subtle, WMState::Withdrawn)?;
@@ -113,6 +115,40 @@ impl Tray {
         debug!("{}: tray={}", function_name!(), tray);
 
         Ok(tray)
+    }
+
+    pub(crate) fn set_size_hints(&mut self, subtle: &Subtle) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        // Set default values
+        self.width = 0;
+
+        // Size hints - no idea why it's called normal hints
+        if let Some(size_hints) = WmSizeHints::get_normal_hints(conn, self.win)?.reply()? {
+
+            // Program min size - limit min size to screen size if larger
+            if let Some((min_width, _)) = size_hints.min_size {
+                self.width = max!(min_width as u16, subtle.panel_height * 2);
+            }
+
+            // Base sizes
+            if let Some((base_width, _)) = size_hints.base_size {
+                self.width = max!(base_width as u16, subtle.panel_height * 2);
+            }
+
+            // User/program size
+            if let Some((hint_spec, x, y)) = size_hints.size {
+                match hint_spec {
+                    WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
+                        self.width = max!(x as u16, subtle.panel_height * 2);
+                    }
+                }
+            }
+        }
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
     }
 
     pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
