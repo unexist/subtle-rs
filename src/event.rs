@@ -16,7 +16,7 @@ use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
-use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigWindow, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
+use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
@@ -69,38 +69,8 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
         }
     // Unmanaged window
     } else {
-        let mut aux = ConfigureWindowAux::default();
-
-        // Manually check for set values - we cannot pass the mask directly
-        if event.value_mask.intersects(ConfigWindow::X) {
-            aux = aux.x(event.x as i32);
-        }
-
-        if event.value_mask.intersects(ConfigWindow::Y) {
-            aux = aux.y(event.y as i32);
-        }
-
-        if event.value_mask.intersects(ConfigWindow::WIDTH) {
-            aux = aux.width(event.width as u32)
-        }
-
-        if event.value_mask.intersects(ConfigWindow::HEIGHT) {
-            aux = aux.height(event.height as u32)
-        }
-
-        if event.value_mask.intersects(ConfigWindow::BORDER_WIDTH) {
-            aux = aux.border_width(0)
-        }
-
-        if event.value_mask.intersects(ConfigWindow::SIBLING) {
-            aux = aux.sibling(event.sibling)
-        }
-
-        if event.value_mask.intersects(ConfigWindow::STACK_MODE) {
-            aux = aux.stack_mode(event.stack_mode);
-        }
-
-        conn.configure_window(event.window, &aux)?.check()?;
+        conn.configure_window(event.window,
+                              &ConfigureWindowAux::from_configure_request(&event))?.check()?;
     }
 
     Ok(())
@@ -108,6 +78,8 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
 
 fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
+
+    println!("win={}, data={:?}", event.window, event.data);
 
     // Check if we know the window
     if event.window == subtle.tray_win {
@@ -426,7 +398,6 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
             }
 
         }
-        // TODO tray
     } else if atoms.WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
             let mut mode_flags = ClientFlags::empty();
