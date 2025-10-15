@@ -211,7 +211,7 @@ impl Tray {
 
             self.kill(subtle)?;
 
-            publish(subtle, false)?;
+            publish(subtle)?;
         }
 
         debug!("{}: tray={}", function_name!(), self);
@@ -258,7 +258,7 @@ impl PartialEq for Tray {
     }
 }
 
-pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
+pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
@@ -282,4 +282,3 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
 
     Ok(())
 }
-
