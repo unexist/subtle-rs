@@ -54,7 +54,7 @@ x11rb::atom_manager! {
         _NET_WM_STATE_STICKY, _NET_WM_STATE_DEMANDS_ATTENTION,
 
         // Tray
-        _NET_SYSTEM_TRAY_OPCODE, _NET_SYSTEM_TRAY_MESSAGE_DATA, _NET_SYSTEM_TRAY_S,
+        _NET_SYSTEM_TRAY_OPCODE, _NET_SYSTEM_TRAY_MESSAGE_DATA, _NET_SYSTEM_TRAY_S0,
 
         // Misc
         UTF8_STRING, MANAGER, _MOTIF_WM_HINTS,
@@ -83,6 +83,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let atoms = Atoms::new(conn)?.reply()?;
     
     subtle.atoms.set(atoms).unwrap();
+
     subtle.flags.insert(SubtleFlags::EWMH);
     
     debug!("{}", function_name!());
