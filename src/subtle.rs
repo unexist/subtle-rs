@@ -236,7 +236,7 @@ impl Subtle {
 impl Default for Subtle {
     fn default() -> Self {
         Subtle {
-            flags: SubtleFlags::empty(),
+            flags: SubtleFlags::TRAY,
             width: 0,
             height: 0,
 
