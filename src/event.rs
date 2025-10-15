@@ -77,12 +77,18 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
 }
 
 fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
     let atoms = subtle.atoms.get().unwrap();
+    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     println!("win={}, data={:?}", event.window, event.data);
 
     // Check if we know the window
-    if event.window == subtle.tray_win {
+    if default_screen.root == event.window {
+        if atoms.SUBTLE_RELOAD == event.type_ {
+            println!("Reload");
+        }
+    } else if event.window == subtle.tray_win {
         if atoms._NET_SYSTEM_TRAY_OPCODE == event.type_ {
             let data = event.data.as_data32();
 
