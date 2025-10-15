@@ -194,9 +194,9 @@ pub(crate) fn select_tray(subtle: &Subtle) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
 
     // Acquire tray selection
-    conn.set_selection_owner(subtle.tray_win, atoms._NET_SYSTEM_TRAY_S, CURRENT_TIME)?.check()?;
+    conn.set_selection_owner(subtle.tray_win, atoms._NET_SYSTEM_TRAY_S0, CURRENT_TIME)?.check()?;
 
-    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S)?.reply()?.owner != subtle.tray_win {
+    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S0)?.reply()?.owner != subtle.tray_win {
         return Err(anyhow!("Failed getting system tray selection"))
     }
 
@@ -204,7 +204,7 @@ pub(crate) fn select_tray(subtle: &Subtle) -> Result<()> {
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     ewmh::send_message(subtle, default_screen.root, atoms.MANAGER, &[CURRENT_TIME,
-        atoms._NET_SYSTEM_TRAY_S, subtle.tray_win, 0, 0])?;
+        atoms._NET_SYSTEM_TRAY_S0, subtle.tray_win, 0, 0])?;
 
     debug!("{}", function_name!());
 
@@ -215,13 +215,12 @@ pub(crate) fn deselect_tray(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
 
-    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S)?.reply()?.owner == subtle.tray_win {
-        conn.set_selection_owner(NONE, atoms._NET_SYSTEM_TRAY_S, CURRENT_TIME)?.check()?;
+    if conn.get_selection_owner(atoms._NET_SYSTEM_TRAY_S0)?.reply()?.owner == subtle.tray_win {
+        conn.set_selection_owner(NONE, atoms._NET_SYSTEM_TRAY_S0, CURRENT_TIME)?.check()?;
 
         let default_screen = &conn.setup().roots[subtle.screen_num];
 
-        conn.delete_property(default_screen.root, atoms._NET_SYSTEM_TRAY_S)?.check()?;
-
+        conn.delete_property(default_screen.root, atoms._NET_SYSTEM_TRAY_S0)?.check()?;
     }
 
     debug!("{}", function_name!());
