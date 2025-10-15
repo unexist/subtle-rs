@@ -20,11 +20,11 @@ use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNot
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
-use crate::{client, display, ewmh, grab, panel, screen};
+use crate::{client, display, ewmh, grab, panel, screen, tray};
 use crate::ewmh::WMState;
 use crate::grab::{GrabAction, GrabFlags};
 use crate::panel::PanelAction;
-use crate::tray::{Tray, XEmbed, XEmbedFocus};
+use crate::tray::{Tray, TrayFlags, XEmbed, XEmbedFocus};
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
@@ -510,6 +510,26 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
             subtle.remove_client_by_win(event.window);
 
             client::publish(subtle, false)?;
+
+            screen::configure(subtle)?;
+            panel::update(subtle)?;
+            panel::render(subtle)?;
+        }
+    } else if let Some(mut tray) = subtle.find_tray_mut(event.window) {
+        // Set withdrawn state (see ICCCM 4.1.4)
+        tray.set_wm_state(subtle, WMState::Withdrawn)?;
+
+        // Ignore our generated unmap events
+        if tray.flags.contains(TrayFlags::UNMAP) {
+            tray.flags.remove(TrayFlags::UNMAP);
+        } else {
+            tray.kill(subtle)?;
+
+            drop(tray);
+
+            subtle.remove_client_by_win(event.window);
+
+            tray::publish(subtle)?;
 
             screen::configure(subtle)?;
             panel::update(subtle)?;
