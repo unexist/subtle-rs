@@ -243,7 +243,8 @@ impl Panel {
         if self.flags.intersects(PanelFlags::TRAY) {
             self.width = 0;
 
-            if let Ok(mut trays) = subtle.trays.try_borrow_mut() {
+            // Resize every tray
+            if let Ok(mut trays) = subtle.trays.try_borrow_mut() && !trays.is_empty() {
                 for tray_idx in 0..trays.len() {
                     let tray = trays.get_mut(tray_idx).unwrap();
 
@@ -252,16 +253,22 @@ impl Panel {
                     }
 
                     conn.map_window(tray.win)?.check()?;
-                    conn.configure_window(tray.win, &ConfigureWindowAux::default()
+
+                    let aux = &ConfigureWindowAux::default()
                         .x(self.width as i32)
                         .y(0)
-                        .width(tray.width as u32)
-                        .height(subtle.panel_height as u32
-                            - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32)
-                    )?.check()?;
+                        .width(min!(1, tray.width as u32))
+                        .height(min!(1, subtle.panel_height as u32
+                            - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
+
+                    conn.configure_window(tray.win, &aux)?.check()?;
 
                     self.width += tray.width;
                 }
+
+                self.width += subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
+            } else {
+                conn.unmap_window(subtle.tray_win)?.check()?;
             }
         } else if self.flags.intersects(PanelFlags::TITLE) {
 
@@ -730,7 +737,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Set panel position
-            if panel.flags.intersects(PanelFlags::TRAY) && !subtle.trays.borrow().is_empty() {
+            if panel.flags.intersects(PanelFlags::TRAY) {
 
                 // FIXME: Last one wins if used multiple times
                 conn.reparent_window(subtle.tray_win,
@@ -739,10 +746,17 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                                      subtle.tray_style.calc_spacing(CalcSpacing::Top)
                 )?.check()?;
 
-                conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
-                    .width(panel.width as u32 - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32)
-                    .height(subtle.panel_height as u32 - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32)
-                )?.check()?;
+                let aux = ConfigureWindowAux::default()
+                    .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
+                    .y(subtle.tray_style.calc_spacing(CalcSpacing::Top) as i32)
+                    .width(max!(1, panel.width as u32
+                        - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32))
+                    .height(max!(1, subtle.panel_height as u32
+                        - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
+
+                println!("aux: panel={:?}, x={:?}, y={:?}, width={:?}, height={:?}", panel, aux.x, aux.y, aux.width, aux.height);
+
+                conn.configure_window(subtle.tray_win, &aux)?.check()?;
             }
 
             // Store x position before separator and spacer for later re-borrow
