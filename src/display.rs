@@ -304,6 +304,7 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
 
     // Destroy windows
     conn.destroy_window(subtle.support_win)?;
+    conn.destroy_window(subtle.tray_win)?;
 
     conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 
