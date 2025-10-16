@@ -16,7 +16,7 @@ use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
-use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
+use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, RestackOrder};
@@ -42,7 +42,7 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_configure(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
+fn handle_configure_notify(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
     debug!("{}: win={}", function_name!(), event.window);
 
     Ok(())
@@ -131,7 +131,7 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
     Ok(())
 }
 
-fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
+fn handle_destroy_notify(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(client) = subtle.find_client(event.window) {
         client.kill(subtle)?;
@@ -171,7 +171,7 @@ fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
+fn handle_enter_notify(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     if let Some(client) = subtle.find_client(event.event) {
         if !subtle.flags.intersects(SubtleFlags::CLICK_TO_FOCUS) {
             client.focus(subtle, false)?;
@@ -184,7 +184,7 @@ fn handle_enter(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_leave(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
+fn handle_leave_notify(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
             screen.handle_action(subtle, &PanelAction::MouseOut,
                                  screen.bottom_panel_win == event.event)?;
@@ -383,7 +383,23 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
+fn handle_map_notify(subtle: &Subtle, event: MapNotifyEvent) -> Result<()> {
+    // Check if we know the window
+    if let Some(mut tray) = subtle.find_tray_mut(event.window) {
+        tray.flags.remove(TrayFlags::DEAD);
+
+        drop(tray);
+
+        panel::update(subtle)?;
+        panel::render(subtle)?;
+    }
+
+    debug!("{}: win={}", function_name!(), event.window);
+
+    Ok(())
+}
+
+fn handle_mapping_notify(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     //conn.set_modifier_mapping(&[event.first_keycode])?;
@@ -401,7 +417,7 @@ fn handle_mapping(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
+fn handle_property_notify(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
 
     if atoms.WM_NAME == event.atom {
@@ -507,7 +523,7 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
+fn handle_unmap_notify(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
         // Set withdrawn state (see ICCCM 4.1.4)
@@ -556,7 +572,7 @@ fn handle_unmap(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     Ok(())
 }
 
-fn handle_selection(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
+fn handle_selection_clear(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
     if event.owner == subtle.tray_win {
         unimplemented!()
     } else if event.owner == subtle.support_win {
@@ -601,20 +617,21 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
         if let Some(event) = conn.poll_for_event()? {
             match event {
                 Event::ButtonPress(evt) => handle_button_press(subtle, evt)?,
-                Event::ConfigureNotify(evt) => handle_configure(subtle, evt)?,
+                Event::ConfigureNotify(evt) => handle_configure_notify(subtle, evt)?,
                 Event::ConfigureRequest(evt) => handle_configure_request(subtle, evt)?,
                 Event::ClientMessage(evt) => handle_client_message(subtle, evt)?,
-                Event::DestroyNotify(evt) => handle_destroy(subtle, evt)?,
-                Event::EnterNotify(evt) => handle_enter(subtle, evt)?,
-                Event::LeaveNotify(evt) => handle_leave(subtle, evt)?,
+                Event::DestroyNotify(evt) => handle_destroy_notify(subtle, evt)?,
+                Event::EnterNotify(evt) => handle_enter_notify(subtle, evt)?,
+                Event::LeaveNotify(evt) => handle_leave_notify(subtle, evt)?,
                 Event::Expose(evt) => handle_expose(subtle, evt)?,
                 Event::FocusIn(evt) => handle_focus_in(subtle, evt)?,
                 Event::KeyPress(evt) => handle_key_press(subtle, evt)?,
-                Event::MappingNotify(evt) => handle_mapping(subtle, evt)?,
+                Event::MapNotify(evt) => handle_map_notify(subtle, evt)?,
+                Event::MappingNotify(evt) => handle_mapping_notify(subtle, evt)?,
                 Event::MapRequest(evt) => handle_map_request(subtle, evt)?,
-                Event::PropertyNotify(evt) => handle_property(subtle, evt)?,
-                Event::SelectionClear(evt) => handle_selection(subtle, evt)?,
-                Event::UnmapNotify(evt) => handle_unmap(subtle, evt)?,
+                Event::PropertyNotify(evt) => handle_property_notify(subtle, evt)?,
+                Event::SelectionClear(evt) => handle_selection_clear(subtle, evt)?,
+                Event::UnmapNotify(evt) => handle_unmap_notify(subtle, evt)?,
 
                 _ => {
                     if subtle.flags.intersects(SubtleFlags::DEBUG) {
