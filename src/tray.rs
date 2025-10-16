@@ -272,8 +272,8 @@ impl Tray {
 
         conn.reparent_window(self.win, default_screen.root, 0, 0)?.check()?;
         conn.map_window(self.win)?.check()?;
-        conn.configure_window(self.win, &ConfigureWindowAux::default()
-            .stack_mode(StackMode::TOP_IF))?.check()?;
+        conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
+            .stack_mode(StackMode::ABOVE))?.check()?;
 
         debug!("{}: tray={}", function_name!(), self);
 
