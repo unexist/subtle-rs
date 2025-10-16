@@ -268,14 +268,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.clients_style;
                 },
-                "trays" => style = &mut subtle.tray_style,
                 "title" => {
                     if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
                         subtle.title_style.min_width = *width as i16;
                     }
 
                     style = &mut subtle.title_style;
-                }
+                },
+                "tray" => style = &mut subtle.tray_style,
                 "urgent" => style = &mut subtle.urgent_style,
                 "top_panel" => style = &mut subtle.top_panel_style,
                 "bottom_panel" => style = &mut subtle.bottom_panel_style,
