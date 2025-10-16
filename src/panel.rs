@@ -255,8 +255,6 @@ impl Panel {
                     conn.map_window(tray.win)?.check()?;
 
                     let aux = &ConfigureWindowAux::default()
-                        .x(self.width as i32)
-                        .y(0)
                         .width(min!(1, tray.width as u32))
                         .height(min!(1, subtle.panel_height as u32
                             - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
@@ -373,7 +371,7 @@ impl Panel {
         if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
         } else if self.flags.intersects(PanelFlags::TRAY) {
-            self.draw_rect(subtle, drawable, 0, self.width, &subtle.tray_style)?;
+            self.draw_rect(subtle, subtle.tray_win, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
             if let Some(focus_client) = subtle.find_focus_client() {
