@@ -352,7 +352,7 @@ impl Panel {
             }
         }
 
-        println!("{}: panel={}", function_name!(), self);
+        debug!("{}: panel={}", function_name!(), self);
 
         Ok(())
     }
