@@ -112,7 +112,7 @@ impl Tray {
                                AtomEnum::CARDINAL, &[0xFFFFFF, CURRENT_TIME,
                 XEmbed::EmbeddedNotify as u32, subtle.tray_win, 0])?.check()?;
 
-        println!("{}: tray={}", function_name!(), tray);
+        debug!("{}: tray={}", function_name!(), tray);
 
         Ok(tray)
     }
