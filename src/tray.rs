@@ -112,7 +112,7 @@ impl Tray {
                                AtomEnum::CARDINAL, &[0xFFFFFF, CURRENT_TIME,
                 XEmbed::EmbeddedNotify as u32, subtle.tray_win, 0])?.check()?;
 
-        debug!("{}: tray={}", function_name!(), tray);
+        println!("{}: tray={}", function_name!(), tray);
 
         Ok(tray)
     }
@@ -206,12 +206,11 @@ impl Tray {
         let xembed_info = conn.get_property(false, self.win, atoms._XEMBED_INFO,
             atoms._XEMBED_INFO, 0, 2)?.reply()?.value;
 
-        println!("xembed_info={:?}", xembed_info);
-
         if let Some(xembed_flags) = xembed_info.first() {
             opcode = XEmbed::WindowActivate;
 
             conn.map_window(self.win)?.check()?;
+
             self.set_wm_state(subtle, WMState::Normal)?;
         } else {
             self.flags.insert(TrayFlags::UNMAP);
@@ -219,14 +218,14 @@ impl Tray {
             opcode = XEmbed::WindowDeactivate;
 
             conn.unmap_window(self.win)?.check()?;
-            self.set_wm_state(subtle, WMState::Withdrawn)?;
 
+            self.set_wm_state(subtle, WMState::Withdrawn)?;
         }
 
         ewmh::send_message(subtle, self.win, atoms._XEMBED, &[CURRENT_TIME,
             opcode as u32, 0, 0, 0])?;
 
-        debug!("{}: client={}", function_name!(), self);
+        debug!("{}: tray={}", function_name!(), self);
 
         Ok(())
     }
@@ -276,7 +275,7 @@ impl Tray {
         conn.configure_window(self.win, &ConfigureWindowAux::default()
             .stack_mode(StackMode::TOP_IF))?.check()?;
 
-        debug!("{}: client={}", function_name!(), self);
+        debug!("{}: tray={}", function_name!(), self);
 
         Ok(())
     }
