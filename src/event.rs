@@ -28,9 +28,7 @@ use crate::tray::{Tray, TrayFlags, XEmbed, XEmbedFocus};
 
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
-        screen.handle_action(
-            subtle,
-            &PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
+        screen.handle_action(subtle, &PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
             screen.bottom_panel_win == event.event)?;
 
         // Finally configure and render
@@ -80,8 +78,6 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
     let conn = subtle.conn.get().context("Failed to get connection")?;
     let atoms = subtle.atoms.get().unwrap();
     let default_screen = &conn.setup().roots[subtle.screen_num];
-
-    println!("win={}, data={:?}", event.window, event.data);
 
     // Check if we know the window
     if default_screen.root == event.window {
@@ -145,6 +141,18 @@ fn handle_destroy(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
         subtle.remove_client_by_win(event.window);
 
         client::publish(subtle, false)?;
+
+        screen::configure(subtle)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
+    } else if let Some(tray) = subtle.find_tray(event.window) {
+        tray.kill(subtle)?;
+
+        drop(tray);
+
+        subtle.remove_tray_by_win(event.window);
+
+        tray::publish(subtle)?;
 
         screen::configure(subtle)?;
         panel::update(subtle)?;
@@ -465,12 +473,12 @@ fn handle_property(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
         if let Some(mut tray) = subtle.find_tray_mut(event.window) {
             tray.set_state(subtle)?;
 
+            drop(tray);
+
             panel::update(subtle)?;
             panel::render(subtle)?;
         }
     }
-
-    // TODO tray
 
     debug!("{}: win={}, atom={}", function_name!(), event.window, event.atom);
 
