@@ -507,6 +507,8 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         client.flags.remove(ClientFlags::DEAD);
         client.flags.insert(ClientFlags::ARRANGE);
 
+        drop(client);
+
         screen::configure(subtle)?;
         panel::update(subtle)?;
         panel::render(subtle)?;
