@@ -13,10 +13,10 @@ use std::fmt;
 use bitflags::bitflags;
 use log::{debug, warn};
 use anyhow::{anyhow, Context, Result};
-use easy_min_max::{max, min};
+use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ChangeGCAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle};
+use x11rb::protocol::xproto::{ChangeGCAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle, StackMode};
 use crate::client::ClientFlags;
 use crate::icon::Icon;
 use crate::screen::{Screen, ScreenFlags};
@@ -241,7 +241,7 @@ impl Panel {
 
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
-            self.width = 0;
+            self.width = subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
 
             // Resize every tray
             if let Ok(mut trays) = subtle.trays.try_borrow_mut() && !trays.is_empty() {
@@ -255,16 +255,17 @@ impl Panel {
                     conn.map_window(tray.win)?.check()?;
 
                     let aux = &ConfigureWindowAux::default()
-                        .width(min!(1, tray.width as u32))
-                        .height(min!(1, subtle.panel_height as u32
-                            - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
+                        .x(self.width as i32)
+                        .y(0i32)
+                        .width(max!(1, tray.width) as u32)
+                        .height(max!(1, subtle.panel_height as i16
+                            - subtle.tray_style.calc_spacing(CalcSpacing::Height)) as u32)
+                        .stack_mode(StackMode::ABOVE);
 
                     conn.configure_window(tray.win, &aux)?.check()?;
 
                     self.width += tray.width;
                 }
-
-                self.width += subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
             } else {
                 conn.unmap_window(subtle.tray_win)?.check()?;
             }
@@ -289,7 +290,7 @@ impl Panel {
 
                         // Finally update actual length
                         self.width = self.text_widths[0]
-                            + min!(subtle.clients_style.right as u16, self.text_widths[1])
+                            + max!(subtle.clients_style.right as u16, self.text_widths[1])
                             + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                     }
 
@@ -351,7 +352,7 @@ impl Panel {
             }
         }
 
-        debug!("{}: panel={}", function_name!(), self);
+        println!("{}: panel={}", function_name!(), self);
 
         Ok(())
     }
@@ -744,6 +745,10 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                                      subtle.tray_style.calc_spacing(CalcSpacing::Top)
                 )?.check()?;
 
+
+                conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
+                    .stack_mode(StackMode::ABOVE))?.check()?;
+
                 let aux = ConfigureWindowAux::default()
                     .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
                     .y(subtle.tray_style.calc_spacing(CalcSpacing::Top) as i32)
@@ -751,8 +756,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                         - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32))
                     .height(max!(1, subtle.panel_height as u32
                         - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
-
-                println!("aux: panel={:?}, x={:?}, y={:?}, width={:?}, height={:?}", panel, aux.x, aux.y, aux.width, aux.height);
 
                 conn.configure_window(subtle.tray_win, &aux)?.check()?;
             }
