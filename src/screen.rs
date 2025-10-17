@@ -20,7 +20,7 @@ use x11rb::connection::Connection;
 use x11rb::{COPY_DEPTH_FROM_PARENT, CURRENT_TIME};
 use x11rb::protocol::randr::ConnectionExt as randr_ext;
 use x11rb::protocol::xinerama::ConnectionExt as xinerama_ext;
-use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ChangeGCAux, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, Pixmap, PropMode, Rectangle, StackMode, Window, WindowClass};
+use x11rb::protocol::xproto::{AtomEnum, BackPixmap, ConfigureWindowAux, ConnectionExt, CreateWindowAux, EventMask, PropMode, Rectangle, StackMode, Window, WindowClass};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{SubtleFlags, Subtle};
@@ -28,7 +28,6 @@ use crate::client::ClientFlags;
 use crate::ewmh::WMState;
 use crate::panel;
 use crate::panel::{Panel, PanelAction};
-use crate::style::Style;
 use crate::tagging::Tagging;
 
 bitflags! {
@@ -374,6 +373,8 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
             conn.unmap_window(screen.bottom_panel_win)?.check()?;
         }
     }
+
+    panel::resize_double_buffer(subtle)?;
 
     debug!("{}", function_name!());
 
