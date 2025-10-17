@@ -54,6 +54,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                        0, 0, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
+    // Create double buffer and resize later
+    subtle.panel_dbuf = conn.generate_id()?;
+
+    conn.create_pixmap(default_screen.root_depth, subtle.panel_dbuf, default_screen.root,
+                       1, subtle.panel_height)?.check()?;
+
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
         subtle.flags.insert(SubtleFlags::XINERAMA);
@@ -305,13 +311,15 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     conn.destroy_window(subtle.support_win)?;
     conn.destroy_window(subtle.tray_win)?;
 
+    // Destroy pixmaps
+    conn.free_pixmap(subtle.panel_dbuf)?;
+
     conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 
     // Destroy fonts
     for font in subtle.fonts.iter() {
         font.kill(conn)?;
     }
-
 
     debug!("{}", function_name!());
 

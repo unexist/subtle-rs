@@ -48,7 +48,6 @@ pub(crate) struct Screen {
 
     pub(crate) top_panel_win: Window,
     pub(crate) bottom_panel_win: Window,
-    pub(crate) drawable: Pixmap,
 
     pub(crate) geom: Rectangle,
     pub(crate) base: Rectangle,
@@ -101,22 +100,6 @@ impl Screen {
         Ok(screen)
     }
 
-    pub(crate) fn clear(&self, subtle: &Subtle, style: &Style) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg as u32))?.check()?;
-
-        // Clear drawable
-        conn.poly_fill_rectangle(self.drawable, subtle.draw_gc, &[Rectangle {
-            x: 0,
-            y: 0,
-            width: self.base.width,
-            height: subtle.panel_height
-        }])?.check()?;
-
-        Ok(())
-    }
-
     pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
         for panel in self.panels.iter() {
             panel.handle_action(subtle, action, is_bottom)?;
@@ -137,7 +120,6 @@ impl Default for Screen {
 
             top_panel_win: Window::default(),
             bottom_panel_win: Window::default(),
-            drawable: 0,
 
             geom: Rectangle::default(),
             base: Rectangle::default(),
@@ -340,8 +322,6 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
-
-
 pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
@@ -393,16 +373,6 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
         } else {
             conn.unmap_window(screen.bottom_panel_win)?.check()?;
         }
-
-        // Re-create double buffer
-        if 0 != screen.drawable {
-            conn.free_pixmap(screen.drawable)?.check()?;
-        }
-
-        screen.drawable = conn.generate_id()?;
-
-        conn.create_pixmap(default_screen.root_depth, screen.drawable, default_screen.root,
-                           screen.base.width, subtle.panel_height)?.check()?;
     }
 
     debug!("{}", function_name!());
