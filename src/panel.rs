@@ -784,9 +784,13 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             if panel.flags.intersects(PanelFlags::TRAY) {
 
                 // FIXME: Last one wins if used multiple times
-                conn.reparent_window(subtle.tray_win,
-                                     if 0 == selected_panel_num { screen.top_panel_win } else { screen.bottom_panel_win },
-                                     0, 0,)?.check()?;
+                let selected_panel_win = if 0 == selected_panel_num {
+                    screen.top_panel_win
+                } else {
+                    screen.bottom_panel_win
+                };
+
+                conn.reparent_window(subtle.tray_win, selected_panel_win, 0, 0,)?.check()?;
 
                 let aux = ConfigureWindowAux::default()
                     .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
@@ -798,6 +802,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                     .stack_mode(StackMode::ABOVE);
 
                 conn.configure_window(subtle.tray_win, &aux)?.check()?;
+                conn.map_subwindows(selected_panel_win)?.check()?;
 
                 println!("reparent + configure");
             }
