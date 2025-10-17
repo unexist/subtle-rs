@@ -16,7 +16,7 @@ use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ChangeGCAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle, StackMode};
+use x11rb::protocol::xproto::{ChangeGCAux, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle, StackMode};
 use crate::client::ClientFlags;
 use crate::icon::Icon;
 use crate::screen::{Screen, ScreenFlags};
@@ -372,7 +372,7 @@ impl Panel {
         if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
         } else if self.flags.intersects(PanelFlags::TRAY) {
-            self.draw_rect(subtle, subtle.tray_win, 0, self.width, &subtle.tray_style)?;
+            self.draw_rect(subtle, subtle.panel_double_buffer, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
             // Find focus window
             if let Some(focus_client) = subtle.find_focus_client() {
@@ -791,6 +791,11 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 };
 
                 conn.reparent_window(subtle.tray_win, selected_panel_win, 0, 0,)?.check()?;
+
+                let aux = ChangeWindowAttributesAux::default()
+                    .background_pixel(subtle.tray_style.bg as u32);
+
+                conn.change_window_attributes(subtle.tray_win, &aux)?.check()?;
 
                 let aux = ConfigureWindowAux::default()
                     .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
