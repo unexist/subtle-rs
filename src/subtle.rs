@@ -80,7 +80,7 @@ pub(crate) struct Subtle {
 
     pub(crate) support_win: Window,
     pub(crate) tray_win: Window,
-    pub(crate) panel_dbuf: Pixmap,
+    pub(crate) panel_double_buffer: Pixmap,
     pub(crate) focus_history: VecCell<Window>,
 
     pub(crate) invert_gc: Gcontext,
@@ -259,7 +259,7 @@ impl Default for Subtle {
 
             support_win: Window::default(),
             tray_win: Window::default(),
-            panel_dbuf: Pixmap::default(),
+            panel_double_buffer: Pixmap::default(),
             focus_history: VecCell::from(vec![NONE; HISTORY_SIZE]),
 
             invert_gc: Gcontext::default(),
