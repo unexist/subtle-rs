@@ -577,7 +577,7 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
     }
 
     if 0 != subtle.panel_double_buffer {
-        // We ignore this error here
+        // We ignore errors here
         let _= conn.free_pixmap(subtle.panel_double_buffer);
     }
 
@@ -665,14 +665,14 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     // Update screens
     for screen in subtle.screens.iter() {
         let mut is_centered = false;
-        let mut panel_number = 0;
+        let mut selected_panel_num = 0;
         let mut offset = 0;
 
         let mut x = [0; 4];
+        let mut width = [0; 4];
         let mut nspacer = [0; 4];
         let mut spacer_width = [0; 4];
-        let mut fix = [0; 4];
-        let mut width = [0; 4];
+        let mut rounding_fix = [0; 4];
         let mut spacer = [0; 4];
 
         // Pass 1: Collect width for spacer sizes
@@ -683,8 +683,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 continue;
             }
 
-            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                panel_number = 1;
+            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+                selected_panel_num = 1;
                 is_centered = false;
             }
 
@@ -693,7 +693,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Offset selects panel variables for either center or not
-            offset = if is_centered { panel_number + 2 } else { panel_number };
+            offset = if is_centered { selected_panel_num + 2 } else { selected_panel_num };
 
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
                 spacer[offset] += 1;
@@ -725,12 +725,12 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         for i in 0..spacer.len() {
             if 0 < spacer[i] {
                 spacer_width[i] = (screen.base.width - width[i]) / spacer[i];
-                fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
+                rounding_fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
             }
         }
 
         // Reset values before next pass
-        panel_number = 0;
+        selected_panel_num = 0;
         is_centered = false;
 
         // Pass 2: Move and resize windows
@@ -742,8 +742,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Switch to bottom panel and reset
-            if 0 == panel_number && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                panel_number = 1;
+            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+                selected_panel_num = 1;
                 nspacer[0] = 0;
                 nspacer[2] = 0;
                 x[0] = 0;
@@ -756,7 +756,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
             }
 
             // Offset select panels variables for either center or not
-            offset = if is_centered { panel_number + 2 } else { panel_number };
+            offset = if is_centered { selected_panel_num + 2 } else { selected_panel_num };
 
             // Set start position of centered panel items
             if is_centered && 0 == x[offset] {
@@ -776,7 +776,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 nspacer[offset] += 1;
 
                 if nspacer[offset] == spacer[offset] {
-                    x[offset] += fix[offset];
+                    x[offset] += rounding_fix[offset];
                 }
             }
 
@@ -785,7 +785,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
                 // FIXME: Last one wins if used multiple times
                 conn.reparent_window(subtle.tray_win,
-                                     if 0 == panel_number { screen.top_panel_win } else { screen.bottom_panel_win },
+                                     if 0 == selected_panel_num { screen.top_panel_win } else { screen.bottom_panel_win },
                                      0, 0,)?.check()?;
 
                 let aux = ConfigureWindowAux::default()
@@ -818,7 +818,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 nspacer[offset] += 1;
 
                 if nspacer[offset] == spacer[offset] {
-                    x[offset] += fix[offset];
+                    x[offset] += rounding_fix[offset];
                 }
             }
 
