@@ -54,11 +54,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                        0, 0, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
 
-    // Create double buffer and resize later
-    subtle.panel_dbuf = conn.generate_id()?;
-
-    conn.create_pixmap(default_screen.root_depth, subtle.panel_dbuf, default_screen.root,
-                       1, subtle.panel_height)?.check()?;
+    // Create double buffer id and create/resize later
+    subtle.panel_double_buffer = conn.generate_id()?;
 
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
@@ -312,7 +309,9 @@ pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     conn.destroy_window(subtle.tray_win)?;
 
     // Destroy pixmaps
-    conn.free_pixmap(subtle.panel_dbuf)?;
+    if 0 != subtle.panel_double_buffer {
+        conn.free_pixmap(subtle.panel_double_buffer)?;
+    }
 
     conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 

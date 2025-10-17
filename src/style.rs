@@ -243,6 +243,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 "views_active" => style = &mut subtle.views_active_style,
                 "views_occupied" => style = &mut subtle.views_occupied_style,
                 "views_visible" => style = &mut subtle.views_visible_style,
+                "tray" => style = &mut subtle.tray_style,
                 "clients" => {
                     // We exploit some unused style variables here:
                     // margin <-> client gap
@@ -275,7 +276,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.title_style;
                 },
-                "tray" => style = &mut subtle.tray_style,
                 "urgent" => style = &mut subtle.urgent_style,
                 "top_panel" => style = &mut subtle.top_panel_style,
                 "bottom_panel" => style = &mut subtle.bottom_panel_style,
@@ -375,7 +375,6 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     subtle.panels_style.inherit(&subtle.all_style);
     subtle.top_panel_style.inherit(&subtle.all_style);
     subtle.bottom_panel_style.inherit(&subtle.all_style);
-    // TODO tray
 
     // Check fonts
     if !subtle.title_style.flags.contains(StyleFlags::FONT) {

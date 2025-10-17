@@ -357,15 +357,15 @@ impl Panel {
         Ok(())
     }
 
-    pub(crate) fn render(&mut self, subtle: &Subtle, drawable: Drawable) -> Result<()> {
+    pub(crate) fn render(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         // Draw separator before panel item
         if self.flags.intersects(PanelFlags::SEPARATOR_BEFORE)
             && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
         {
-            self.draw_separator(subtle, drawable, subtle.separator_style.sep_width as u16,
-                                &subtle.separator_style)?;
+            self.draw_separator(subtle, subtle.panel_double_buffer,
+                                subtle.separator_style.sep_width as u16, &subtle.separator_style)?;
         }
 
         // Handle panel item type
@@ -382,12 +382,12 @@ impl Panel {
                     let mut offset_x = subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
 
                     // Set window background and border
-                    self.draw_rect(subtle, drawable, 0, self.width, &subtle.title_style)?;
+                    self.draw_rect(subtle, subtle.panel_double_buffer, 0, self.width, &subtle.title_style)?;
 
                     // Draw modes and title
                     let mode_str= focus_client.mode_string();
 
-                    self.draw_text(subtle, drawable, 0, &mode_str, &subtle.title_style)?;
+                    self.draw_text(subtle, subtle.panel_double_buffer, 0, &mode_str, &subtle.title_style)?;
 
                     // TODO: CACHE!
                     if let Some(font) = subtle.title_style.get_font(subtle) {
@@ -397,7 +397,8 @@ impl Panel {
                         }
                     }
 
-                    self.draw_text(subtle, drawable, offset_x, &focus_client.name, &subtle.title_style)?;
+                    self.draw_text(subtle, subtle.panel_double_buffer, offset_x,
+                                   &focus_client.name, &subtle.title_style)?;
                 }
             }
         } else if self.flags.intersects(PanelFlags::VIEWS) {
@@ -430,13 +431,13 @@ impl Panel {
                 }
 
                 // Draw window background and borders
-                self.draw_rect(subtle, drawable, offset_x, view_width, &style)?;
+                self.draw_rect(subtle, subtle.panel_double_buffer, offset_x, view_width, &style)?;
 
                 // Draw icon
                 if view.flags.intersects(ViewFlags::MODE_ICON)
                     && let Some(icon) = view.icon.as_ref()
                 {
-                    self.draw_icon(subtle, icon, drawable, offset_x, &style)?;
+                    self.draw_icon(subtle, icon, subtle.panel_double_buffer, offset_x, &style)?;
                 }
 
                 // Draw text if necessary
@@ -450,7 +451,7 @@ impl Panel {
                         icon_offset_x += icon.width + ICON_TEXT_SPACING;
                     }
 
-                    self.draw_text(subtle, drawable, offset_x + icon_offset_x,
+                    self.draw_text(subtle, subtle.panel_double_buffer, offset_x + icon_offset_x,
                                    &view.name, &style)?;
                 }
 
@@ -458,7 +459,7 @@ impl Panel {
 
                 // Draw view separator if any
                 if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
-                    self.draw_separator(subtle, drawable, offset_x, &style)?;
+                    self.draw_separator(subtle, subtle.panel_double_buffer, offset_x, &style)?;
 
                     offset_x += subtle.views_style.sep_width as u16;
                 }
@@ -469,7 +470,8 @@ impl Panel {
         if self.flags.intersects(PanelFlags::SEPARATOR_AFTER)
             && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
         {
-            self.draw_separator(subtle, drawable, self.width, &subtle.separator_style)?;
+            self.draw_separator(subtle, subtle.panel_double_buffer,
+                                self.width, &subtle.separator_style)?;
         }
 
         debug!("{}: panel={}", function_name!(), self);
@@ -492,7 +494,7 @@ impl Panel {
                     for (view_idx, view) in subtle.views.iter().enumerate() {
                         // Skip dynamic views
                         if view.flags.intersects(ViewFlags::MODE_DYNAMIC)
-                            && !(subtle.client_tags.get().intersects(view.tags))
+                            && !subtle.client_tags.get().intersects(view.tags)
                         {
                             continue;
                         }
@@ -542,6 +544,49 @@ impl fmt::Display for Panel {
         write!(f, "x={}, width={}, screen_id={}, flags={:?})",
                self.x, self.width, self.screen_id, self.flags)
     }
+}
+
+
+fn clear_double_buffer(subtle: &Subtle, screen: &Screen, style: &Style) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    conn.change_gc(subtle.draw_gc, &ChangeGCAux::default().foreground(style.bg as u32))?.check()?;
+
+    // Clear drawable
+    conn.poly_fill_rectangle(subtle.panel_double_buffer, subtle.draw_gc, &[Rectangle {
+        x: 0,
+        y: 0,
+        width: screen.base.width,
+        height: subtle.panel_height
+    }])?.check()?;
+
+    Ok(())
+}
+
+
+pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    // Mirror mirror: Who is the widest of them all?
+    let mut width = 0;
+
+    for screen in subtle.screens.iter() {
+        if screen.base.width > width {
+            width = screen.base.width;
+        }
+    }
+
+    if 0 != subtle.panel_double_buffer {
+        // We ignore this error here
+        let _= conn.free_pixmap(subtle.panel_double_buffer);
+    }
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    conn.create_pixmap(default_screen.root_depth, subtle.panel_double_buffer, default_screen.root,
+                           width, subtle.panel_height)?.check()?;
+
+    Ok(())
 }
 
 pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
@@ -741,13 +786,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 // FIXME: Last one wins if used multiple times
                 conn.reparent_window(subtle.tray_win,
                                      if 0 == panel_number { screen.top_panel_win } else { screen.bottom_panel_win },
-                                     x[offset] as i16 + subtle.tray_style.calc_spacing(CalcSpacing::Left),
-                                     subtle.tray_style.calc_spacing(CalcSpacing::Top)
-                )?.check()?;
-
-
-                conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
-                    .stack_mode(StackMode::ABOVE))?.check()?;
+                                     0, 0,)?.check()?;
 
                 let aux = ConfigureWindowAux::default()
                     .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
@@ -755,9 +794,12 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                     .width(max!(1, panel.width as u32
                         - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32))
                     .height(max!(1, subtle.panel_height as u32
-                        - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32));
+                        - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32))
+                    .stack_mode(StackMode::ABOVE);
 
                 conn.configure_window(subtle.tray_win, &aux)?.check()?;
+
+                println!("reparent + configure");
             }
 
             // Store x position before separator and spacer for later re-borrow
@@ -803,7 +845,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     for screen in subtle.screens.iter() {
         let panel_win = screen.top_panel_win;
 
-        screen.clear(subtle, &subtle.top_panel_style)?;
+        clear_double_buffer(subtle, &screen, &subtle.top_panel_style)?;
 
         // Render panel items
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
@@ -813,21 +855,21 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
 
             // Switch to bottom panel
             if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
+                conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc, 0, 0, 0, 0,
                                screen.base.width, subtle.panel_height
                 )?.check()?;
 
-                screen.clear(subtle, &subtle.bottom_panel_style)?;
+                clear_double_buffer(subtle, &screen, &subtle.bottom_panel_style)?;
             }
 
             drop(panel);
 
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.render(subtle, screen.drawable)?;
+                mut_panel.render(subtle)?;
             }
         }
 
-        conn.copy_area(screen.drawable, panel_win, subtle.draw_gc, 0, 0, 0, 0,
+        conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc, 0, 0, 0, 0,
                        screen.base.width, subtle.panel_height)?.check()?;
     }
 
