@@ -808,8 +808,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
                 conn.configure_window(subtle.tray_win, &aux)?.check()?;
                 conn.map_subwindows(selected_panel_win)?.check()?;
-
-                println!("reparent + configure");
             }
 
             // Store x position before separator and spacer for later re-borrow
