@@ -86,6 +86,7 @@ impl Tray {
 
         let aux = ChangeWindowAttributesAux::default()
             .event_mask(EventMask::STRUCTURE_NOTIFY
+                | EventMask::SUBSTRUCTURE_NOTIFY
                 | EventMask::PROPERTY_CHANGE
                 | EventMask::FOCUS_CHANGE
                 | EventMask::ENTER_WINDOW);
@@ -257,22 +258,19 @@ impl Tray {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        // Remove _NET_WM_STATE (see EWMH 1.3)
-        conn.delete_property(self.win, atoms._NET_WM_STATE)?.check()?;
-
         // Ignore further events
         conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()
-            .event_mask(EventMask::NO_EVENT))?.check()?;
+            .event_mask(EventMask::NO_EVENT))?;
 
         // Um-embed tray icon following XEmbed specs
-        conn.unmap_window(self.win)?.check()?;
+        conn.unmap_window(self.win)?;
 
         let default_screen = &conn.setup().roots[subtle.screen_num];
 
-        conn.reparent_window(self.win, default_screen.root, 0, 0)?.check()?;
-        conn.map_window(self.win)?.check()?;
+        conn.reparent_window(self.win, default_screen.root, 0, 0)?;
+        conn.map_window(self.win)?;
         conn.configure_window(subtle.tray_win, &ConfigureWindowAux::default()
-            .stack_mode(StackMode::ABOVE))?.check()?;
+            .stack_mode(StackMode::ABOVE))?;
 
         debug!("{}: tray={}", function_name!(), self);
 
