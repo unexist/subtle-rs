@@ -85,8 +85,7 @@ impl Tray {
         let geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
-            .border_pixel(subtle.clients_style.bg as u32)
-            .event_mask(EventMask::SUBSTRUCTURE_NOTIFY
+            .event_mask(EventMask::STRUCTURE_NOTIFY
                 | EventMask::PROPERTY_CHANGE
                 | EventMask::FOCUS_CHANGE
                 | EventMask::ENTER_WINDOW);
