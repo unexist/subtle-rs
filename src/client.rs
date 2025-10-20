@@ -1146,11 +1146,11 @@ impl Client {
         let atoms = subtle.atoms.get().unwrap();
 
         // Remove _NET_WM_STATE (see EWMH 1.3)
-        conn.delete_property(self.win, atoms._NET_WM_STATE)?.check()?;
+        conn.delete_property(self.win, atoms._NET_WM_STATE)?;
 
         // Ignore further events
         conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()
-            .event_mask(EventMask::NO_EVENT))?.check()?;
+            .event_mask(EventMask::NO_EVENT))?;
 
         // Remove client tags from urgent tags
         if self.flags.contains(ClientFlags::MODE_URGENT) {
