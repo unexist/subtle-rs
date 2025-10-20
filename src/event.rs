@@ -559,7 +559,7 @@ fn handle_unmap_notify(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
 
             drop(tray);
 
-            subtle.remove_client_by_win(event.window);
+            subtle.remove_tray_by_win(event.window);
 
             tray::publish(subtle)?;
 
