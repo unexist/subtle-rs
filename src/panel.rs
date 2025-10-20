@@ -242,6 +242,7 @@ impl Panel {
         // Handle panel item type
         if self.flags.intersects(PanelFlags::TRAY) {
             self.width = subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
+            self.flags.remove(PanelFlags::HIDDEN);
 
             // Resize every tray
             if let Ok(mut trays) = subtle.trays.try_borrow_mut() && !trays.is_empty() {
@@ -268,6 +269,8 @@ impl Panel {
                 }
             } else {
                 conn.unmap_window(subtle.tray_win)?.check()?;
+
+                self.flags.insert(PanelFlags::HIDDEN);
             }
         } else if self.flags.intersects(PanelFlags::TITLE) {
 
@@ -678,11 +681,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         // Pass 1: Collect width for spacer sizes
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
 
-            // Check flags
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
-
             if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
                 selected_panel_num = 1;
                 is_centered = false;
@@ -736,7 +734,7 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         // Pass 2: Move and resize windows
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
 
-            // Check flags
+            // Check flags only in pass 2 to allow flag change on panel update call
             if panel.flags.intersects(PanelFlags::HIDDEN) {
                 continue;
             }
