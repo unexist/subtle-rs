@@ -94,7 +94,6 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
                         if let Ok(tray) = Tray::new(subtle, data[2] as Window) {
                             subtle.add_tray(tray);
 
-                            screen::configure(subtle)?;
                             panel::update(subtle)?;
                             panel::render(subtle)?;
                         }
@@ -120,7 +119,6 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
         if atoms._NET_CLOSE_WINDOW == event.type_ {
             tray.close(subtle)?;
 
-            screen::configure(subtle)?;
             panel::update(subtle)?;
             panel::render(subtle)?;
         }
