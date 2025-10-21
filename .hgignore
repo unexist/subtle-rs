@@ -21,3 +21,4 @@ proptest-regressions/
 # subtle
 build/*
 config.*
+debug.toml
