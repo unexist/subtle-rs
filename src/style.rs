@@ -244,6 +244,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 "views_occupied" => style = &mut subtle.views_occupied_style,
                 "views_visible" => style = &mut subtle.views_visible_style,
                 "tray" => style = &mut subtle.tray_style,
+                "separator" => style = &mut subtle.separator_style,
                 "clients" => {
                     // We exploit some unused style variables here:
                     // margin <-> client gap
