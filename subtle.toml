@@ -48,11 +48,12 @@ skip_pointer_warp = false
 skip_urgent_warp = false
 
 # Set the WM_NAME of subtle (Java quirk)
-#wmname = "LG3D"
+#wm_name = "LG3D"
 
 # == Styles
 #
 # Styles define various properties of styleable items in a CSS-like syntax.
+# Undefined styles inherit the values from the all style element.
 #
 # Following properties are available for most the styles:
 #
@@ -82,20 +83,11 @@ font = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*"
 # Style for the all views
 [[style]]
 kind = "views"
-#border = [ "#757575", 2 ]
-#border_color = "#757575"
-#border_width = 2
 
 # Style for the active views
 [[style]]
 kind = "views_active"
 foreground = "#fecf35"
-
-#border_width = 2
-#border_top_color = "#ff0000"
-#border_right_color = "#00ff00"
-#border_bottom_color = "#0000ff"
-#border_left_color = "#ff00ff"
 
 # Style for occupied views (views with clients)
 [[style]]
@@ -136,42 +128,13 @@ border_width = 2
 #[[style]]
 #kind = "top_panel"
 
+# Style for bottom panel
+#[[style]]
+#kind = "bottom_panel"
+
 # Style for tray
 #[[style]]
-#kind= "tray"
-
-# == Panel
-
-# There are two possible # panels per screen in subtle. Each panel can be configured
-# with different # panel items and sublets screen wise. The default config uses a top
-# panel # on the first screen only, it's up to the user to enable the bottom panel or
-# disable either one # or both.
-#
-# Following items are available for the panels:
-#
-# [*:views*]     List of views with buttons
-# [*:title*]     Title of the current active window
-# [*:tray*]      Systray icons (Can be used only once)
-# [*:keychain*]  Display current chain (Can be used only once)
-# [*:sublets*]   Catch-all for installed sublets
-# [*:sublet*]    Name of a sublet for direct placement
-# [*:spacer*]    Variable spacer (free width / count of spacers)
-# [*:center*]    Enclose items with :center to center them on the panel
-# [*:separator*] Insert separator
-
-# Empty panels are hidden.
-#
-# === Links
-#
-# https://subtle.rs/projects/subtle/wiki/Panel
-
-# Time panel
-[[panel]]
-name = "time"
-interval = 60
-script = """
-print("12:00")
-"""
+#kind = "tray"
 
 #
 # == Gravities
@@ -885,6 +848,36 @@ name = "dev"
 match = "editor"
 icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
+# == Panel
+
+# There are two possible # panels per screen in subtle. Each panel can be configured
+# with different # panel items and sublets screen wise. The default config uses a top
+# panel # on the first screen only, it's up to the user to enable the bottom panel or
+# disable either one # or both.
+#
+# Following items are available for the panels:
+#
+# [*:views*]     List of views with buttons
+# [*:title*]     Title of the current active window
+# [*:tray*]      Systray icons (Can be used only once)
+# [*:spacer*]    Variable spacer (free width / count of spacers)
+# [*:center*]    Enclose items with :center to center them on the panel
+# [*:separator*] Insert separator
+
+# Empty panels are hidden.
+#
+# === Links
+#
+# https://subtle.rs/projects/subtle/wiki/Panel
+
+# Time panel
+[[panel]]
+name = "time"
+interval = 60
+script = """
+print("12:00")
+"""
+
 #
 # == Screens
 #
@@ -893,8 +886,26 @@ icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 #
 # To allow more flexibility, subtle can split physically screens into virtual
 # ones and low to see multiple views on screen per virtual screen.
+# When a screen is configured this config won't be used unless a physical screen
+# has been found or it is marked as virtual
+#
+# Additionally, each screen comes with two possible panels per screen.
+# Each panel can be configured with different panel items screen wise.
+# The default config uses a top panel on the first screen only, it's up to the
+# user to enable the bottom panel or disable either one or both.
+#
+# Following panel items are available:
+#
+# [*:views*]     List of views with buttons
+# [*:title*]     Title of the current active window
+# [*:tray*]      Systray icons (Can be used only once)
+# [*:spacer*]    Variable spacer (free width / count of spacers)
+# [*:center*]    Enclose items with :center to center them on the panel
+# [*:separator*] Insert separator
 #
 # === Link
+#
+# https://subtle.rs/projects/subtle/wiki/Panel
 # https://subtle.rs/projects/subtle/wiki/Multihead
 #
 
@@ -902,9 +913,10 @@ icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 [[screen]]
 top_panel = [ "tray", "views", "time", "center", "title", "center" ]
 bottom_panel = [ ]
-#virtual = [ [ 0, 0, 50, 50 ], [ 0, 0, 50, 50 ] ]
+#virtual = [ 0, 0, 50, 100 ]
 
-# Panel for screen 2
+# Screen 2
 [[screen]]
 top_panel = [ ]
 bottom_panel = [ ]
+#virtual = [ 50, 0, 50, 100 ]
