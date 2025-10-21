@@ -11,8 +11,8 @@
 
 use std::fmt;
 use bitflags::bitflags;
-use log::{debug, warn};
-use anyhow::{anyhow, Context, Result};
+use log::debug;
+use anyhow::{Context, Result};
 use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -20,7 +20,7 @@ use x11rb::protocol::xproto::{ChangeGCAux, ChangeWindowAttributesAux, ConfigureW
 use crate::client::ClientFlags;
 use crate::icon::Icon;
 use crate::screen::{Screen, ScreenFlags};
-use crate::style::{CalcSpacing, Style, StyleFlags};
+use crate::style::{CalcSpacing, Style};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 use crate::tray::TrayFlags;
@@ -36,33 +36,30 @@ bitflags! {
         const TRAY = 1 << 2;             // Panel tray type
         const ICON = 1 << 3;             // Panel icon type
         const SCRIPT = 1 << 4;           // Panel script type
+        const SEPARATOR = 1 << 5;        // Panel separator type
 
-        const COPY = 1 << 5;             // Panel copy type
+        const COPY = 1 << 6;             // Panel copy type
 
-        const SPACER_BEFORE = 1 << 6;    // Panel spacer before item
-        const SPACER_AFTER = 1 << 7;     // Panel spacer after item
-        const SEPARATOR_BEFORE = 1 << 8; // Panel separator before item
-        const SEPARATOR_AFTER = 1 << 9;  // Panel separator after item
-        const BOTTOM_MARKER = 1 << 10;   // Panel bottom marker
-        const HIDDEN = 1 << 11;          // Panel hidden
-        const CENTER = 1 << 12;          // Panel center
-        const SUBLETS = 1 << 13;         // Panel sublets
+        const SPACER_BEFORE = 1 << 7;    // Panel spacer before item
+        const SPACER_AFTER = 1 << 8;     // Panel spacer after item
+        const BOTTOM_MARKER = 1 << 9;    // Panel bottom marker
+        const HIDDEN = 1 << 10;           // Panel hidden
+        const CENTER = 1 << 11;          // Panel center
+        const SUBLETS = 1 << 12;         // Panel sublets
 
-        const MOUSE_DOWN = 1 << 14;      // Panel mouse down
-        const MOUSE_OVER = 1 << 15;      // Panel mouse over
-        const MOUSE_OUT = 1 << 16;       // Panel mouse out
+        const MOUSE_DOWN = 1 << 13;      // Panel mouse down
+        const MOUSE_OVER = 1 << 14;      // Panel mouse over
+        const MOUSE_OUT = 1 << 15;       // Panel mouse out
     }
 }
 
-impl TryFrom<&String> for PanelFlags {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &String) -> Result<PanelFlags, Self::Error> {
+impl From<&String> for PanelFlags {
+    fn from(value: &String) -> Self {
         match value.as_str() {
-            "title" => Ok(PanelFlags::TITLE),
-            "views" => Ok(PanelFlags::VIEWS),
-            "tray" => Ok(PanelFlags::TRAY),
-            _ => Err(anyhow!("Invalid type for panel")),
+            "title" => PanelFlags::TITLE,
+            "views" => PanelFlags::VIEWS,
+            "tray" => PanelFlags::TRAY,
+            _ => PanelFlags::SEPARATOR,
         }
     }
 }
@@ -79,6 +76,7 @@ pub(crate) struct Panel {
     pub(crate) x: i16,
     pub(crate) width: u16,
     pub(crate) screen_id: usize,
+    pub(crate) text: Option<String>,
     pub(crate) text_widths: Vec<u16>,
 }
 
@@ -188,17 +186,6 @@ impl Panel {
         Ok(())
     }
 
-    fn draw_separator(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        if style.flags.intersects(StyleFlags::SEPARATOR) {
-            self.draw_rect(subtle, drawable, offset_x, self.width, &subtle.separator_style)?;
-            self.draw_text(subtle, drawable, offset_x, &style.sep_string.clone().unwrap(), style )?;
-        }
-
-        Ok(())
-    }
-
     fn draw_icon(&self, subtle: &Subtle, icon: &Icon, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()>
     {
         let conn = subtle.conn.get().context("Failed to get connection")?;
@@ -221,7 +208,9 @@ impl Panel {
             ..Self::default()
         };
 
-        if flags.intersects(PanelFlags::TITLE) {
+        if flags.intersects(PanelFlags::SEPARATOR) {
+            panel.text_widths.resize(1, Default::default());
+        } else if flags.intersects(PanelFlags::TITLE) {
             panel.text_widths.resize(2, Default::default());
         } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
@@ -240,7 +229,19 @@ impl Panel {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         // Handle panel item type
-        if self.flags.intersects(PanelFlags::TRAY) {
+        if self.flags.intersects(PanelFlags::SEPARATOR) {
+            if let Some(text) = &self.text {
+                if let Some(font) = subtle.separator_style.get_font(subtle) {
+                    if let Ok((width, _, _)) = font.calc_text_width(conn, &text, false) {
+                        self.text_widths[0] = width;
+                    }
+                }
+
+                // Finally update actual length
+                self.width = self.text_widths[0]
+                    + subtle.separator_style.calc_spacing(CalcSpacing::Width) as u16;
+            }
+        } else if self.flags.intersects(PanelFlags::TRAY) {
             self.width = subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
             self.flags.remove(PanelFlags::HIDDEN);
 
@@ -349,10 +350,10 @@ impl Panel {
                 self.width += max!(style.min_width as u16, view_width);
             }
 
-            // Add width of view separator if any
-            if subtle.views_style.sep_string.is_some() {
-                self.width += (subtle.views.len() - 1) as u16 * subtle.views_style.sep_width as u16;
-            }
+            // TODO Add width of view separator if any
+            //if subtle.views_style.sep_string.is_some() {
+            //    self.width += (subtle.views.len() - 1) as u16 * subtle.views_style.sep_width as u16;
+            //}
         }
 
         debug!("{}: panel={}", function_name!(), self);
@@ -363,17 +364,15 @@ impl Panel {
     pub(crate) fn render(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
-        // Draw separator before panel item
-        if self.flags.intersects(PanelFlags::SEPARATOR_BEFORE)
-            && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
-        {
-            self.draw_separator(subtle, subtle.panel_double_buffer,
-                                subtle.separator_style.sep_width as u16, &subtle.separator_style)?;
-        }
-
         // Handle panel item type
         if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
+        } else if self.flags.intersects(PanelFlags::SEPARATOR) {
+            self.draw_rect(subtle, subtle.panel_double_buffer,0, self.width, &subtle.separator_style)?;
+
+            if let Some(text) = &self.text {
+                self.draw_text(subtle, subtle.panel_double_buffer, 0, &text, &subtle.separator_style)?;
+            }
         } else if self.flags.intersects(PanelFlags::TRAY) {
             self.draw_rect(subtle, subtle.panel_double_buffer, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
@@ -460,21 +459,13 @@ impl Panel {
 
                 offset_x += max!(style.min_width as u16, view_width);
 
-                // Draw view separator if any
-                if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
-                    self.draw_separator(subtle, subtle.panel_double_buffer, offset_x, &style)?;
-
-                    offset_x += subtle.views_style.sep_width as u16;
-                }
+                // TODO Draw view separator if any
+                //if subtle.views_style.sep_string.is_some() && view_idx < subtle.views.len() - 1 {
+                //    self.draw_separator(subtle, subtle.panel_double_buffer, offset_x, &style)?;
+                //
+                //    offset_x += subtle.views_style.sep_width as u16;
+                //}
             }
-        }
-
-        // Draw separator after panel item
-        if self.flags.intersects(PanelFlags::SEPARATOR_AFTER)
-            && subtle.separator_style.flags.intersects(StyleFlags::SEPARATOR)
-        {
-            self.draw_separator(subtle, subtle.panel_double_buffer,
-                                self.width, &subtle.separator_style)?;
         }
 
         debug!("{}: panel={}", function_name!(), self);
@@ -525,10 +516,10 @@ impl Panel {
                             break;
                         }
 
-                        // Add view separator width if any
-                        if subtle.views_style.sep_string.is_some() {
-                            view_width += subtle.views_style.sep_width;
-                        }
+                        // TODO Add view separator width if any
+                        //if subtle.views_style.sep_string.is_some() {
+                        //    view_width += subtle.views_style.sep_width;
+                        //}
 
                         offset_x += view_width;
                     }
@@ -544,8 +535,8 @@ impl Panel {
 
 impl fmt::Display for Panel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "x={}, width={}, screen_id={}, flags={:?})",
-               self.x, self.width, self.screen_id, self.flags)
+        write!(f, "x={}, width={}, screen_id={}, text={:?}, text_width={:?}, flags={:?})",
+               self.x, self.width, self.screen_id, self.text, self.text_widths, self.flags)
     }
 }
 
@@ -604,7 +595,7 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
 
         for (panel_idx, panel_name) in panel_list.iter().enumerate() {
             // Lookbehind to previous panel
-            if flags.intersects(PanelFlags::SPACER_BEFORE | PanelFlags::SEPARATOR_BEFORE) {
+            if flags.intersects(PanelFlags::SPACER_BEFORE) {
                 if -1 != last_panel_idx &&
                     let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
                 {
@@ -613,28 +604,25 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
                         last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
                         flags.remove(PanelFlags::SPACER_BEFORE);
                     }
-
-                    // Add separator after panel item
-                    if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                        last_panel.flags.insert(PanelFlags::SEPARATOR_BEFORE);
-                        flags.remove(PanelFlags::SEPARATOR_BEFORE);
-                    }
                 }
             }
 
             // Handle panel type
             match panel_name.as_str() {
                 "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
-                "separator" => flags.insert(PanelFlags::SEPARATOR_BEFORE),
                 "center" => flags.insert(PanelFlags::CENTER),
-                "title" | "views" | "tray" => {
-                    if let Some(panel) = Panel::new(
-                        PanelFlags::try_from(panel_name).unwrap_or_default() | flags)
+                _ => {
+                    if let Some(mut panel) = Panel::new(
+                        PanelFlags::from(panel_name) | flags)
                     {
                         if is_bottom {
                             screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
                         } else {
                             screen.flags.insert(ScreenFlags::TOP_PANEL);
+                        }
+
+                        if panel.flags.intersects(PanelFlags::SEPARATOR) {
+                            panel.text = Some(panel_name.clone());
                         }
 
                         screen.panels.push(panel);
@@ -643,7 +631,6 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
                         last_panel_idx += 1;
                     }
                 },
-                _ => warn!("Unknown panel type: {}", panel_name),
             }
         }
 
@@ -653,10 +640,6 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
         {
             if flags.intersects(PanelFlags::SPACER_BEFORE) {
                 last_panel.flags.insert(PanelFlags::SPACER_AFTER);
-            }
-
-            if flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                last_panel.flags.insert(PanelFlags::SEPARATOR_AFTER);
             }
         }
     }
@@ -699,14 +682,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
                 spacer[offset] += 1;
-            }
-
-            if panel.flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                width[offset] += subtle.separator_style.sep_width as u16;
-            }
-
-            if panel.flags.intersects(PanelFlags::SEPARATOR_AFTER) {
-                width[offset] += subtle.separator_style.sep_width as u16;
             }
 
             // Drop and update panel item
@@ -761,11 +736,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 x[offset] = (screen.base.width - width[offset]) / 2;
             }
 
-            // Add separator before panel item
-            if panel.flags.intersects(PanelFlags::SEPARATOR_BEFORE) {
-                x[offset] += subtle.separator_style.sep_width as u16;
-            }
-
             // Add spacer before item
             if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
                 x[offset] += spacer_width[offset];
@@ -810,11 +780,6 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
             // Store x position before separator and spacer for later re-borrow
             let panel_x = x[offset];
-
-            // Add separator after item
-            if panel.flags.intersects(PanelFlags::SEPARATOR_AFTER) {
-                x[offset] += subtle.separator_style.sep_width as u16;
-            }
 
             // Add spacer after item
             if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
