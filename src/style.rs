@@ -61,9 +61,6 @@ pub(crate) struct Style {
     pub(crate) margin: Spacing,
 
     pub(crate) font_id: isize,
-
-    pub(crate) sep_width: i16,
-    pub(crate) sep_string: Option<String>,
 }
 
 impl Style {
@@ -140,8 +137,6 @@ impl Style {
         // Force values to prevent inheriting of 0 value from all
         self.icon = -1;
         self.font_id = -1;
-        self.sep_width = -1;
-        self.sep_string = None;
     }
 
     pub(crate) fn get_font<'a>(&self, subtle: &'a Subtle) -> Option<&'a Font> {
@@ -172,8 +167,6 @@ impl Default for Style {
             margin: Default::default(),
 
             font_id: -1,
-            sep_width: 0,
-            sep_string: None,
         }
     }
 }
@@ -373,7 +366,7 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     subtle.title_style.inherit(&subtle.all_style);
     subtle.tray_style.inherit(&subtle.all_style);
     subtle.urgent_style.inherit(&subtle.all_style);
-    subtle.panels_style.inherit(&subtle.all_style);
+    subtle.separator_style.inherit(&subtle.all_style);
     subtle.top_panel_style.inherit(&subtle.all_style);
     subtle.bottom_panel_style.inherit(&subtle.all_style);
 
@@ -397,7 +390,7 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     update_panel_height!(subtle, title_style);
     update_panel_height!(subtle, tray_style);
     update_panel_height!(subtle, urgent_style);
-    update_panel_height!(subtle, panels_style);
+    update_panel_height!(subtle, separator_style);
     update_panel_height!(subtle, top_panel_style);
     update_panel_height!(subtle, bottom_panel_style);
 
