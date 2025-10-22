@@ -67,3 +67,7 @@ tasks:
   release:
     cmds:
       - cargo build --release
+
+  pkglist:
+    cmds:
+      - cargo package --list
