@@ -1,5 +1,6 @@
 [package]
 name = "subtle-rs"
+description = "subtle - the manual grid-tiling window manager"
 version = "0.1.0"
 authors = [
     "Christoph Kappel <christoph@unexist.dev>"
@@ -8,7 +9,7 @@ license-file = "LICENSE"
 homepage = "https://subtle.rs"
 repository = "https://hg.unexist.dev/subtle-rs"
 edition = "2024"
-exclude = ["Taskfile.yml", "README.adoc", "subtle.toml", "debug.toml"]
+include = ["/src", "LICENSE"]
 
 [dependencies]
 env_logger = "0.11.8"
