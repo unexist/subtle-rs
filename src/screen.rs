@@ -192,7 +192,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
                 if !bottom_panels.is_empty() {
-                    panel::parse(screen, bottom_panels, false);
+                    panel::parse(screen, bottom_panels, true);
 
                     screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
                 }
