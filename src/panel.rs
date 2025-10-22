@@ -19,7 +19,7 @@ use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ChangeGCAux, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle, StackMode};
 use crate::client::ClientFlags;
 use crate::icon::Icon;
-use crate::screen::{Screen, ScreenFlags};
+use crate::screen::Screen;
 use crate::style::{CalcSpacing, Style};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
@@ -31,25 +31,26 @@ const ICON_TEXT_SPACING: u16 = 3;
 bitflags! {
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct PanelFlags: u32 {
-        const TITLE = 1 << 0;            // Panel title type
-        const VIEWS = 1 << 1;            // Panel views type
-        const TRAY = 1 << 2;             // Panel tray type
-        const ICON = 1 << 3;             // Panel icon type
-        const SCRIPT = 1 << 4;           // Panel script type
-        const SEPARATOR = 1 << 5;        // Panel separator type
+        const TITLE = 1 << 0;                // Panel title type
+        const VIEWS = 1 << 1;                // Panel views type
+        const TRAY = 1 << 2;                 // Panel tray type
+        const ICON = 1 << 3;                 // Panel icon type
+        const SCRIPT = 1 << 4;               // Panel script type
+        const SEPARATOR = 1 << 5;            // Panel separator type
 
-        const COPY = 1 << 6;             // Panel copy type
+        const COPY = 1 << 6;                 // Panel copy type
 
-        const SPACER_BEFORE = 1 << 7;    // Panel spacer before item
-        const SPACER_AFTER = 1 << 8;     // Panel spacer after item
-        const BOTTOM_MARKER = 1 << 9;    // Panel bottom marker
-        const HIDDEN = 1 << 10;           // Panel hidden
-        const CENTER = 1 << 11;          // Panel center
-        const SUBLETS = 1 << 12;         // Panel sublets
+        const SPACER_BEFORE = 1 << 7;        // Panel spacer before item
+        const SPACER_AFTER = 1 << 8;         // Panel spacer after item
 
-        const MOUSE_DOWN = 1 << 13;      // Panel mouse down
-        const MOUSE_OVER = 1 << 14;      // Panel mouse over
-        const MOUSE_OUT = 1 << 15;       // Panel mouse out
+        const BOTTOM_START_MARKER = 1 << 9;  // Panel bottom marker
+        const CENTER_MARKER = 1 << 10;       // Panel center marker
+
+        const HIDDEN = 1 << 11;              // Panel hidden
+
+        const MOUSE_DOWN = 1 << 12;          // Panel mouse down
+        const MOUSE_OVER = 1 << 13;          // Panel mouse over
+        const MOUSE_OUT = 1 << 14;           // Panel mouse out
     }
 }
 
@@ -208,6 +209,7 @@ impl Panel {
             ..Self::default()
         };
 
+        // Handle panel types
         if flags.intersects(PanelFlags::SEPARATOR) {
             panel.text_widths.resize(1, Default::default());
         } else if flags.intersects(PanelFlags::TITLE) {
@@ -584,63 +586,45 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
 }
 
 pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
-    if !panel_list.is_empty() {
-        let mut flags = PanelFlags::empty();
-        let mut last_panel_idx = -1;
+    let mut flags = PanelFlags::empty();
+    let mut last_panel_idx = -1;
 
-        // Add bottom marker to first panel on bottom panel in linear vec
-        if is_bottom {
-            flags = PanelFlags::BOTTOM_MARKER;
-        }
+    // Add bottom marker to first panel on bottom panel in linear vec
+    if is_bottom {
+        flags = PanelFlags::BOTTOM_START_MARKER;
+    }
 
-        for (panel_idx, panel_name) in panel_list.iter().enumerate() {
-            // Lookbehind to previous panel
-            if flags.intersects(PanelFlags::SPACER_BEFORE) {
-                if -1 != last_panel_idx &&
-                    let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
+    for (panel_idx, panel_name) in panel_list.iter().enumerate() {
+
+        // Handle panel type
+        match panel_name.as_str() {
+            "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
+            "center" => flags.insert(PanelFlags::CENTER_MARKER),
+            _ => {
+                if let Some(mut panel) = Panel::new(
+                    PanelFlags::from(panel_name) | flags)
                 {
-                    // Add spacer after panel item
-                    if flags.intersects(PanelFlags::SPACER_BEFORE) {
-                        last_panel.flags.insert(PanelFlags::SPACER_BEFORE);
-                        flags.remove(PanelFlags::SPACER_BEFORE);
+                    // Separator use its name as a value
+                    if panel.flags.intersects(PanelFlags::SEPARATOR) {
+                        panel.text = Some(panel_name.clone());
                     }
+
+                    screen.panels.push(panel);
+                    flags.remove(PanelFlags::BOTTOM_START_MARKER
+                        | PanelFlags::SPACER_BEFORE);
+
+                    last_panel_idx += 1;
                 }
-            }
-
-            // Handle panel type
-            match panel_name.as_str() {
-                "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
-                "center" => flags.insert(PanelFlags::CENTER),
-                _ => {
-                    if let Some(mut panel) = Panel::new(
-                        PanelFlags::from(panel_name) | flags)
-                    {
-                        if is_bottom {
-                            screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
-                        } else {
-                            screen.flags.insert(ScreenFlags::TOP_PANEL);
-                        }
-
-                        if panel.flags.intersects(PanelFlags::SEPARATOR) {
-                            panel.text = Some(panel_name.clone());
-                        }
-
-                        screen.panels.push(panel);
-                        flags.remove(PanelFlags::BOTTOM_MARKER);
-
-                        last_panel_idx += 1;
-                    }
-                },
-            }
+            },
         }
+    }
 
-        // Add flags to last item
-        if -1 != last_panel_idx
-            && let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
-        {
-            if flags.intersects(PanelFlags::SPACER_BEFORE) {
-                last_panel.flags.insert(PanelFlags::SPACER_AFTER);
-            }
+    // Add remaining flags to last item
+    if -1 != last_panel_idx
+        && let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
+    {
+        if flags.intersects(PanelFlags::SPACER_BEFORE) {
+            last_panel.flags.insert(PanelFlags::SPACER_AFTER);
         }
     }
 }
@@ -664,12 +648,12 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         // Pass 1: Collect width for spacer sizes
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
 
-            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
                 selected_panel_num = 1;
                 is_centered = false;
             }
 
-            if panel.flags.intersects(PanelFlags::CENTER) {
+            if panel.flags.intersects(PanelFlags::CENTER_MARKER) {
                 is_centered = !is_centered;
             }
 
@@ -709,13 +693,8 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
         // Pass 2: Move and resize windows
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
 
-            // Check flags only in pass 2 to allow flag change on panel update call
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
-
             // Switch to bottom panel and reset
-            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
+            if panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
                 selected_panel_num = 1;
                 nspacer[0] = 0;
                 nspacer[2] = 0;
@@ -724,7 +703,12 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
                 is_centered = false;
             }
 
-            if panel.flags.intersects(PanelFlags::CENTER) {
+            // Check flags only in pass 2 to allow flag change on panel update call *after* bottom toggle
+            if panel.flags.intersects(PanelFlags::HIDDEN) {
+                continue;
+            }
+
+            if panel.flags.intersects(PanelFlags::CENTER_MARKER) {
                 is_centered = !is_centered;
             }
 
@@ -814,23 +798,28 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
 
     // Update screens
     for screen in subtle.screens.iter() {
-        let panel_win = screen.top_panel_win;
+        let mut panel_win = screen.top_panel_win;
 
         clear_double_buffer(subtle, &screen, &subtle.top_panel_style)?;
 
         // Render panel items
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
 
             // Switch to bottom panel
-            if panel_win != screen.bottom_panel_win && panel.flags.intersects(PanelFlags::BOTTOM_MARKER) {
-                conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc, 0, 0, 0, 0,
+            if panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
+                conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc,
+                               0, 0, 0, 0,
                                screen.base.width, subtle.panel_height
                 )?.check()?;
 
                 clear_double_buffer(subtle, &screen, &subtle.bottom_panel_style)?;
+
+                panel_win = screen.bottom_panel_win;
+            }
+
+            // Check hidden *after* bottom toggle
+            if panel.flags.intersects(PanelFlags::HIDDEN) {
+                continue;
             }
 
             drop(panel);
@@ -840,7 +829,8 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
             }
         }
 
-        conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc, 0, 0, 0, 0,
+        conn.copy_area(subtle.panel_double_buffer, panel_win, subtle.draw_gc,
+                       0, 0, 0, 0,
                        screen.base.width, subtle.panel_height)?.check()?;
     }
 
