@@ -183,11 +183,19 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
-                panel::parse(screen, top_panels, false);
+                if !top_panels.is_empty() {
+                    panel::parse(screen, top_panels, false);
+
+                    screen.flags.insert(ScreenFlags::TOP_PANEL);
+                }
             }
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
-                panel::parse(screen, bottom_panels, false);
+                if !bottom_panels.is_empty() {
+                    panel::parse(screen, bottom_panels, false);
+
+                    screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
+                }
             }
 
             // Handle virtual
