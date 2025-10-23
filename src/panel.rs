@@ -16,7 +16,7 @@ use anyhow::{Context, Result};
 use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{ChangeGCAux, ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Drawable, Rectangle, StackMode};
+use x11rb::protocol::xproto::{ChangeGCAux, ConnectionExt, Drawable, Rectangle};
 use crate::client::ClientFlags;
 use crate::icon::Icon;
 use crate::screen::Screen;
@@ -40,11 +40,11 @@ bitflags! {
 
         const COPY = 1 << 6;                 // Panel copy type
 
-        const SPACER_BEFORE = 1 << 7;        // Panel spacer before item
-        const SPACER_AFTER = 1 << 8;         // Panel spacer after item
+        const BOTTOM_START_MARKER = 1 << 7;  // Panel bottom marker
 
-        const BOTTOM_START_MARKER = 1 << 9;  // Panel bottom marker
-        const CENTER_MARKER = 1 << 10;       // Panel center marker
+        const LEFT_POS = 1 << 8;             // Panel left position
+        const CENTER_POS = 1 << 9;           // Panel center position
+        const RIGHT_POS = 1 << 10;           // Panel right position
 
         const HIDDEN = 1 << 11;              // Panel hidden
 
@@ -56,11 +56,26 @@ bitflags! {
 
 impl From<&String> for PanelFlags {
     fn from(value: &String) -> Self {
-        match value.as_str() {
-            "title" => PanelFlags::TITLE,
-            "views" => PanelFlags::VIEWS,
-            "tray" => PanelFlags::TRAY,
-            _ => PanelFlags::SEPARATOR,
+        let mut pos_flags = PanelFlags::empty();
+
+        // Handle positional flags
+        if 1 < value.len() {
+            pos_flags = match value.chars().next() {
+                Some('<') => PanelFlags::LEFT_POS,
+                Some('=') => PanelFlags::CENTER_POS,
+                Some('>') => PanelFlags::RIGHT_POS,
+                _ => PanelFlags::empty(),
+            }
+        }
+
+        // Handle actual types
+        let idx = if pos_flags.is_empty() { 0 } else { 1 };
+
+        match &value[idx..] {
+            "title" => PanelFlags::TITLE | pos_flags,
+            "views" => PanelFlags::VIEWS | pos_flags,
+            "tray" => PanelFlags::TRAY | pos_flags,
+            _ => PanelFlags::SEPARATOR | pos_flags,
         }
     }
 }
@@ -69,6 +84,12 @@ pub(crate) enum PanelAction {
     MouseOver(i16, i16),
     MouseDown(i16, i16, i8),
     MouseOut,
+}
+
+#[derive(Default, Clone, Copy, Debug)]
+struct PanelPlacement {
+    offset_x: i16,
+    width: u16,
 }
 
 #[derive(Default, Debug)]
@@ -106,7 +127,9 @@ impl Panel {
         }
     }
 
-    fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, width: u16, style: &Style) -> Result<()> {
+    fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16,
+                 width: u16, style: &Style) -> Result<()>
+    {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if 0 >= self.width {
@@ -169,7 +192,9 @@ impl Panel {
         Ok(())
     }
 
-    fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16, text: &String, style: &Style) -> Result<()> {
+    fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16,
+                 text: &String, style: &Style) -> Result<()>
+    {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         if let Some(font) = style.get_font(subtle) {
@@ -187,7 +212,8 @@ impl Panel {
         Ok(())
     }
 
-    fn draw_icon(&self, subtle: &Subtle, icon: &Icon, drawable: Drawable, offset_x: u16, style: &Style) -> Result<()>
+    fn draw_icon(&self, subtle: &Subtle, icon: &Icon, drawable: Drawable,
+                 offset_x: u16, style: &Style) -> Result<()>
     {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -247,26 +273,15 @@ impl Panel {
             self.width = subtle.tray_style.calc_spacing(CalcSpacing::Width) as u16;
             self.flags.remove(PanelFlags::HIDDEN);
 
-            // Resize every tray
-            if let Ok(mut trays) = subtle.trays.try_borrow_mut() && !trays.is_empty() {
+            if let Ok(trays) = subtle.trays.try_borrow() && !trays.is_empty() {
                 for tray_idx in 0..trays.len() {
-                    let tray = trays.get_mut(tray_idx).unwrap();
+                    let tray = trays.get(tray_idx).unwrap();
 
                     if tray.flags.intersects(TrayFlags::DEAD) {
                         continue;
                     }
 
-                    conn.map_window(tray.win)?.check()?;
-
-                    let aux = &ConfigureWindowAux::default()
-                        .x(self.width as i32)
-                        .y(0i32)
-                        .width(max!(1, tray.width) as u32)
-                        .height(max!(1, subtle.panel_height as i16
-                            - subtle.tray_style.calc_spacing(CalcSpacing::Height)) as u32)
-                        .stack_mode(StackMode::ABOVE);
-
-                    conn.configure_window(tray.win, &aux)?.check()?;
+                    tray.resize(subtle, self.width as i32)?;
 
                     self.width += tray.width;
                 }
@@ -580,14 +595,13 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
     conn.create_pixmap(default_screen.root_depth, subtle.panel_double_buffer, default_screen.root,
-                           width, subtle.panel_height)?.check()?;
+                       width, subtle.panel_height)?.check()?;
 
     Ok(())
 }
 
 pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
     let mut flags = PanelFlags::empty();
-    let mut last_panel_idx = -1;
 
     // Add bottom marker to first panel on bottom panel in linear vec
     if is_bottom {
@@ -596,35 +610,15 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
 
     for (panel_idx, panel_name) in panel_list.iter().enumerate() {
 
-        // Handle panel type
-        match panel_name.as_str() {
-            "spacer" => flags.insert(PanelFlags::SPACER_BEFORE),
-            "center" => flags.insert(PanelFlags::CENTER_MARKER),
-            _ => {
-                if let Some(mut panel) = Panel::new(
-                    PanelFlags::from(panel_name) | flags)
-                {
-                    // Separator use its name as a value
-                    if panel.flags.intersects(PanelFlags::SEPARATOR) {
-                        panel.text = Some(panel_name.clone());
-                    }
+        // Create panel
+        if let Some(mut panel) = Panel::new(PanelFlags::from(panel_name) | flags) {
+            // Separator use its name as a value
+            if panel.flags.intersects(PanelFlags::SEPARATOR) {
+                panel.text = Some(panel_name.clone());
+            }
 
-                    screen.panels.push(panel);
-                    flags.remove(PanelFlags::BOTTOM_START_MARKER
-                        | PanelFlags::SPACER_BEFORE);
-
-                    last_panel_idx += 1;
-                }
-            },
-        }
-    }
-
-    // Add remaining flags to last item
-    if -1 != last_panel_idx
-        && let Some(mut last_panel) = screen.panels.borrow_mut(last_panel_idx as usize)
-    {
-        if flags.intersects(PanelFlags::SPACER_BEFORE) {
-            last_panel.flags.insert(PanelFlags::SPACER_AFTER);
+            screen.panels.push(panel);
+            flags.remove(PanelFlags::BOTTOM_START_MARKER);
         }
     }
 }
@@ -634,156 +628,94 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
 
     // Update screens
     for screen in subtle.screens.iter() {
-        let mut is_centered = false;
         let mut selected_panel_num = 0;
-        let mut offset = 0;
 
-        let mut x = [0; 4];
-        let mut width = [0; 4];
-        let mut nspacer = [0; 4];
-        let mut spacer_width = [0; 4];
-        let mut rounding_fix = [0; 4];
-        let mut spacer = [0; 4];
+        let mut default_pos = [PanelPlacement::default(); 2];
+        let mut left_pos = [PanelPlacement::default(); 2];
+        let mut center_pos = [PanelPlacement::default(); 2];
+        let mut right_pos = [PanelPlacement::default(); 2];
 
-        // Pass 1: Collect width for spacer sizes
-        for (panel_idx, panel) in screen.panels.iter().enumerate() {
-
-            if 0 == selected_panel_num && panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
-                selected_panel_num = 1;
-                is_centered = false;
-            }
-
-            if panel.flags.intersects(PanelFlags::CENTER_MARKER) {
-                is_centered = !is_centered;
-            }
-
-            // Offset selects panel variables for either center or not
-            offset = if is_centered { selected_panel_num + 2 } else { selected_panel_num };
-
-            if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
-                spacer[offset] += 1;
-            }
-
-            if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
-                spacer[offset] += 1;
-            }
-
-            // Drop and update panel item
-            drop(panel);
-
+        // Pass 1: Update panel items and collect width of positioned ones (left, center, right)
+        for panel_idx in 0..screen.panels.len() {
             if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
+
+                // Switch index to bottom panel
+                if mut_panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
+                    selected_panel_num = 1;
+                }
+
                 mut_panel.update(subtle)?;
 
-                width[offset] += mut_panel.width;
-            }
-        }
-
-        // Calculate spacer and fix sizes
-        for i in 0..spacer.len() {
-            if 0 < spacer[i] {
-                spacer_width[i] = (screen.base.width - width[i]) / spacer[i];
-                rounding_fix[i] = screen.base.width - (width[i] + spacer[i] * spacer_width[i]);
+                // Collect width based on position
+                if mut_panel.flags.intersects(PanelFlags::LEFT_POS) {
+                    left_pos[selected_panel_num].width += mut_panel.width;
+                } else if mut_panel.flags.intersects(PanelFlags::CENTER_POS) {
+                    center_pos[selected_panel_num].width += mut_panel.width;
+                } else if mut_panel.flags.intersects(PanelFlags::RIGHT_POS) {
+                    right_pos[selected_panel_num].width += mut_panel.width;
+                }
             }
         }
 
         // Reset values before next pass
         selected_panel_num = 0;
-        is_centered = false;
 
-        // Pass 2: Move and resize windows
-        for (panel_idx, panel) in screen.panels.iter().enumerate() {
+        // Calculate start positions
+        default_pos[0].offset_x = left_pos[0].width as i16;
+        default_pos[1].offset_x = left_pos[1].width as i16;
 
-            // Switch to bottom panel and reset
-            if panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
-                selected_panel_num = 1;
-                nspacer[0] = 0;
-                nspacer[2] = 0;
-                x[0] = 0;
-                x[2] = 0;
-                is_centered = false;
-            }
+        center_pos[0].offset_x = ((screen.base.width - center_pos[0].width) / 2) as i16;
+        center_pos[1].offset_x = ((screen.base.width - center_pos[1].width) / 2) as i16;
 
-            // Check flags only in pass 2 to allow flag change on panel update call *after* bottom toggle
-            if panel.flags.intersects(PanelFlags::HIDDEN) {
-                continue;
-            }
+        right_pos[0].offset_x = (screen.base.width - right_pos[0].width) as i16;
+        right_pos[1].offset_x = (screen.base.width - right_pos[1].width) as i16;
 
-            if panel.flags.intersects(PanelFlags::CENTER_MARKER) {
-                is_centered = !is_centered;
-            }
+        // Pass 2: Move and resize items
+        for panel_idx in 0..screen.panels.len() {
+            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
 
-            // Offset select panels variables for either center or not
-            offset = if is_centered { selected_panel_num + 2 } else { selected_panel_num };
-
-            // Set start position of centered panel items
-            if is_centered && 0 == x[offset] {
-                x[offset] = (screen.base.width - width[offset]) / 2;
-            }
-
-            // Add spacer before item
-            if panel.flags.intersects(PanelFlags::SPACER_BEFORE) {
-                x[offset] += spacer_width[offset];
-
-                // Increase last spacer size by rounding fix
-                nspacer[offset] += 1;
-
-                if nspacer[offset] == spacer[offset] {
-                    x[offset] += rounding_fix[offset];
+                // Switch index to bottom panel
+                if mut_panel.flags.intersects(PanelFlags::BOTTOM_START_MARKER) {
+                    selected_panel_num = 1;
                 }
-            }
 
-            // Set panel position
-            if panel.flags.intersects(PanelFlags::TRAY) {
+                // Check flags only in pass 2 to allow panel updates to change flags *after* bottom toggle
+                if mut_panel.flags.intersects(PanelFlags::HIDDEN) {
+                    continue;
+                }
 
-                // FIXME: Last one wins if used multiple times
-                let selected_panel_win = if 0 == selected_panel_num {
-                    screen.top_panel_win
+                // Set panel x position
+                if mut_panel.flags.intersects(PanelFlags::LEFT_POS) {
+                    mut_panel.x = left_pos[selected_panel_num].offset_x;
+
+                    left_pos[selected_panel_num].offset_x += mut_panel.width as i16;
+                } else if mut_panel.flags.intersects(PanelFlags::CENTER_POS) {
+                    mut_panel.x = center_pos[selected_panel_num].offset_x;
+
+                    center_pos[selected_panel_num].offset_x += mut_panel.width as i16;
+                } else if mut_panel.flags.intersects(PanelFlags::RIGHT_POS) {
+                    mut_panel.x = right_pos[selected_panel_num].offset_x;
+
+                    right_pos[selected_panel_num].offset_x += mut_panel.width as i16;
                 } else {
-                    screen.bottom_panel_win
+                    mut_panel.x = default_pos[selected_panel_num].offset_x;
+
+                    default_pos[selected_panel_num].offset_x += mut_panel.width as i16;
                 };
 
-                conn.reparent_window(subtle.tray_win, selected_panel_win, 0, 0,)?.check()?;
+                // Special aftercare
+                if mut_panel.flags.intersects(PanelFlags::TRAY) {
 
-                let aux = ChangeWindowAttributesAux::default()
-                    .background_pixel(subtle.tray_style.bg as u32);
+                    // FIXME: Last one wins if used multiple times
+                    let selected_panel_win = if 0 == selected_panel_num {
+                        screen.top_panel_win
+                    } else {
+                        screen.bottom_panel_win
+                    };
 
-                conn.change_window_attributes(subtle.tray_win, &aux)?.check()?;
-
-                let aux = ConfigureWindowAux::default()
-                    .x(x[offset] as i32 + subtle.tray_style.calc_spacing(CalcSpacing::Left) as i32)
-                    .y(subtle.tray_style.calc_spacing(CalcSpacing::Top) as i32)
-                    .width(max!(1, panel.width as u32
-                        - subtle.tray_style.calc_spacing(CalcSpacing::Width) as u32))
-                    .height(max!(1, subtle.panel_height as u32
-                        - subtle.tray_style.calc_spacing(CalcSpacing::Height) as u32))
-                    .stack_mode(StackMode::ABOVE);
-
-                conn.configure_window(subtle.tray_win, &aux)?.check()?;
-                conn.map_subwindows(selected_panel_win)?.check()?;
-            }
-
-            // Store x position before separator and spacer for later re-borrow
-            let panel_x = x[offset];
-
-            // Add spacer after item
-            if panel.flags.intersects(PanelFlags::SPACER_AFTER) {
-                x[offset] += spacer_width[offset];
-
-                // Increase last spacer size by rounding fix
-                nspacer[offset] += 1;
-
-                if nspacer[offset] == spacer[offset] {
-                    x[offset] += rounding_fix[offset];
+                    subtle.update_tray_win(selected_panel_win,
+                                           mut_panel.x as i32, mut_panel.width as u32)?;
                 }
-            }
-
-            x[offset] += panel.width;
-
-            // Drop and update panel item
-            drop(panel);
-
-            if let Some(mut mut_panel) = screen.panels.borrow_mut(panel_idx) {
-                mut_panel.x = panel_x as i16;
             }
         }
     }
