@@ -887,7 +887,7 @@ print("12:00")
 # To allow more flexibility, subtle can split physically screens into virtual
 # ones and low to see multiple views on screen per virtual screen.
 # When a screen is configured this config won't be used unless a physical screen
-# has been found or it is marked as virtual
+# has been found, or it is marked as virtual
 #
 # Additionally, each screen comes with two possible panels per screen.
 # Each panel can be configured with different panel items screen wise.
@@ -896,12 +896,20 @@ print("12:00")
 #
 # Following panel items are available:
 #
-# [*:views*]     List of views with buttons
-# [*:title*]     Title of the current active window
-# [*:tray*]      Systray icons (Can be used only once)
-# [*:spacer*]    Variable spacer (free width / count of spacers)
-# [*:center*]    Enclose items with :center to center them on the panel
-# [*:separator*] Insert separator
+# *views*     List of views with buttons
+# *title*     Title of the current active window
+# *tray*      Systray icons (Can be used only once; last one wins)
+# *separator* Insert any text to use as a separator (like | or #)
+#
+# The panel is divided in the three zones left, center and right and items
+# can be freely placed there just by adding one of the following prefixes:
+#
+# *<*  Items are arranged on the left side (e.g. <views)
+# *=*  Items are centered (e.g. =views)
+# *>*  Items are arranged on the right side (e.g. >views)
+#
+# All remaining items are placed directly after the left block.
+# Be aware there is no check for overlaps, this is enmtirely up to the user.
 #
 # === Link
 #
@@ -911,7 +919,7 @@ print("12:00")
 
 # Screen 1
 [[screen]]
-top_panel = [ "tray", "views", "time", "center", "title", "center" ]
+top_panel = [ "tray", "|", "views", "time", "=title" ]
 bottom_panel = [ ]
 #virtual = [ 0, 0, 50, 100 ]
 
