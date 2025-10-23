@@ -15,19 +15,21 @@ use crate::gravity::Gravity;
 use crate::tag::Tag;
 use crate::view::View;
 use bitflags::bitflags;
+use anyhow::Result;
 use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use easy_min_max::max;
 use veccell::VecCell;
 use x11rb::connection::Connection;
 use x11rb::NONE;
-use x11rb::protocol::xproto::{ConnectionExt, Cursor, Gcontext, Keycode, ModMask, Pixmap, Window};
+use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Cursor, Gcontext, Keycode, ModMask, Pixmap, StackMode, Window};
 use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::font::Font;
 use crate::grab::Grab;
 use crate::screen::Screen;
-use crate::style::Style;
+use crate::style::{CalcSpacing, Style};
 use crate::tagging::Tagging;
 use crate::tray::Tray;
 
@@ -230,6 +232,31 @@ impl Subtle {
 
     pub(crate) fn remove_tray_by_win(&self, win: Window) {
         self.trays.borrow_mut().retain(|t| t.win != win);
+    }
+
+    pub(crate) fn update_tray_win(&self, parent_win: Window, x: i32, width: u32) -> Result<()> {
+        let conn = self.conn.get().unwrap();
+
+        conn.reparent_window(self.tray_win, parent_win, 0, 0,)?.check()?;
+
+        let aux = ChangeWindowAttributesAux::default()
+            .background_pixel(self.tray_style.bg as u32);
+
+        conn.change_window_attributes(self.tray_win, &aux)?.check()?;
+
+        let aux = ConfigureWindowAux::default()
+            .x(x + self.tray_style.calc_spacing(CalcSpacing::Left) as i32)
+            .y(self.tray_style.calc_spacing(CalcSpacing::Top) as i32)
+            .width(max!(1, width
+                - self.tray_style.calc_spacing(CalcSpacing::Width) as u32))
+            .height(max!(1, self.panel_height as u32
+                - self.tray_style.calc_spacing(CalcSpacing::Height) as u32))
+            .stack_mode(StackMode::ABOVE);
+
+        conn.configure_window(self.tray_win, &aux)?.check()?;
+        conn.map_subwindows(parent_win)?.check()?;
+
+        Ok(())
     }
 }
 
