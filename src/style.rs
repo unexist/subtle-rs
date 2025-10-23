@@ -233,11 +233,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             match kind.as_str() {
                 "all" => style = &mut subtle.all_style,
                 "views" => style = &mut subtle.views_style,
-                "views_active" => style = &mut subtle.views_active_style,
-                "views_occupied" => style = &mut subtle.views_occupied_style,
-                "views_visible" => style = &mut subtle.views_visible_style,
-                "tray" => style = &mut subtle.tray_style,
+                "active_views" => style = &mut subtle.views_active_style,
+                "occupied_views" => style = &mut subtle.views_occupied_style,
+                "visible_views" => style = &mut subtle.views_visible_style,
                 "separator" => style = &mut subtle.separator_style,
+                "top_panel" => style = &mut subtle.top_panel_style,
+                "bottom_panel" => style = &mut subtle.bottom_panel_style,
+                "tray" => style = &mut subtle.tray_style,
+                "urgent" => style = &mut subtle.urgent_style,
                 "clients" => {
                     // We exploit some unused style variables here:
                     // margin <-> client gap
@@ -270,9 +273,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                     style = &mut subtle.title_style;
                 },
-                "urgent" => style = &mut subtle.urgent_style,
-                "top_panel" => style = &mut subtle.top_panel_style,
-                "bottom_panel" => style = &mut subtle.bottom_panel_style,
                 _ => {
                     warn!("Unknown style name: {}", kind);
 

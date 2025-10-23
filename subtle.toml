@@ -86,17 +86,17 @@ kind = "views"
 
 # Style for the active views
 [[style]]
-kind = "views_active"
+kind = "active_views"
 foreground = "#fecf35"
 
 # Style for occupied views (views with clients)
 [[style]]
-kind = "views_occupied"
+kind = "occupied_views"
 foreground = "#b8b8b8"
 
 # Style for visible views
 [[style]]
-kind = "views_visible"
+kind = "visible_views"
 foreground = "#b8b8b8"
 
 # Style for separator
@@ -124,6 +124,10 @@ margin = 5
 padding = 5
 border_width = 2
 
+# Style for tray
+#[[style]]
+#kind = "tray"
+
 # Style for top panel
 #[[style]]
 #kind = "top_panel"
@@ -131,10 +135,6 @@ border_width = 2
 # Style for bottom panel
 #[[style]]
 #kind = "bottom_panel"
-
-# Style for tray
-#[[style]]
-#kind = "tray"
 
 #
 # == Gravities
