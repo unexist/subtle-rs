@@ -23,6 +23,7 @@ use x11rb::protocol::xproto::{AtomEnum, ChangeWindowAttributesAux, ConfigureWind
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::ewmh;
 use crate::ewmh::WMState;
+use crate::style::CalcSpacing;
 use crate::subtle::Subtle;
 
 bitflags! {
@@ -192,6 +193,26 @@ impl Tray {
                 self.flags.insert(TrayFlags::CLOSE);
             }
         }
+
+        debug!("{}: tray={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn resize(&self, subtle: &Subtle, width: i32) -> Result<()> {
+        let conn = subtle.conn.get().unwrap();
+
+        conn.map_window(self.win)?.check()?;
+
+        let aux = &ConfigureWindowAux::default()
+            .x(width)
+            .y(0i32)
+            .width(max!(1, width) as u32)
+            .height(max!(1, subtle.panel_height as i16
+                            - subtle.tray_style.calc_spacing(CalcSpacing::Height)) as u32)
+            .stack_mode(StackMode::ABOVE);
+
+        conn.configure_window(self.win, &aux)?.check()?;
 
         debug!("{}: tray={}", function_name!(), self);
 
