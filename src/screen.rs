@@ -221,15 +221,14 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     // Either check each client or just get visible clients
     let mut clients = subtle.clients.borrow_mut();
 
-    if 0 < clients.len() {
-        // Check each client
-        for client_idx in 0..clients.len() {
-            let mut new_gravity_idx: isize = 0;
-            let mut new_screen_idx: usize = 0;
-            let mut new_view_idx: usize = 0;
-            let mut visible = 0;
+    // Check each client
+    for client_idx in 0..clients.len() {
+        let mut new_gravity_idx: isize = 0;
+        let mut new_screen_idx: usize = 0;
+        let mut new_view_idx: usize = 0;
+        let mut visible = 0;
 
-            let client = clients.get_mut(client_idx).unwrap();
+        if let Some(client) = clients.get_mut(client_idx) {
 
             // Ignore dead or just iconified clients
             if client.flags.intersects(ClientFlags::DEAD) {
@@ -287,7 +286,6 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 conn.change_property32(PropMode::REPLACE, client.win, atoms.SUBTLE_CLIENT_SCREEN,
                                        AtomEnum::CARDINAL, &[new_screen_idx as u32])?.check()?;
 
-                // Drop and re-borrow mut this time
                 client.arrange(subtle, new_gravity_idx, new_screen_idx as isize)?;
             } else {
                 // Ignore next unmap
@@ -297,11 +295,13 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                 client.unmap(subtle)?;
             }
         }
-    } else {
+    }
+
+    if clients.is_empty() {
         // Check views of each screen
         for screen in subtle.screens.iter() {
-            if -1 != screen.view_idx.get() && let Some(view) = subtle.views
-                .get(screen.view_idx.get() as usize)
+            if -1 != screen.view_idx.get()
+                && let Some(view) = subtle.views.get(screen.view_idx.get() as usize)
             {
                 visible_tags |= view.tags;
                 visible_views |= Tagging::from_bits_retain(1 << (screen.view_idx.get() + 1));
