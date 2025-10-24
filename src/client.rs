@@ -14,7 +14,7 @@ use std::cmp::PartialEq;
 use std::ops::{BitAnd, BitOr, BitXor};
 use std::cell::Ref;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
-use bitflags::{bitflags};
+use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::debug;
@@ -24,7 +24,7 @@ use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::{ewmh, grab, screen};
-use crate::ewmh::WMState;
+use crate::ewmh::{EWMHStateFlags, WMState};
 use crate::grab::GrabFlags;
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
@@ -766,28 +766,34 @@ impl Client {
         }
 
         // EWMH: State and flags
-        let mut states: Vec<Atom> = Vec::default();
+        let mut state_atoms: Vec<Atom> = Vec::default();
+        let mut ewmh_state = EWMHStateFlags::empty();
 
         if self.flags.contains(ClientFlags::MODE_FULL) {
-            states.push(atoms._NET_WM_STATE_FULLSCREEN);
+            state_atoms.push(atoms._NET_WM_STATE_FULLSCREEN);
+            ewmh_state.insert(EWMHStateFlags::FULL);
         }
 
         if self.flags.contains(ClientFlags::MODE_FLOAT) {
-            states.push(atoms._NET_WM_STATE_ABOVE);
+            state_atoms.push(atoms._NET_WM_STATE_ABOVE);
+            ewmh_state.insert(EWMHStateFlags::FLOAT);
         }
 
         if self.flags.contains(ClientFlags::MODE_STICK) {
-            states.push(atoms._NET_WM_STATE_STICKY);
+            state_atoms.push(atoms._NET_WM_STATE_STICKY);
+            ewmh_state.insert(EWMHStateFlags::STICK);
         }
 
         if self.flags.contains(ClientFlags::MODE_URGENT) {
-            states.push(atoms._NET_WM_STATE_DEMANDS_ATTENTION);
+            state_atoms.push(atoms._NET_WM_STATE_DEMANDS_ATTENTION);
+            ewmh_state.insert(EWMHStateFlags::URGENT);
         }
 
         conn.change_property32(PropMode::REPLACE, self.win, atoms._NET_WM_STATE,
-                               AtomEnum::ATOM, states.as_slice())?.check()?;
+                               AtomEnum::ATOM, state_atoms.as_slice())?.check()?;
 
-        // subEwmhTranslateClientMode(c->flags, &flags); // TODO
+        conn.change_property32(PropMode::REPLACE, self.win, atoms.SUBTLE_CLIENT_FLAGS,
+                                AtomEnum::CARDINAL, &[ewmh_state.bits()])?.check()?;
 
         conn.flush()?;
 
