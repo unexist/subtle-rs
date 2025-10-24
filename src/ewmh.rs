@@ -10,6 +10,7 @@
 ///
 
 use anyhow::Result;
+use bitflags::bitflags;
 use log::debug;
 use stdext::function_name;
 use struct_iterable::Iterable;
@@ -23,6 +24,25 @@ use crate::subtle::{Subtle, SubtleFlags};
 pub(crate) enum WMState {
     Withdrawn = 0,
     Normal = 1,
+}
+
+bitflags! {
+    #[derive(Default, Debug, Copy, Clone, PartialEq)]
+    pub(crate) struct EWMHStateFlags: u32 {
+        const FULL = 1 << 0;
+        const FLOAT = 1 << 1;
+        const STICK = 1 << 2;
+        const RESIZE = 1 << 3;
+        const URGENT = 1 << 4;
+        const ZAPHOD = 1 << 5;
+        const FIXED = 1 << 6;
+        const CENTER = 1 << 7;
+        const BORDERLESS = 1 << 8;
+        const VISIBLE = 1 << 9;
+        const HIDDEN = 1 << 10;
+        const HORZ = 1 << 11;
+        const VERT = 1 << 12;
+    }
 }
 
 x11rb::atom_manager! {
