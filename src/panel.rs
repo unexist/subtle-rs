@@ -291,10 +291,13 @@ impl Panel {
                 self.flags.insert(PanelFlags::HIDDEN);
             }
         } else if self.flags.intersects(PanelFlags::TITLE) {
+            self.width = 0;
 
             // Find focus window
             if let Some(focus_client) = subtle.find_focus_client() {
-                if focus_client.is_alive() && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                if focus_client.is_alive() && focus_client.is_visible(subtle)
+                    && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP)
+                {
                     let mode_str = focus_client.mode_string();
 
                     // Font offset, panel border and padding
