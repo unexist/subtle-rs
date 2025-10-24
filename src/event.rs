@@ -517,6 +517,7 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
         screen::configure(subtle)?;
         panel::update(subtle)?;
         panel::render(subtle)?;
+        client::publish(subtle, false)?;
     }
 
     debug!("{}: win={}", function_name!(), event.window);
