@@ -31,10 +31,11 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
         screen.handle_action(subtle, &PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
             screen.bottom_panel_win == event.event)?;
 
-        // Finally configure and render
+        // Finally configure, update and render
         screen::configure(subtle)?;
-        panel::render(subtle)?;
         screen::publish(subtle, false)?;
+        panel::update(subtle)?;
+        panel::render(subtle)?;
     }
 
     debug!("{}: win={}, x={}, y={}", function_name!(), event.event, event.event_x, event.event_y);
