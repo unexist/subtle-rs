@@ -614,7 +614,11 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
         if let Some(mut panel) = Panel::new(PanelFlags::from(panel_name) | flags) {
             // Separator use its name as a value
             if panel.flags.intersects(PanelFlags::SEPARATOR) {
-                panel.text = Some(panel_name.clone());
+                let idx = if panel.flags.intersects(PanelFlags::LEFT_POS
+                    | PanelFlags::CENTER_POS
+                    | PanelFlags::RIGHT_POS) { 1 } else { 0 };
+
+                panel.text = Some(panel_name[idx..].to_string());
             }
 
             screen.panels.push(panel);
