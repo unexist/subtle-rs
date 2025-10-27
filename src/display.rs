@@ -241,8 +241,6 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    // TODO Tray
-
     // EWMH: Supported hints
     let mut supported_atoms: Vec<u32> = Vec::with_capacity(atoms.iter().len());
 
@@ -283,7 +281,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
     conn.flush()?;
 
-    debug!("{}: views={}", function_name!(), subtle.views.len());
+    debug!("{}", function_name!());
 
     Ok(())
 }
