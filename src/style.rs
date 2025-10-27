@@ -224,7 +224,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.tray_style.reset(0);
     subtle.top_panel_style.reset(-1);
     subtle.bottom_panel_style.reset(-1);
-    // TODO tray
 
     for style_values in config.styles.iter() {
         let style: &mut Style;
