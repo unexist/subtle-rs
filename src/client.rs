@@ -25,7 +25,7 @@ use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::{ewmh, grab, screen};
 use crate::ewmh::{EWMHStateFlags, WMState};
-use crate::grab::GrabFlags;
+use crate::grab::{DirectionOrder, GrabFlags};
 use crate::subtle::{Subtle, SubtleFlags};
 use crate::gravity::GravityFlags;
 use crate::screen::{Screen, ScreenFlags};
@@ -45,6 +45,13 @@ macro_rules! ignore_if_dead {
 pub(crate) enum RestackOrder {
     Down = 0,
     Up = 1,
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum DragMode {
+    MOVE = 0,
+    RESIZE = 1,
 }
 
 bitflags! {
@@ -1059,6 +1066,20 @@ impl Client {
         conn.warp_pointer(NONE, default_screen.root, 0, 0, 0, 0,
                           self.geom.x + self.geom.width as i16 / 2,
                           self.geom.y + self.geom.height as i16 / 2)?.check()?;
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
+
+    pub(crate) fn drag(&self, subtle: &Subtle, drag_mode: DragMode, drag_dir: DirectionOrder) -> Result<()> {
+        ignore_if_dead!(self);
+
+        let conn = subtle.conn.get().unwrap();
+
+        if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
+
+        }
 
         debug!("{}: client={}", function_name!(), self);
 
