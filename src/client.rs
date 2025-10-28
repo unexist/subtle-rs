@@ -1077,9 +1077,17 @@ impl Client {
 
         let conn = subtle.conn.get().unwrap();
 
-        if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
+        let reply = conn.query_pointer(self.win)?.reply()?;
 
-        }
+        let rect = Rectangle {
+            x: reply.root_x - reply.win_x,
+            y: reply.root_y - reply.win_y,
+            width: self.geom.width,
+            height: self.geom.height,
+        };
+
+        let screen = subtle.screens.get(self.screen_idx as usize)
+            .context("Can't get screen")?;
 
         debug!("{}: client={}", function_name!(), self);
 
