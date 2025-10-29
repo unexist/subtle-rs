@@ -55,6 +55,9 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
                                let mut mode_flags = ClientFlags::MODE_FLOAT;
 
                                focus_client.toggle(subtle, &mut mode_flags, true)?;
+
+                               panel::update(subtle)?;
+                               panel::render(subtle)?;
                            }
 
                            // Translate flags
