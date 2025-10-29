@@ -19,10 +19,10 @@ use x11rb::CURRENT_TIME;
 use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
-use crate::client::{Client, ClientFlags, RestackOrder};
+use crate::client::{Client, ClientFlags, DragMode, RestackOrder};
 use crate::{client, display, ewmh, grab, panel, screen, tray};
 use crate::ewmh::WMState;
-use crate::grab::{GrabAction, GrabFlags};
+use crate::grab::{DirectionOrder, GrabAction, GrabFlags};
 use crate::panel::PanelAction;
 use crate::tray::{Tray, TrayFlags, XEmbed, XEmbedFocus};
 
@@ -36,6 +36,39 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
         screen::publish(subtle, false)?;
         panel::update(subtle)?;
         panel::render(subtle)?;
+    } else {
+        // Limit mod mask to relevant ones
+        let relevant_modifiers = ModMask::from(event.state.bits()
+            & (ModMask::SHIFT | ModMask::CONTROL | ModMask::M1 | ModMask::M4));
+
+        if let Some(grab) = subtle.find_grab(event.detail, relevant_modifiers) {
+            let flag = grab.flags.difference(GrabFlags::IS_KEY | GrabFlags::IS_MOUSE);
+
+            match flag {
+                GrabFlags::WINDOW_MOVE | GrabFlags::WINDOW_RESIZE => {
+                    if let Some(mut focus_client) = subtle.find_focus_client_mut() {
+                       if focus_client.flags.intersects(ClientFlags::MODE_FULL)
+                           && !(GrabFlags::WINDOW_RESIZE == flag
+                           && focus_client.flags.intersects(ClientFlags::MODE_FIXED))
+                       {
+                           if !focus_client.flags.intersects(ClientFlags::MODE_FLOAT) {
+                               let mut mode_flags = ClientFlags::MODE_FLOAT;
+
+                               focus_client.toggle(subtle, &mut mode_flags, true)?;
+                           }
+
+                           // Translate flags
+                           focus_client.drag(subtle, if GrabFlags::WINDOW_MOVE == flag {
+                               DragMode::MOVE } else { DragMode::RESIZE }, DirectionOrder::None)?;
+
+                       }
+                    }
+                },
+                _ => {},
+            }
+
+            println!("grab={:?}", grab);
+        }
     }
 
     debug!("{}: win={}, x={}, y={}", function_name!(), event.event, event.event_x, event.event_y);
