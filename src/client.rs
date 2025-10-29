@@ -22,6 +22,7 @@ use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
+use x11rb::protocol::Event;
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::{ewmh, grab, screen};
 use crate::ewmh::{EWMHStateFlags, WMState};
@@ -1185,8 +1186,73 @@ impl Client {
             },
             _ => {
                 self.draw_mask(subtle)?;
+
+                let mut run_loop = true;
+                let mut win = Window::default();
+
+                // Start event loop
+                while run_loop {
+                    if let Ok(event) = conn.wait_for_event() {
+                        match event {
+                            Event::EnterNotify(evt) => {
+                                win = evt.event;
+                            },
+                            Event::ButtonRelease(evt) => {
+                                run_loop = false;
+                            },
+                            Event::MotionNotify(evt) => {
+                                self.draw_mask(subtle)?;
+
+                                if DragMode::MOVE == drag_mode {
+                                    geom.x = (query_reply.root_x - query_reply.win_x)
+                                        - (query_reply.root_x - evt.root_x);
+                                    geom.y = (query_reply.root_y - query_reply.win_y)
+                                        - (query_reply.root_y - evt.root_y);
+
+                                    self.snap(subtle, &screen, &mut geom)?;
+                                } else {
+                                    // Handle resize based on edge
+                                    if edge.intersects(DragEdge::LEFT) {
+                                        geom.x = evt.root_x - dx;
+                                        geom.width = (evt.root_x + dx) as u16;
+                                    } else if edge.intersects(DragEdge::RIGHT) {
+                                        geom.x = fx;
+                                        geom.width = (evt.root_x - fx + dx) as u16;
+                                    }
+
+                                    if edge.intersects(DragEdge::TOP) {
+                                        geom.y = evt.root_y - dy;
+                                        geom.height = (fy - evt.root_y + dy) as u16;
+                                    } else {
+                                        geom.y = fy;
+                                        geom.height = (evt.root_y - fy + dy) as u16;
+                                    }
+
+                                    // Adjust bounds based on edge
+                                    self.check_bounds(subtle, &screen.geom,
+                                                      edge.intersects(DragEdge::LEFT),
+                                                      edge.intersects(DragEdge::TOP));
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+
+                // Erase mask again
+                self.draw_mask(subtle)?;
+
+                // Substract border width
+                if !self.flags.intersects(ClientFlags::MODE_BORDERLESS) {
+                    geom.x -= subtle.clients_style.border.top;
+                    geom.y -= subtle.clients_style.border.top;
+                }
+
+                self.geom = geom;
             }
         }
+
+        //self.move_resize(subtle, &self.geom)?;
 
         // Remove grabs
         conn.ungrab_pointer(CURRENT_TIME)?;
