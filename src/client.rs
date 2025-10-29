@@ -13,7 +13,7 @@ use std::fmt;
 use std::cmp::PartialEq;
 use std::ops::{BitAnd, BitOr, BitXor};
 use std::cell::Ref;
-use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, GrabMode, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
@@ -48,19 +48,21 @@ pub(crate) enum RestackOrder {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum DragMode {
     MOVE = 0,
     RESIZE = 1,
 }
 
-#[repr(u8)]
-#[derive(Debug, Copy, Clone)]
-pub(crate) enum DragEdge {
-    LEFT = 0,
-    RIGHT = 1,
-    TOP = 2,
-    BOTTOM = 3,
+
+bitflags! {
+    #[derive(Default, Debug, Copy, Clone, PartialEq)]
+    pub(crate) struct DragEdge: u32 {
+        const LEFT = 1 << 0;
+        const RIGHT = 1 << 1;
+        const TOP = 1 << 2;
+        const BOTTOM = 1 << 3;
+    }
 }
 
 bitflags! {
@@ -1081,22 +1083,114 @@ impl Client {
         Ok(())
     }
 
-    pub(crate) fn drag(&self, subtle: &Subtle, drag_mode: DragMode, drag_dir: DirectionOrder) -> Result<()> {
+    pub(crate) fn drag(&mut self, subtle: &Subtle, drag_mode: DragMode, drag_dir: DirectionOrder) -> Result<()> {
         ignore_if_dead!(self);
 
         let conn = subtle.conn.get().unwrap();
 
-        let reply = conn.query_pointer(self.win)?.reply()?;
+        let query_reply = conn.query_pointer(self.win)?.reply()?;
 
-        let rect = Rectangle {
-            x: reply.root_x - reply.win_x,
-            y: reply.root_y - reply.win_y,
+        let mut geom = Rectangle {
+            x: query_reply.root_x - query_reply.win_x,
+            y: query_reply.root_y - query_reply.win_y,
             width: self.geom.width,
             height: self.geom.height,
         };
 
         let screen = subtle.screens.get(self.screen_idx as usize)
             .context("Can't get screen")?;
+
+        // Select starting edge
+        let edge = (if query_reply.win_x < (geom.width / 2) as i16 {
+                DragEdge::LEFT } else { DragEdge::RIGHT }
+            | if query_reply.win_y < (geom.height / 2) as i16 {
+                DragEdge::TOP } else { DragEdge::BOTTOM });
+
+        let mut fx = 0;
+        let mut fy = 0;
+        let mut dx = 0;
+        let mut dy = 0;
+
+        // Set variables according to mode
+        let cursor = match drag_mode {
+            DragMode::MOVE => subtle.move_cursor,
+            DragMode::RESIZE => {
+
+                // Set starting point
+                if edge.intersects(DragEdge::LEFT) {
+                    fx = geom.x + geom.width as i16;
+                    dx = query_reply.root_x - self.geom.x;
+                } else if edge.intersects(DragEdge::RIGHT) {
+                    fx = geom.x;
+                    dx = geom.x + geom.width as i16 - query_reply.root_x;
+                }
+
+                if edge.intersects(DragEdge::TOP) {
+                    fy = geom.y + geom.height as i16;
+                    dy = query_reply.root_y - self.geom.y;
+                } else if edge.intersects(DragEdge::BOTTOM) {
+                    fy = geom.y;
+                    dy = geom.y + geom.height as i16 - query_reply.root_y;
+                }
+
+                subtle.resize_cursor
+            }
+        };
+
+        // Grab pointer and server
+        conn.grab_pointer(true, self.win, EventMask::BUTTON_PRESS
+            | EventMask::BUTTON_RELEASE
+            | EventMask::POINTER_MOTION, GrabMode::ASYNC, GrabMode::ASYNC,
+                          NONE, cursor, CURRENT_TIME)?;
+        conn.grab_server()?;
+
+        match drag_dir {
+            DirectionOrder::Up => {
+                if DragMode::RESIZE == drag_mode {
+                    self.geom.y -= self.height_inc as i16;
+                    self.geom.height += self.height_inc;
+                } else {
+                    self.geom.y -= subtle.step_size;
+                }
+
+                self.snap(subtle, screen, &mut geom)?;
+                self.check_bounds(subtle, &screen.geom, false, false);
+            },
+            DirectionOrder::Right => {
+                if DragMode::RESIZE == drag_mode {
+                    self.geom.height += self.height_inc;
+                } else {
+                    self.geom.y += subtle.step_size;
+                }
+
+                self.snap(subtle, screen, &mut geom)?;
+                self.check_bounds(subtle, &screen.geom, false, false);
+            },
+            DirectionOrder::Down => {
+                if DragMode::RESIZE == drag_mode {
+                    self.geom.x -= self.width_inc as i16;
+                    self.geom.width += self.width_inc;
+                } else {
+                    self.geom.x -= subtle.step_size;
+                }
+
+                self.snap(subtle, screen, &mut geom)?;
+                self.check_bounds(subtle, &screen.geom, false, false);
+            },
+            DirectionOrder::Left => {
+                if DragMode::RESIZE == drag_mode {
+                    self.geom.x -= self.width_inc as i16;
+                    self.geom.width += self.width_inc;
+                }
+            },
+            _ => {
+                self.draw_mask(subtle)?;
+            }
+        }
+
+        // Remove grabs
+        conn.ungrab_pointer(CURRENT_TIME)?;
+        conn.ungrab_server()?;
 
         debug!("{}: client={}", function_name!(), self);
 
