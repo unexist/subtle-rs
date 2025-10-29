@@ -122,8 +122,6 @@ pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
         "subtle_restart" => (GrabFlags::SUBTLE_RESTART, GrabAction::None),
         "subtle_quit" => (GrabFlags::SUBTLE_QUIT, GrabAction::None),
 
-        "window_move" => (GrabFlags::WINDOW_MOVE, GrabAction::None),
-        "window_resize" => (GrabFlags::WINDOW_RESIZE, GrabAction::None),
         "window_toggle" => (GrabFlags::WINDOW_MODE, GrabAction::None),
         "window_stack" => (GrabFlags::WINDOW_RESTACK, GrabAction::None),
         "window_select" => (GrabFlags::WINDOW_SELECT, GrabAction::None),
@@ -147,6 +145,10 @@ pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
         "window_down" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Down as u32)),
         "window_right" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Right as u32)),
         "window_up" => (GrabFlags::WINDOW_SELECT, GrabAction::Index(DirectionOrder::Up as u32)),
+
+        // Window dragging
+        "window_move" => (GrabFlags::WINDOW_MOVE, GrabAction::None),
+        "window_resize" => (GrabFlags::WINDOW_RESIZE, GrabAction::None),
 
         _ => {
             // Handle grabs with index
