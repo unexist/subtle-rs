@@ -47,7 +47,7 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
             match flag {
                 GrabFlags::WINDOW_MOVE | GrabFlags::WINDOW_RESIZE => {
                     if let Some(mut focus_client) = subtle.find_focus_client_mut() {
-                       if focus_client.flags.intersects(ClientFlags::MODE_FULL)
+                       if !focus_client.flags.intersects(ClientFlags::MODE_FULL)
                            && !(GrabFlags::WINDOW_RESIZE == flag
                            && focus_client.flags.intersects(ClientFlags::MODE_FIXED))
                        {
@@ -55,15 +55,16 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
                                let mut mode_flags = ClientFlags::MODE_FLOAT;
 
                                focus_client.toggle(subtle, &mut mode_flags, true)?;
-
-                               panel::update(subtle)?;
-                               panel::render(subtle)?;
                            }
 
                            // Translate flags
                            focus_client.drag(subtle, if GrabFlags::WINDOW_MOVE == flag {
                                DragMode::MOVE } else { DragMode::RESIZE }, DirectionOrder::None)?;
 
+                           drop(focus_client);
+
+                           panel::update(subtle)?;
+                           panel::render(subtle)?;
                        }
                     }
                 },
