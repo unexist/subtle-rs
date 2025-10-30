@@ -998,8 +998,10 @@ impl Client {
     }
 
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
+        let mut geom = self.geom;
+
         if use_size_hints {
-            self.check_bounds(subtle, bounds, false, false);
+            self.apply_size_hints(subtle, bounds, false, false, &mut geom);
         }
 
         if !self.flags.contains(ClientFlags::MODE_FULL | ClientFlags::TYPE_DOCK) {
@@ -1007,12 +1009,12 @@ impl Client {
             let mut max_y = 0;
 
             if !self.flags.contains(ClientFlags::MODE_FIXED) {
-                if self.geom.width > bounds.width {
-                    self.geom.width = bounds.width;
+                if geom.width > bounds.width {
+                    geom.width = bounds.width;
                 }
 
-                if self.geom.height > bounds.height {
-                    self.geom.height = bounds.height;
+                if geom.height > bounds.height {
+                    geom.height = bounds.height;
                 }
             }
 
@@ -1021,23 +1023,26 @@ impl Client {
             max_y = bounds.y + bounds.height as i16;
 
             // Check x and center
-            if self.geom.x < bounds.x || self.geom.x > max_x || self.geom.x + self.geom.width as i16  > max_x {
+            if geom.x < bounds.x || geom.x > max_x || geom.x + geom.width as i16  > max_x {
                 if self.flags.contains(ClientFlags::MODE_FLOAT) {
-                    self.geom.x = bounds.x + ((bounds.width as i16 - self.geom.width as i16) / 2);
+                    geom.x = bounds.x + ((bounds.width as i16 - geom.width as i16) / 2);
                 } else {
-                    self.geom.x = bounds.x;
+                    geom.x = bounds.x;
                 }
             }
 
             // Check y and center
-            if self.geom.y < bounds.y || self.geom.y > max_y || self.geom.y + self.geom.height as i16 > max_y {
+            if geom.y < bounds.y || geom.y > max_y || geom.y + geom.height as i16 > max_y {
                 if self.flags.contains(ClientFlags::MODE_FLOAT) {
-                    self.geom.y = bounds.y + ((bounds.height as i16 - self.geom.height as i16) / 2);
+                    geom.y = bounds.y + ((bounds.height as i16 - geom.height as i16) / 2);
                 } else {
-                    self.geom.y = bounds.y;
+                    geom.y = bounds.y;
                 }
             }
         }
+
+        // Finally update geom
+        self.geom = geom;
 
         debug!("{}: client={}", function_name!(), self);
 
@@ -1155,7 +1160,8 @@ impl Client {
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
-                self.check_bounds(subtle, &screen.geom, false, false);
+                self.apply_size_hints(subtle, &screen.geom,
+                                      false, false, &mut geom);
             },
             DirectionOrder::Right => {
                 if DragMode::RESIZE == drag_mode {
@@ -1165,7 +1171,8 @@ impl Client {
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
-                self.check_bounds(subtle, &screen.geom, false, false);
+                self.apply_size_hints(subtle, &screen.geom,
+                                      false, false, &mut geom);
             },
             DirectionOrder::Down => {
                 if DragMode::RESIZE == drag_mode {
@@ -1176,7 +1183,8 @@ impl Client {
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
-                self.check_bounds(subtle, &screen.geom, false, false);
+                self.apply_size_hints(subtle, &screen.geom,
+                                      false, false, &mut geom);
             },
             DirectionOrder::Left => {
                 if DragMode::RESIZE == drag_mode {
@@ -1188,15 +1196,13 @@ impl Client {
                 self.draw_mask(subtle)?;
 
                 let mut run_loop = true;
-                let mut win = Window::default();
 
                 // Start event loop
                 while run_loop {
                     if let Ok(event) = conn.wait_for_event() {
+                        println!("event={:?}", event);
+
                         match event {
-                            Event::EnterNotify(evt) => {
-                                win = evt.event;
-                            },
                             Event::ButtonRelease(evt) => {
                                 run_loop = false;
                             },
@@ -1229,9 +1235,9 @@ impl Client {
                                     }
 
                                     // Adjust bounds based on edge
-                                    self.check_bounds(subtle, &screen.geom,
-                                                      edge.intersects(DragEdge::LEFT),
-                                                      edge.intersects(DragEdge::TOP));
+                                    self.apply_size_hints(subtle, &screen.geom,
+                                                          edge.intersects(DragEdge::LEFT),
+                                                          edge.intersects(DragEdge::TOP), &mut geom);
                                 }
                             },
                             _ => {},
@@ -1242,7 +1248,7 @@ impl Client {
                 // Erase mask again
                 self.draw_mask(subtle)?;
 
-                // Substract border width
+                // Subtract border width
                 if !self.flags.intersects(ClientFlags::MODE_BORDERLESS) {
                     geom.x -= subtle.clients_style.border.top;
                     geom.y -= subtle.clients_style.border.top;
@@ -1258,7 +1264,7 @@ impl Client {
         conn.ungrab_pointer(CURRENT_TIME)?;
         conn.ungrab_server()?;
 
-        debug!("{}: client={}", function_name!(), self);
+        println!("{}: client={}", function_name!(), self);
 
         Ok(())
     }
@@ -1504,7 +1510,9 @@ impl Client {
         }
     }
 
-    fn check_bounds(&mut self, subtle: &Subtle, bounds: &Rectangle, adjust_x: bool, adjust_y: bool) {
+    fn apply_size_hints(&self, subtle: &Subtle, bounds: &Rectangle,
+                        adjust_x: bool, adjust_y: bool, geom: &mut Rectangle)
+    {
         if !self.flags.contains(ClientFlags::MODE_FIXED)
             && (self.flags.contains(ClientFlags::MODE_RESIZE)
             || self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE))
@@ -1520,45 +1528,45 @@ impl Client {
                 bounds.height - border_width } else { self.max_height as u16 };
 
             // Limit width and height
-            if self.geom.width < self.min_width {
-                self.geom.width = self.min_width;
+            if geom.width < self.min_width {
+                geom.width = self.min_width;
             }
 
-            if self.geom.width > max_width {
-                self.geom.width = max_width;
+            if geom.width > max_width {
+                geom.width = max_width;
             }
 
-            if self.geom.height < self.min_height {
-               self.geom.height = self.min_height;
+            if geom.height < self.min_height {
+               geom.height = self.min_height;
             }
 
-            if self.geom.height > max_height {
-                self.geom.height = max_height;
+            if geom.height > max_height {
+                geom.height = max_height;
             }
 
             // Adjust based on increment values (see ICCCM 4.1.2.3)
-            let diff_width = (self.geom.width - self.base_width) % self.width_inc;
-            let diff_height = (self.geom.height - self.base_height) % self.height_inc;
+            let diff_width = (geom.width - self.base_width) % self.width_inc;
+            let diff_height = (geom.height - self.base_height) % self.height_inc;
 
             // Adjust x and/or y
             if adjust_x {
-                self.geom.x += diff_width as i16;
+                geom.x += diff_width as i16;
             }
 
             if adjust_y {
-                self.geom.y += diff_height as i16;
+                geom.y += diff_height as i16;
             }
 
-            self.geom.width -= diff_width;
-            self.geom.height -= diff_height;
+            geom.width -= diff_width;
+            geom.height -= diff_height;
 
             // Check aspect ratios
             if 0f32 < self.min_ratio && self.geom.height as f32 * self.min_ratio > self.geom.width as f32 {
-                self.geom.width = (self.geom.height as f32 * self.min_ratio) as u16;
+                geom.width = (geom.height as f32 * self.min_ratio) as u16;
             }
 
             if 0f32 < self.max_ratio && self.geom.height as f32 * self.max_ratio < self.geom.width as f32 {
-                self.geom.width = (self.geom.height as f32 * self.max_ratio) as u16;
+                geom.width = (geom.height as f32 * self.max_ratio) as u16;
             }
         }
     }
