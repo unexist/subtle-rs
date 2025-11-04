@@ -64,6 +64,10 @@ tasks:
     cmds:
       - yad --notification
 
+  valgrind:
+    cmds:
+      - cargo valgrind run
+
   release:
     cmds:
       - cargo build --release
