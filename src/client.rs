@@ -1237,11 +1237,11 @@ impl Client {
                                                           edge.intersects(DragEdge::LEFT),
                                                           edge.intersects(DragEdge::TOP), &mut geom);
                                 }
+
+                                draw_mask(subtle, &geom)?;
                             },
                             _ => {},
                         }
-
-                        draw_mask(subtle, &geom)?;
                     }
                 }
 
