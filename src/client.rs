@@ -1193,21 +1193,19 @@ impl Client {
                 }
             },
             _ => {
-                self.draw_mask(subtle)?;
+                draw_mask(subtle, &geom)?;
 
                 let mut run_loop = true;
 
                 // Start event loop
                 while run_loop {
                     if let Ok(event) = conn.wait_for_event() {
-                        println!("event={:?}", event);
-
                         match event {
                             Event::ButtonRelease(evt) => {
                                 run_loop = false;
                             },
                             Event::MotionNotify(evt) => {
-                                self.draw_mask(subtle)?;
+                                draw_mask(subtle, &geom)?;
 
                                 if DragMode::MOVE == drag_mode {
                                     geom.x = (query_reply.root_x - query_reply.win_x)
@@ -1242,11 +1240,13 @@ impl Client {
                             },
                             _ => {},
                         }
+
+                        draw_mask(subtle, &geom)?;
                     }
                 }
 
                 // Erase mask again
-                self.draw_mask(subtle)?;
+                draw_mask(subtle, &geom)?;
 
                 // Subtract border width
                 if !self.flags.intersects(ClientFlags::MODE_BORDERLESS) {
@@ -1405,23 +1405,6 @@ impl Client {
         conn.configure_window(self.win, &aux)?.check()?;
 
         debug!("{}: client={}", function_name!(), self);
-
-        Ok(())
-    }
-
-    fn draw_mask(&self, subtle: &Subtle) -> Result<()> {
-        let conn = subtle.conn.get().unwrap();
-
-        let default_screen = &conn.setup().roots[subtle.screen_num];
-
-        let geom: [Rectangle; 1] = [Rectangle {
-            x: self.geom.x - 1,
-            y: self.geom.y - 1,
-            width: self.geom.width + 1,
-            height: self.geom.height + 1
-        }];
-
-        conn.poly_rectangle(default_screen.root, subtle.invert_gc, &geom)?.check()?;
 
         Ok(())
     }
@@ -1587,6 +1570,23 @@ impl PartialEq for Client {
     fn eq(&self, other: &Self) -> bool {
         self.win == other.win
     }
+}
+
+fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
+    let conn = subtle.conn.get().unwrap();
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    let geom: [Rectangle; 1] = [Rectangle {
+        x: geom.x - 1,
+        y: geom.y - 1,
+        width: geom.width + 1,
+        height: geom.height + 1
+    }];
+
+    conn.poly_rectangle(default_screen.root, subtle.invert_gc, &geom)?.check()?;
+
+    Ok(())
 }
 
 fn get_default_gravity(subtle: &Subtle) -> isize {
