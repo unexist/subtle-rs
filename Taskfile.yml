@@ -62,7 +62,7 @@ tasks:
     cmds:
       - |
         Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 \
-          -no-host-grab -screen 640x480 -resizeable -reset {{.DISPLAY}} &
+          -screen 640x480 -resizeable -reset {{.DISPLAY}} &
       - sleep 2 && xsetroot -d {{.DISPLAY}} -solid "#595959"
 
   tray:
