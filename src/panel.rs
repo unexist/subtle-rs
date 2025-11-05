@@ -103,7 +103,7 @@ pub(crate) struct Panel {
 }
 
 impl Panel {
-    fn pick_style(&self, subtle: &&Subtle, style: &mut Style, view_idx: usize, view: &View) {
+    fn pick_style(&self, subtle: &Subtle, style: &mut Style, view_idx: usize, view: &View) {
         style.reset(-1);
 
         // Pick base style
@@ -340,7 +340,7 @@ impl Panel {
                     continue;
                 }
 
-                self.pick_style(&subtle, &mut style, view_idx, view);
+                self.pick_style(subtle, &mut style, view_idx, view);
 
                 // Update view width
                 let mut view_width = style.calc_spacing(CalcSpacing::Width) as u16;
@@ -436,7 +436,7 @@ impl Panel {
                     continue;
                 }
 
-                self.pick_style(&subtle, &mut style, view_idx, view);
+                self.pick_style(subtle, &mut style, view_idx, view);
 
                 // Calculate view width
                 let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16;
@@ -513,7 +513,7 @@ impl Panel {
                             continue;
                         }
 
-                        self.pick_style(&subtle, &mut style, view_idx, view);
+                        self.pick_style(subtle, &mut style, view_idx, view);
 
                         let mut view_width = style.calc_spacing(CalcSpacing::Width);
 
