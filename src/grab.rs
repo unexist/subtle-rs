@@ -52,7 +52,7 @@ bitflags! {
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum DirectionOrder {
-    None = 0,
+    Mouse = 0,
     Up = 1,
     Right = 2,
     Down = 3,

@@ -59,7 +59,7 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
 
                            // Translate flags
                            focus_client.drag(subtle, if GrabFlags::WINDOW_MOVE == flag {
-                               DragMode::MOVE } else { DragMode::RESIZE }, DirectionOrder::None)?;
+                               DragMode::MOVE } else { DragMode::RESIZE }, DirectionOrder::Mouse)?;
 
                            drop(focus_client);
 
