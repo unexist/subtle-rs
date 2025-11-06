@@ -13,7 +13,7 @@ use std::fmt;
 use std::cmp::PartialEq;
 use std::ops::{BitAnd, BitOr, BitXor};
 use std::cell::Ref;
-use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, GrabMode, InputFocus, PropMode, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
+use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, GrabMode, InputFocus, PropMode, QueryPointerReply, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
@@ -1093,7 +1093,6 @@ impl Client {
         ignore_if_dead!(self);
 
         let conn = subtle.conn.get().unwrap();
-
         let query_reply = conn.query_pointer(self.win)?.reply()?;
 
         let mut geom = Rectangle {
@@ -1107,7 +1106,7 @@ impl Client {
             .context("Can't get screen")?;
 
         // Select starting edge
-        let edge = (if query_reply.win_x < (geom.width / 2) as i16 {
+        let drag_edge = (if query_reply.win_x < (geom.width / 2) as i16 {
                 DragEdge::LEFT } else { DragEdge::RIGHT }
             | if query_reply.win_y < (geom.height / 2) as i16 {
                 DragEdge::TOP } else { DragEdge::BOTTOM });
@@ -1123,18 +1122,18 @@ impl Client {
             DragMode::RESIZE => {
 
                 // Set starting point
-                if edge.intersects(DragEdge::LEFT) {
+                if drag_edge.intersects(DragEdge::LEFT) {
                     fx = geom.x + geom.width as i16;
                     dx = query_reply.root_x - self.geom.x;
-                } else if edge.intersects(DragEdge::RIGHT) {
+                } else if drag_edge.intersects(DragEdge::RIGHT) {
                     fx = geom.x;
                     dx = geom.x + geom.width as i16 - query_reply.root_x;
                 }
 
-                if edge.intersects(DragEdge::TOP) {
+                if drag_edge.intersects(DragEdge::TOP) {
                     fy = geom.y + geom.height as i16;
                     dy = query_reply.root_y - self.geom.y;
-                } else if edge.intersects(DragEdge::BOTTOM) {
+                } else if drag_edge.intersects(DragEdge::BOTTOM) {
                     fy = geom.y;
                     dy = geom.y + geom.height as i16 - query_reply.root_y;
                 }
@@ -1142,6 +1141,8 @@ impl Client {
                 subtle.resize_cursor
             }
         };
+
+        print!("dx={}, dy={}, fx={}, fy={}", fx, dy, fx, fy);
 
         // Grab pointer and server
         conn.grab_pointer(true, self.win, EventMask::BUTTON_PRESS
@@ -1153,10 +1154,10 @@ impl Client {
         match drag_dir {
             DirectionOrder::Up => {
                 if DragMode::RESIZE == drag_mode {
-                    self.geom.y -= self.height_inc as i16;
-                    self.geom.height += self.height_inc;
+                    geom.y -= self.height_inc as i16;
+                    geom.height += self.height_inc;
                 } else {
-                    self.geom.y -= subtle.step_size;
+                    geom.y -= subtle.step_size;
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
@@ -1165,9 +1166,9 @@ impl Client {
             },
             DirectionOrder::Right => {
                 if DragMode::RESIZE == drag_mode {
-                    self.geom.height += self.height_inc;
+                    geom.height += self.height_inc;
                 } else {
-                    self.geom.y += subtle.step_size;
+                    geom.y += subtle.step_size;
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
@@ -1176,10 +1177,10 @@ impl Client {
             },
             DirectionOrder::Down => {
                 if DragMode::RESIZE == drag_mode {
-                    self.geom.x -= self.width_inc as i16;
-                    self.geom.width += self.width_inc;
+                    geom.x -= self.width_inc as i16;
+                    geom.width += self.width_inc;
                 } else {
-                    self.geom.x -= subtle.step_size;
+                    geom.x -= subtle.step_size;
                 }
 
                 self.snap(subtle, screen, &mut geom)?;
@@ -1188,65 +1189,19 @@ impl Client {
             },
             DirectionOrder::Left => {
                 if DragMode::RESIZE == drag_mode {
-                    self.geom.x -= self.width_inc as i16;
-                    self.geom.width += self.width_inc;
+                    geom.x -= self.width_inc as i16;
+                    geom.width += self.width_inc;
+                } else {
+                    geom.x -= subtle.step_size;
                 }
+
+                self.snap(subtle, screen, &mut geom)?;
+                self.apply_size_hints(subtle, &screen.geom,
+                                      false, false, &mut geom);
             },
-            _ => {
-                draw_mask(subtle, &geom)?;
-
-                let mut run_loop = true;
-
-                // Start event loop
-                while run_loop {
-                    if let Ok(event) = conn.wait_for_event() {
-                        match event {
-                            Event::ButtonRelease(evt) => {
-                                run_loop = false;
-                            },
-                            Event::MotionNotify(evt) => {
-                                draw_mask(subtle, &geom)?;
-
-                                if DragMode::MOVE == drag_mode {
-                                    geom.x = (query_reply.root_x - query_reply.win_x)
-                                        - (query_reply.root_x - evt.root_x);
-                                    geom.y = (query_reply.root_y - query_reply.win_y)
-                                        - (query_reply.root_y - evt.root_y);
-
-                                    self.snap(subtle, &screen, &mut geom)?;
-                                } else {
-                                    // Handle resize based on edge
-                                    if edge.intersects(DragEdge::LEFT) {
-                                        geom.x = evt.root_x - dx;
-                                        geom.width = (evt.root_x + dx) as u16;
-                                    } else if edge.intersects(DragEdge::RIGHT) {
-                                        geom.x = fx;
-                                        geom.width = (evt.root_x - fx + dx) as u16;
-                                    }
-
-                                    if edge.intersects(DragEdge::TOP) {
-                                        geom.y = evt.root_y - dy;
-                                        geom.height = (fy - evt.root_y + dy) as u16;
-                                    } else {
-                                        geom.y = fy;
-                                        geom.height = (evt.root_y - fy + dy) as u16;
-                                    }
-
-                                    // Adjust bounds based on edge
-                                    self.apply_size_hints(subtle, &screen.geom,
-                                                          edge.intersects(DragEdge::LEFT),
-                                                          edge.intersects(DragEdge::TOP), &mut geom);
-                                }
-
-                                draw_mask(subtle, &geom)?;
-                            },
-                            _ => {},
-                        }
-                    }
-                }
-
-                // Erase mask again
-                draw_mask(subtle, &geom)?;
+            DirectionOrder::Mouse => {
+                drag_interactively(subtle, screen, self, &mut geom, drag_mode, drag_edge, &query_reply,
+                                   fx, fy, dx, dy)?;
 
                 // Subtract border width
                 if !self.flags.intersects(ClientFlags::MODE_BORDERLESS) {
@@ -1585,6 +1540,72 @@ fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
     }];
 
     conn.poly_rectangle(default_screen.root, subtle.invert_gc, &geom)?.check()?;
+
+    Ok(())
+}
+
+fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &mut Rectangle,
+                      drag_mode: DragMode, drag_edge: DragEdge, query_reply: &QueryPointerReply,
+                      fx: i16, fy: i16, dx: i16, dy: i16) -> Result<()>
+{
+    let conn = subtle.conn.get().unwrap();
+
+    draw_mask(subtle, &geom)?;
+
+    // Start event loop
+    'dragging: loop {
+        if let Ok(event) = conn.wait_for_event() {
+            match event {
+                Event::ButtonRelease(evt) => {
+                    break 'dragging;
+                },
+                Event::MotionNotify(evt) => {
+                    draw_mask(subtle, &geom)?;
+
+                    let mut geom_copy = geom.clone();
+
+                    if DragMode::MOVE == drag_mode {
+                        geom_copy.x = (query_reply.root_x - query_reply.win_x)
+                            - (query_reply.root_x - evt.root_x);
+                        geom_copy.y = (query_reply.root_y - query_reply.win_y)
+                            - (query_reply.root_y - evt.root_y);
+
+                        client.snap(subtle, &screen, &mut geom_copy)?;
+                    } else {
+                        // Handle resize based on edge
+                        if drag_edge.intersects(DragEdge::LEFT) {
+                            geom_copy.x = evt.root_x - dx;
+                            geom_copy.width = (evt.root_x + dx) as u16;
+                        } else if drag_edge.intersects(DragEdge::RIGHT) {
+                            geom_copy.x = fx;
+                            geom_copy.width = (evt.root_x - fx + dx) as u16;
+                        }
+
+                        if drag_edge.intersects(DragEdge::TOP) {
+                            geom_copy.y = evt.root_y - dy;
+                            geom_copy.height = (fy - evt.root_y + dy) as u16;
+                        } else {
+                            geom_copy.y = fy;
+                            geom_copy.height = (evt.root_y - fy + dy) as u16;
+                        }
+
+                        // Adjust bounds based on edge
+                        client.apply_size_hints(subtle, &screen.geom,
+                                              drag_edge.intersects(DragEdge::LEFT),
+                                              drag_edge.intersects(DragEdge::TOP), &mut geom_copy);
+                    }
+
+                    *geom = geom_copy;
+
+                    draw_mask(subtle, &geom)?;
+                },
+                _ => {},
+            }
+        }
+    }
+
+    // Erase mask again
+    draw_mask(subtle, &geom)?;
 
     Ok(())
 }
