@@ -1111,38 +1111,11 @@ impl Client {
             | if query_reply.win_y < (geom.height / 2) as i16 {
                 DragEdge::TOP } else { DragEdge::BOTTOM });
 
-        let mut fx = 0;
-        let mut fy = 0;
-        let mut dx = 0;
-        let mut dy = 0;
-
         // Set variables according to mode
         let cursor = match drag_mode {
             DragMode::MOVE => subtle.move_cursor,
-            DragMode::RESIZE => {
-
-                // Set starting point
-                if drag_edge.intersects(DragEdge::LEFT) {
-                    fx = geom.x + geom.width as i16;
-                    dx = query_reply.root_x - self.geom.x;
-                } else if drag_edge.intersects(DragEdge::RIGHT) {
-                    fx = geom.x;
-                    dx = geom.x + geom.width as i16 - query_reply.root_x;
-                }
-
-                if drag_edge.intersects(DragEdge::TOP) {
-                    fy = geom.y + geom.height as i16;
-                    dy = query_reply.root_y - self.geom.y;
-                } else if drag_edge.intersects(DragEdge::BOTTOM) {
-                    fy = geom.y;
-                    dy = geom.y + geom.height as i16 - query_reply.root_y;
-                }
-
-                subtle.resize_cursor
-            }
+            DragMode::RESIZE => subtle.resize_cursor,
         };
-
-        print!("dx={}, dy={}, fx={}, fy={}", fx, dy, fx, fy);
 
         // Grab pointer and server
         conn.grab_pointer(true, self.win, EventMask::BUTTON_PRESS
@@ -1200,20 +1173,17 @@ impl Client {
                                       false, false, &mut geom);
             },
             DirectionOrder::Mouse => {
-                drag_interactively(subtle, screen, self, &mut geom, drag_mode, drag_edge, &query_reply,
-                                   fx, fy, dx, dy)?;
+                drag_interactively(subtle, screen, self, &mut geom, &query_reply, drag_mode, drag_edge)?;
 
                 // Subtract border width
                 if !self.flags.intersects(ClientFlags::MODE_BORDERLESS) {
                     geom.x -= subtle.clients_style.border.top;
                     geom.y -= subtle.clients_style.border.top;
                 }
-
-                self.geom = geom;
             }
         }
 
-        //self.move_resize(subtle, &self.geom)?;
+        self.move_resize(subtle, &geom)?;
 
         // Remove grabs
         conn.ungrab_pointer(CURRENT_TIME)?;
@@ -1545,10 +1515,31 @@ fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
 }
 
 fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &mut Rectangle,
-                      drag_mode: DragMode, drag_edge: DragEdge, query_reply: &QueryPointerReply,
-                      fx: i16, fy: i16, dx: i16, dy: i16) -> Result<()>
+                      query_reply: &QueryPointerReply, drag_mode: DragMode, drag_edge: DragEdge) -> Result<()>
 {
     let conn = subtle.conn.get().unwrap();
+
+    let mut fx = 0;
+    let mut fy = 0;
+    let mut dx = 0;
+    let mut dy = 0;
+
+    // Set starting point
+    if drag_edge.intersects(DragEdge::LEFT) {
+        fx = geom.x + geom.width as i16;
+        dx = query_reply.root_x - client.geom.x;
+    } else if drag_edge.intersects(DragEdge::RIGHT) {
+        fx = geom.x;
+        dx = geom.x + geom.width as i16 - query_reply.root_x;
+    }
+
+    if drag_edge.intersects(DragEdge::TOP) {
+        fy = geom.y + geom.height as i16;
+        dy = query_reply.root_y - client.geom.y;
+    } else if drag_edge.intersects(DragEdge::BOTTOM) {
+        fy = geom.y;
+        dy = geom.y + geom.height as i16 - query_reply.root_y;
+    }
 
     draw_mask(subtle, &geom)?;
 
