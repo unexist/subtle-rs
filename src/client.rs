@@ -10,7 +10,7 @@
 ///
 
 use std::fmt;
-use std::cmp::PartialEq;
+use std::cmp::{Ordering, PartialEq};
 use std::ops::{BitAnd, BitOr, BitXor};
 use std::cell::Ref;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, GrabMode, InputFocus, PropMode, QueryPointerReply, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
@@ -43,10 +43,12 @@ macro_rules! ignore_if_dead {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, FromRepr)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, FromRepr)]
 pub(crate) enum RestackOrder {
-    Down = 0,
-    Up = 1,
+    #[default]
+    None = 0,
+    Down = 1,
+    Up = 2,
 }
 
 #[repr(u8)]
@@ -133,6 +135,7 @@ pub(crate) struct Client {
     pub(crate) gravity_idx: isize,
     
     pub(crate) geom: Rectangle,
+    pub(crate) order: RestackOrder,
 
     pub(crate) gravities: Vec<usize>,
 }
@@ -1050,6 +1053,20 @@ impl Client {
         Ok(())
     }
 
+    fn compare_client(client_a: &Client, client_b: &Client) -> Ordering {
+       let ret_val = Ordering::Equal;
+
+        ret_val
+    }
+
+    pub(crate) fn restack(&mut self, subtle: &Subtle, order: RestackOrder) -> Result<()> {
+        self.order = order;
+
+        debug!("{}: client={}", function_name!(), self);
+
+        Ok(())
+    }
+
     pub(crate) fn snap(&self, subtle: &Subtle, screen: &Screen, geom: &mut Rectangle) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1492,9 +1509,72 @@ impl fmt::Display for Client {
     }
 }
 
+impl Eq for Client {}
+
 impl PartialEq for Client {
     fn eq(&self, other: &Self) -> bool {
         self.win == other.win
+    }
+}
+
+impl PartialOrd for Client {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Client {
+    fn cmp(&self, other: &Self) -> Ordering {
+
+        // Direction is required when we change stacking on a level
+        let direction = if RestackOrder::Down == self.order {
+            Ordering::Less
+        } else if RestackOrder::Up == self.order {
+            Ordering::Greater
+        } else if RestackOrder::Down == other.order {
+            Ordering::Greater
+        } else if RestackOrder::Up == other.order {
+            Ordering::Less
+        } else {
+            Ordering::Equal
+        };
+
+        // Complicated comparison to ensure stacking order.
+        // Our desired order is following: Desktop < Gravity < Float < Full
+        //
+        // This function returns following values:
+        // [`Less`] => self is on a lower level
+        // [`Equal`] => self and other are on the same level
+        // [`Greater`] => self is on a higher level
+        if self.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+            if other.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                direction
+            } else {
+                Ordering::Equal
+            }
+        } else if self.flags.intersects(ClientFlags::MODE_FULL) {
+            if other.flags.intersects(ClientFlags::MODE_FULL) {
+                direction
+            } else {
+                Ordering::Greater
+            }
+        } else if self.flags.intersects(ClientFlags::MODE_FLOAT) {
+            if other.flags.intersects(ClientFlags::MODE_FULL) {
+                Ordering::Less
+            } else if other.flags.intersects(ClientFlags::MODE_FLOAT) {
+                direction
+            } else {
+                Ordering::Greater
+            }
+        } else {
+            if other.flags.intersects(ClientFlags::TYPE_DESKTOP) {
+                Ordering::Greater
+            } else if other.flags.intersects(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL) {
+                Ordering::Less
+            } else {
+                direction
+            }
+        }
     }
 }
 
