@@ -19,6 +19,7 @@ use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use log::debug;
 use stdext::function_name;
+use strum_macros::FromRepr;
 use x11rb::connection::Connection;
 use x11rb::{CURRENT_TIME, NONE};
 use x11rb::properties::{WmHints, WmSizeHints, WmSizeHintsSpecification};
@@ -42,7 +43,7 @@ macro_rules! ignore_if_dead {
 }
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, FromRepr)]
 pub(crate) enum RestackOrder {
     Down = 0,
     Up = 1,
