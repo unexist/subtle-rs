@@ -335,7 +335,20 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                         }
                     }
                 }
-            }
+            },
+
+            GrabFlags::WINDOW_RESTACK => {
+                if let Some(mut focus_client) = subtle.find_focus_client_mut() {
+                    if let GrabAction::Index(order) = grab.action {
+                        focus_client.restack(subtle, RestackOrder::from_repr(order as u8)
+                            .context("Unknown order")?)?;
+
+                        drop(focus_client);
+
+                        subtle.restack_windows()?;
+                    }
+                }
+            },
 
             GrabFlags::WINDOW_GRAVITY => {
                 if let Some(mut focus_client) = subtle.find_focus_client_mut() {
