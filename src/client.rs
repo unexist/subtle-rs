@@ -1634,40 +1634,36 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
                 Event::MotionNotify(evt) => {
                     draw_mask(subtle, &geom)?;
 
-                    let mut geom_copy = geom.clone();
-
                     if DragMode::MOVE == drag_mode {
-                        geom_copy.x = (query_reply.root_x - query_reply.win_x)
+                        geom.x = (query_reply.root_x - query_reply.win_x)
                             - (query_reply.root_x - evt.root_x);
-                        geom_copy.y = (query_reply.root_y - query_reply.win_y)
+                        geom.y = (query_reply.root_y - query_reply.win_y)
                             - (query_reply.root_y - evt.root_y);
 
-                        client.snap(subtle, &screen, &mut geom_copy)?;
+                        client.snap(subtle, &screen, geom)?;
                     } else {
                         // Handle resize based on edge
                         if drag_edge.intersects(DragEdge::LEFT) {
-                            geom_copy.x = evt.root_x - dx;
-                            geom_copy.width = (evt.root_x + dx) as u16;
+                            geom.x = evt.root_x - dx;
+                            geom.width = (evt.root_x + dx) as u16;
                         } else if drag_edge.intersects(DragEdge::RIGHT) {
-                            geom_copy.x = fx;
-                            geom_copy.width = (evt.root_x - fx + dx) as u16;
+                            geom.x = fx;
+                            geom.width = (evt.root_x - fx + dx) as u16;
                         }
 
                         if drag_edge.intersects(DragEdge::TOP) {
-                            geom_copy.y = evt.root_y - dy;
-                            geom_copy.height = (fy - evt.root_y + dy) as u16;
+                            geom.y = evt.root_y - dy;
+                            geom.height = (fy - evt.root_y + dy) as u16;
                         } else {
-                            geom_copy.y = fy;
-                            geom_copy.height = (evt.root_y - fy + dy) as u16;
+                            geom.y = fy;
+                            geom.height = (evt.root_y - fy + dy) as u16;
                         }
 
                         // Adjust bounds based on edge
                         client.apply_size_hints(subtle, &screen.geom,
                                               drag_edge.intersects(DragEdge::LEFT),
-                                              drag_edge.intersects(DragEdge::TOP), &mut geom_copy);
+                                              drag_edge.intersects(DragEdge::TOP), geom);
                     }
-
-                    *geom = geom_copy;
 
                     draw_mask(subtle, &geom)?;
                 },
