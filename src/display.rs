@@ -127,7 +127,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.screen_num = screen_num;
-    subtle.conn.set(conn).unwrap();
+    subtle.conn.set(conn).map_err(|e| anyhow!("Connection already set?"))?;
 
     info!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
 
