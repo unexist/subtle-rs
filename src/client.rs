@@ -1526,7 +1526,7 @@ impl PartialOrd for Client {
 impl Ord for Client {
     fn cmp(&self, other: &Self) -> Ordering {
 
-        // Direction is required when we change stacking on a level
+        // Direction is required when we change stacking on the same level
         let direction = if RestackOrder::Down == self.order {
             Ordering::Less
         } else if RestackOrder::Up == self.order {
@@ -1543,9 +1543,11 @@ impl Ord for Client {
         // Our desired order is following: Desktop < Gravity < Float < Full
         //
         // This function returns following values:
+        //
         // [`Less`] => self is on a lower level
         // [`Equal`] => self and other are on the same level
         // [`Greater`] => self is on a higher level
+        //
         if self.flags.intersects(ClientFlags::TYPE_DESKTOP) {
             if other.flags.intersects(ClientFlags::TYPE_DESKTOP) {
                 direction
