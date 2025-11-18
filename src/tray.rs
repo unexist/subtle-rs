@@ -142,6 +142,15 @@ impl Tray {
         Ok(tray)
     }
 
+    /// Set size hints for the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_size_hints(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -176,6 +185,15 @@ impl Tray {
         Ok(())
     }
 
+    /// Set WM_NAME for the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -190,7 +208,16 @@ impl Tray {
         Ok(())
     }
 
-
+    /// Set WM_STATE for the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `state` - New state
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -205,6 +232,15 @@ impl Tray {
         Ok(())
     }
 
+    /// Set protocols for the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_protocols(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -223,6 +259,16 @@ impl Tray {
         Ok(())
     }
 
+    /// Resize underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `width` - New width
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn resize(&self, subtle: &Subtle, width: i32) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -243,6 +289,15 @@ impl Tray {
         Ok(())
     }
 
+    /// Set XEmbed state for the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_state(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -275,6 +330,15 @@ impl Tray {
         Ok(())
     }
 
+    /// Close underlying win and honor ICCCM (ask or force)
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn close(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -299,6 +363,15 @@ impl Tray {
         Ok(())
     }
 
+    /// Kill the underlying win
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
