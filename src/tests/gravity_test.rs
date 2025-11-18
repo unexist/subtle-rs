@@ -45,7 +45,7 @@ proptest! {
             height
         };
 
-        gravity.calc_geometry(&bounds, &mut geom);
+        gravity.apply_size(&bounds, &mut geom);
 
         prop_assert_eq!(geom.x, geom.x);
         prop_assert_eq!(geom.y, geom.y);

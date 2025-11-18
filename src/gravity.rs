@@ -55,7 +55,7 @@ impl Gravity {
         grav
     }
 
-    pub(crate) fn calc_geometry(&self, bounds: &Rectangle, geom: &mut Rectangle) {
+    pub(crate) fn apply_size(&self, bounds: &Rectangle, geom: &mut Rectangle) {
         geom.x = bounds.x + (bounds.width as i16 * self.geom.x / 100);
         geom.y = bounds.y + (bounds.height as i16 * self.geom.y / 100);
         geom.width = (bounds.width as u32 * self.geom.width as u32 / 100) as u16;
