@@ -12,6 +12,7 @@
 use bitflags::bitflags;
 
 bitflags! {
+    /// Tagging flags to ease the handling for [`Views`] and [`Clients`]
     #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct Tagging: u32 {
         const TAG1 = 1 << 0;
