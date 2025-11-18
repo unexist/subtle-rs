@@ -27,34 +27,53 @@ bitflags! {
     /// Config and state-flags for [`Tags`]
     #[derive(Default, Debug, Clone)]
     pub(crate) struct TagFlags: u32 {
-        const GRAVITY = 1 << 0; // Gravity property
-        const GEOMETRY = 1 << 1; // Geometry property
-        const POSITION = 1 << 2; // Position property
-        const PROC = 1 << 3; // Tagging proc
+        /// Gravity property
+        const GRAVITY = 1 << 0;
+        /// Geometry property
+        const GEOMETRY = 1 << 1;
+        /// Position property
+        const POSITION = 1 << 2;
+        /// Tagging proc
+        const PROC = 1 << 3;
     }
 }
 
 #[derive(Default, Builder)]
 #[builder(default)]
 pub(crate) struct Tag {
+    /// Config and state-flags
     pub(crate) flags: TagFlags,
+    /// Name of this tag
     pub(crate) name: String,
+    /// Regex to match tags
     pub(crate) regex: Option<Regex>,
 
+    /// Index of the global screens vector
     pub(crate) screen_id: usize,
+    /// Index of the global gravity vector
     pub(crate) gravity_id: usize,
-    pub(crate) geom: Rectangle,
+    /// Geometry of this tag
+    pub(crate) geom: Option<Rectangle>,
 }
 
 impl Tag {
+    /// Check whether client is matching
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - Client to check
+    ///
+    /// # Returns
+    ///
+    /// Either [`true`] on success and otherwise [`false`]
     pub(crate) fn matches(&self, client: &Client) -> bool {
         if let Some(regex) = self.regex.as_ref() {
-            return regex.is_match(&*client.name)
+            regex.is_match(&*client.name)
                 || regex.is_match(&*client.instance)
-                || regex.is_match(&*client.klass);
+                || regex.is_match(&*client.klass)
+        } else {
+            false
         }
-
-        false
     }
 }
 
@@ -101,12 +120,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         if let Some(MixedConfigVal::VI(value)) = tag_values.get("geometry") {
             if 4 == value.len() {
                 flags.insert(TagFlags::GEOMETRY);
-                builder.geom(Rectangle {
+                builder.geom(Some(Rectangle {
                     x: value[0] as i16,
                     y: value[1] as i16,
                     width: value[2] as u16,
                     height: value[3] as u16,
-                });
+                }));
             }
         }
 
@@ -116,11 +135,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                 warn!("Tags cannot use both geometry and position");
             } else if 2 == value.len() {
                 flags.insert(TagFlags::POSITION);
-                builder.geom(Rectangle {
+                builder.geom(Some(Rectangle {
                     x: value[0] as i16,
                     y: value[1] as i16,
                     ..Rectangle::default()
-                });
+                }));
             }
         }
 
