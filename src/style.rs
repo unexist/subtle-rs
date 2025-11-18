@@ -26,6 +26,7 @@ use crate::subtle::Subtle;
 const DEFAULT_FONT_NAME: &str = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*";
 
 bitflags! {
+    /// Config and state-flags for [`Style`]
     #[derive(Default, Debug)]
     pub(crate) struct StyleFlags: u32 {
         const FONT = 1 << 0; // Style has custom font
@@ -215,7 +216,7 @@ macro_rules! set_border_width {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 

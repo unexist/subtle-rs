@@ -31,6 +31,7 @@ use crate::panel::{Panel, PanelAction};
 use crate::tagging::Tagging;
 
 bitflags! {
+    /// Config and state-flags for [`Screen`]
     #[derive(Default, Debug, Copy, Clone)]
     pub(crate) struct ScreenFlags: u32 {
         const TOP_PANEL = 1 << 0; // Screen panel1 enabled
@@ -144,7 +145,7 @@ impl fmt::Display for Screen {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -399,6 +400,16 @@ pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `publish_all` - Whether to publish all atoms
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle, publish_all: bool) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();

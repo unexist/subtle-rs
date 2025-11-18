@@ -29,28 +29,28 @@ use crate::view::{View, ViewFlags};
 const ICON_TEXT_SPACING: u16 = 3;
 
 bitflags! {
+    /// Config and state-flags for [`Panel`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct PanelFlags: u32 {
-        const TITLE = 1 << 0;                // Panel title type
-        const VIEWS = 1 << 1;                // Panel views type
-        const TRAY = 1 << 2;                 // Panel tray type
-        const ICON = 1 << 3;                 // Panel icon type
-        const SCRIPT = 1 << 4;               // Panel script type
-        const SEPARATOR = 1 << 5;            // Panel separator type
+        const TITLE = 1 << 0; // Title type
+        const VIEWS = 1 << 1; // Views type
+        const TRAY = 1 << 2; // Tray type
+        const ICON = 1 << 3; // Icon type
+        const SCRIPT = 1 << 4; // Script type
+        const SEPARATOR = 1 << 5; // Separator type
+        const COPY = 1 << 6; // Copy type
 
-        const COPY = 1 << 6;                 // Panel copy type
+        const BOTTOM_START_MARKER = 1 << 7; // Bottom marker
 
-        const BOTTOM_START_MARKER = 1 << 7;  // Panel bottom marker
+        const LEFT_POS = 1 << 8; // Left position
+        const CENTER_POS = 1 << 9; // Center position
+        const RIGHT_POS = 1 << 10; // Right position
 
-        const LEFT_POS = 1 << 8;             // Panel left position
-        const CENTER_POS = 1 << 9;           // Panel center position
-        const RIGHT_POS = 1 << 10;           // Panel right position
+        const HIDDEN = 1 << 11; // Hidden panel
 
-        const HIDDEN = 1 << 11;              // Panel hidden
-
-        const MOUSE_DOWN = 1 << 12;          // Panel mouse down
-        const MOUSE_OVER = 1 << 13;          // Panel mouse over
-        const MOUSE_OUT = 1 << 14;           // Panel mouse out
+        const MOUSE_DOWN = 1 << 12; // Mouse downction
+        const MOUSE_OVER = 1 << 13; // Mouse over action
+        const MOUSE_OUT = 1 << 14; // Mouse out action
     }
 }
 

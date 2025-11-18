@@ -24,6 +24,7 @@ use crate::config::{Config, MixedConfigVal};
 use crate::subtle::{Subtle, SubtleFlags};
 
 bitflags! {
+    /// Config and state-flags for [`Grab`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct GrabFlags: u32 {
         const IS_KEY = 1 << 0; // Key grab
@@ -202,7 +203,7 @@ impl fmt::Display for Grab {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 

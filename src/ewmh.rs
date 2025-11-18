@@ -106,7 +106,7 @@ x11rb::atom_manager! {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     

@@ -28,6 +28,7 @@ use crate::tagging::Tagging;
 use crate::icon::Icon;
 
 bitflags! {
+    /// Config and state-flags for [`View`]
     #[derive(Default, Debug, Clone)]
     pub(crate) struct ViewFlags: u32 {
         const MODE_ICON = 1 << 0; // View icon
@@ -37,6 +38,7 @@ bitflags! {
     }
 }
 
+///
 #[derive(Default, Builder)]
 #[builder(default)]
 pub(crate) struct View {
@@ -51,9 +53,11 @@ pub(crate) struct View {
 }
 
 impl View {
+    /// Re-apply all tags to this view
     ///
+    /// # Arguments
     ///
-    ///
+    /// * `subtle` - Global state object
     fn retag(&mut self, subtle: &Subtle) {
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if let Some(regex) = self.regex.as_ref()
@@ -66,6 +70,18 @@ impl View {
         debug!("{}: {}", function_name!(), self);
     }
 
+    /// Focus view and swap views if more than one screen is active
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `screen_idx` - Index of the screens vector
+    /// * `swap_views` - Whether views shall be swapped
+    /// * `focus_next` - Focus first visible client on view switch
+    ///
+    /// # Returns
+    ///
+    /// A `Result` with either `Unit` on success or otherwise `Error`
     pub(crate) fn focus(&self, subtle: &Subtle, screen_idx: usize, swap_views: bool, focus_next: bool) -> Result<()> {
         if let Some(screen) = subtle.screens.get(screen_idx) {
             if let Some(view_idx) = subtle.views.iter().position(|v| v == self) {
@@ -191,6 +207,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();

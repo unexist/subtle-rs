@@ -36,6 +36,7 @@ use crate::tray::Tray;
 const HISTORY_SIZE: usize = 5;
 
 bitflags! {
+    /// Config and state-flags for [`Subtle`]
     #[derive(Default, Debug)]
     pub(crate) struct SubtleFlags: u32 {
         const DEBUG = 1 << 0; // Debug enabled

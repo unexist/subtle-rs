@@ -23,6 +23,7 @@ use crate::config::MixedConfigVal;
 use crate::subtle::Subtle;
 
 bitflags! {
+    /// Config and state-flags for [`Gravity`]
     #[derive(Default, Debug)]
     pub(crate) struct GravityFlags: u32 {
         const HORZ = 1 << 0; // Gravity tile gravity horizontally
@@ -79,7 +80,7 @@ impl fmt::Display for Gravity {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for gravity_values in config.gravities.iter() {
         if let (Some(MixedConfigVal::S(name)), Some(MixedConfigVal::I(x)),
@@ -112,6 +113,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
@@ -132,4 +142,3 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
     Ok(())
 }
-

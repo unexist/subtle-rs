@@ -27,6 +27,7 @@ use crate::style::CalcSpacing;
 use crate::subtle::Subtle;
 
 bitflags! {
+    /// Config and state-flags for [`Tray`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct TrayFlags: u32 {
         const DEAD = 1 << 0;  // Dead window
@@ -311,6 +312,15 @@ impl PartialEq for Tray {
     }
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();

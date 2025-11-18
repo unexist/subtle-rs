@@ -70,6 +70,7 @@ bitflags! {
 }
 
 bitflags! {
+    /// Config and state-flags for [`Client`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct ClientFlags: u32 {
         const DEAD = 1 << 0;  // Dead window
@@ -982,7 +983,7 @@ impl Client {
                     }
 
                     if maybe_gravity.is_some() {
-                        maybe_gravity.unwrap().calc_geometry(&bounds, &mut self.geom);
+                        maybe_gravity.unwrap().apply_size(&bounds, &mut self.geom);
                     }
 
                     self.move_resize(subtle, &bounds)?;
@@ -1330,12 +1331,12 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
 
         // Update border and gap
-        self.geom.x += subtle.clients_style.margin.left;
+        /*self.geom.x += subtle.clients_style.margin.left;
         self.geom.y += subtle.clients_style.margin.left;
         self.geom.width -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.left
             + subtle.clients_style.margin.right) as u16;
         self.geom.height -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.top
-            + subtle.clients_style.margin.bottom) as u16;
+            + subtle.clients_style.margin.bottom) as u16;*/
 
         self.resize(subtle, bounds, true)?;
 
@@ -1377,7 +1378,7 @@ impl Client {
         // Calculate tiled gravity value and rounding fix
         let mut geom: Rectangle = Rectangle::default();
 
-        gravity.calc_geometry(&screen.geom, &mut geom);
+        gravity.apply_size(&screen.geom, &mut geom);
 
         let mut calc = 0;
         let mut round_fix = 0;
@@ -1760,6 +1761,16 @@ pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `restack_windows` - Whether to restackl/sort window list
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();

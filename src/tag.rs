@@ -24,6 +24,7 @@ use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
 bitflags! {
+    /// Config and state-flags for [`Tags`]
     #[derive(Default, Debug, Clone)]
     pub(crate) struct TagFlags: u32 {
         const GRAVITY = 1 << 0; // Gravity property
@@ -72,7 +73,7 @@ impl fmt::Display for Tag {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for tag_values in config.tags.iter() {
         let mut builder = TagBuilder::default();
@@ -144,6 +145,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
