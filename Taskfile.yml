@@ -39,6 +39,14 @@ tasks:
     cmds:
       - cargo valgrind run -- -d {{.DISPLAY}} --replace {{.CLI_ARGS}}
 
+  doc:
+    cmds:
+      - cargo doc
+
+  doctest:
+    cmds:
+      - cargo test --doc
+
   run:
     cmds:
       - cargo run -- -d {{.DISPLAY}} {{.CLI_ARGS}}
