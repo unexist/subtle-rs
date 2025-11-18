@@ -51,6 +51,9 @@ pub(crate) struct View {
 }
 
 impl View {
+    ///
+    ///
+    ///
     fn retag(&mut self, subtle: &Subtle) {
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if let Some(regex) = self.regex.as_ref()
@@ -126,6 +129,16 @@ impl PartialEq for View {
     }
 }
 
+/// Check config and init all view related options
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error`
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for values in config.views.iter() {
         let mut flags = ViewFlags::empty();

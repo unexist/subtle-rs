@@ -70,6 +70,16 @@ impl fmt::Display for Gravity {
     }
 }
 
+/// Check config and init all gravity related options
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for gravity_values in config.gravities.iter() {
         if let (Some(MixedConfigVal::S(name)), Some(MixedConfigVal::I(x)),

@@ -63,6 +63,16 @@ impl fmt::Display for Tag {
     }
 }
 
+/// Check config and init all tag related options
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for tag_values in config.tags.iter() {
         let mut builder = TagBuilder::default();

@@ -27,6 +27,16 @@ const XC_LEFT_PTR: u16 = 68;
 const XC_DOTBOX: u16 = 40;
 const XC_SIZING: u16 = 120;
 
+/// Check config and init all display related options
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let (conn, screen_num) = x11rb::connect(Some(&*config.display))?;
 
