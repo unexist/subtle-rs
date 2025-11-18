@@ -31,24 +31,33 @@ bitflags! {
     /// Config and state-flags for [`View`]
     #[derive(Default, Debug, Clone)]
     pub(crate) struct ViewFlags: u32 {
-        const MODE_ICON = 1 << 0; // View icon
-        const MODE_ICON_ONLY = 1 << 1; // Icon only
-        const MODE_DYNAMIC = 1 << 2; // Dynamic views
-        const MODE_STICK = 1 << 3; // Stick view
+        /// View icon
+        const MODE_ICON = 1 << 0;
+        /// Icon only
+        const MODE_ICON_ONLY = 1 << 1;
+        /// Dynamic views
+        const MODE_DYNAMIC = 1 << 2;
+        /// Stick view
+        const MODE_STICK = 1 << 3;
     }
 }
 
-///
 #[derive(Default, Builder)]
 #[builder(default)]
 pub(crate) struct View {
+    /// Config and state-flags
     pub(crate) flags: ViewFlags,
+    /// Current tagging
     pub(crate) tags: Tagging,
-    
+
+    /// Name of this view
     pub(crate) name: String,
+    /// Regex to match tags
     pub(crate) regex: Option<Regex>,
 
+    /// Current win with focus
     pub(crate) focus_win: Cell<Window>,
+    /// View icon if any
     pub(crate) icon: Option<Icon>,
 }
 
@@ -81,7 +90,7 @@ impl View {
     ///
     /// # Returns
     ///
-    /// A `Result` with either `Unit` on success or otherwise `Error`
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn focus(&self, subtle: &Subtle, screen_idx: usize, swap_views: bool, focus_next: bool) -> Result<()> {
         if let Some(screen) = subtle.screens.get(screen_idx) {
             if let Some(view_idx) = subtle.views.iter().position(|v| v == self) {
@@ -154,7 +163,7 @@ impl PartialEq for View {
 ///
 /// # Returns
 ///
-/// A `Result` with either `Unit` on success or otherwise `Error`
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for values in config.views.iter() {
         let mut flags = ViewFlags::empty();

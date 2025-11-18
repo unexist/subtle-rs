@@ -229,6 +229,15 @@ impl Panel {
         Ok(())
     }
 
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `flags` - Panel flags to set
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Panel`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
         let mut panel = Self {
             flags,

@@ -142,6 +142,16 @@ pub(crate) struct Client {
 }
 
 impl Client {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `win` - Client win
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Client`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(subtle: &Subtle, win: Window) -> Result<Self> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();

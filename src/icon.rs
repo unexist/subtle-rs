@@ -106,6 +106,16 @@ fn load_from_file(subtle: &Subtle, bits_per_pixel: usize, filename: &str) -> Res
 }
 
 impl Icon {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `file_path` - Path to icon file
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Icon`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(subtle: &Subtle, file_path: &str) -> Result<Icon> {
         let conn = subtle.conn.get().unwrap();
         let default_screen = &conn.setup().roots[subtle.screen_num];

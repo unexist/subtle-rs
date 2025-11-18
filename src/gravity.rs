@@ -39,6 +39,19 @@ pub(crate) struct Gravity {
 }
 
 impl Gravity {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of this gravity
+    /// * `x` - X percentage (0-199)
+    /// * `y` - Y percentage (0-100)
+    /// * `width` - Width percentage (0-100)
+    /// * `height` - Height percentage (0-100)
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Gravity`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(name: &str, x: u16, y: u16, width: u16, height: u16) -> Self {
         let grav = Gravity {
             name: name.into(),

@@ -167,6 +167,17 @@ pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
 }
 
 impl Grab {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of this Grav
+    /// * `keys` - Keys as String (A-F5)
+    /// * `keysyms_to_keycode` - Lookup table to map keysyms to keycodes
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Grab`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(name: &str, keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<Self> {
 
         // Parse name and keys

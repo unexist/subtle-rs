@@ -25,6 +25,16 @@ pub(crate) struct Font {
 }
 
 impl Font {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `font_name` - Name of this font
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Font`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(conn: &RustConnection, font_name: &str) -> Result<Self> {
         let mut font = Self {
             fontable: conn.generate_id()?,

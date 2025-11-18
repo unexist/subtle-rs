@@ -56,6 +56,19 @@ pub(crate) struct Screen {
 }
 
 impl Screen {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `x` - X position
+    /// * `y` - Y position
+    /// * `width` - Width of the screen
+    /// * `height` - Height of the Screen
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Screen`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(subtle: &Subtle, x: i16, y: i16, width: u16, height: u16) -> Result<Self> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 

@@ -30,29 +30,40 @@ bitflags! {
     /// Config and state-flags for [`Tray`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct TrayFlags: u32 {
-        const DEAD = 1 << 0;  // Dead window
-        const CLOSE = 1 << 1; // Send close message
-        const UNMAP = 1 << 2; // Ignore unmaps
+        /// Dead window
+        const DEAD = 1 << 0;
+        /// Send close message
+        const CLOSE = 1 << 1;
+        /// Ignore unmaps
+        const UNMAP = 1 << 2;
     }
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct Tray {
+    /// Config and state-flags
     pub(crate) flags: TrayFlags,
 
+    /// Tray win
     pub(crate) win: Window,
+    /// Name of the tray
     pub(crate) name: String,
+    /// Width of the win
     pub(crate) width: u16,
 }
 
 #[repr(u8)]
 #[derive(Copy, Clone, FromRepr)]
 pub(crate) enum XEmbed {
-    EmbeddedNotify = 0, // Start embedding
-    WindowActivate = 1, // Tray has focus
-    WindowDeactivate = 2, // Tray has no focus
+    /// Start embedding
+    EmbeddedNotify = 0,
+    /// Tray has focus
+    WindowActivate = 1,
+    /// Tray has no focus
+    WindowDeactivate = 2,
     RequestFocus = 3,
-    FocusIn = 4, // Focus model
+    /// Focus model
+    FocusIn = 4,
     FocusOut = 5,
     FocusNext = 6,
     FocusPrev = 7,
@@ -68,14 +79,26 @@ pub(crate) enum XEmbed {
 #[repr(u8)]
 #[derive(Copy, Clone)]
 pub(crate) enum XEmbedFocus {
-    Current = 0, // Focus default
+    /// Focus default
+    Current = 0,
     First = 1,
     Last = 2,
 }
 
-const XEMBED_MAPPED: u8 = 1 << 0; ///< Tray mapped
+/// Tray mapped
+const XEMBED_MAPPED: u8 = 1 << 0;
 
 impl Tray {
+    /// Create a new instance
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `win` - Tray window
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`Tray`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(subtle: &Subtle, win: Window) -> Result<Self> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
