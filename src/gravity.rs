@@ -26,8 +26,10 @@ bitflags! {
     /// Config and state-flags for [`Gravity`]
     #[derive(Default, Debug)]
     pub(crate) struct GravityFlags: u32 {
-        const HORZ = 1 << 0; // Gravity tile gravity horizontally
-        const VERT = 1 << 1; // Gravity tile gravity vertically
+        /// Gravity tile gravity horizontally
+        const HORZ = 1 << 0;
+        /// Gravity tile gravity vertically
+        const VERT = 1 << 1;
     }
 }
 

@@ -39,24 +39,40 @@ bitflags! {
     /// Config and state-flags for [`Subtle`]
     #[derive(Default, Debug)]
     pub(crate) struct SubtleFlags: u32 {
-        const DEBUG = 1 << 0; // Debug enabled
-        const CHECK = 1 << 1; // Check config
-        const URGENT = 1 << 2; // Urgent transients
-        const RESIZE = 1 << 3; // Respect size hints
+        /// Debug enabled
+        const DEBUG = 1 << 0;
+        /// Check config
+        const CHECK = 1 << 1;
+        /// Urgent transients
+        const URGENT = 1 << 2;
+        /// Respect size hints
+        const RESIZE = 1 << 3;
 
-        const XINERAMA = 1 << 4; // Using Xinerama
-        const XRANDR = 1 << 5; // Using Xrandr
-        const XFT = 1 << 6; // Using XFT
+        /// Using Xinerama
+        const XINERAMA = 1 << 4;
+        /// Using Xrandr
+        const XRANDR = 1 << 5;
+        /// Using XFT
+        const XFT = 1 << 6;
 
-        const EWMH = 1 << 7; // EWMH set
-        const REPLACE = 1 << 8; // Replace previous wm
-        const RESTART = 1 << 9; // Restart
-        const RELOAD = 1 << 10; // Reload config
-        const TRAY = 1 << 11; // Use tray
-        const GRAVITY_TILING = 1 << 12; // Enable gravity tiling
-        const CLICK_TO_FOCUS = 1 << 13; // Click to focus
-        const SKIP_POINTER_WARP = 1 << 14; // Skip pointer warp
-        const SKIP_URGENT_WARP = 1 << 15; // Skip urgent warp
+        /// EWMH set
+        const EWMH = 1 << 7;
+        /// Replace previous wm
+        const REPLACE = 1 << 8; 
+        /// Restart
+        const RESTART = 1 << 9; 
+        /// Reload config
+        const RELOAD = 1 << 10; 
+        /// Use tray
+        const TRAY = 1 << 11; 
+        /// Enable gravity tiling
+        const GRAVITY_TILING = 1 << 12; 
+        /// Click to focus
+        const CLICK_TO_FOCUS = 1 << 13; 
+        /// Skip pointer warp
+        const SKIP_POINTER_WARP = 1 << 14; 
+        /// Skip urgent warp
+        const SKIP_URGENT_WARP = 1 << 15; 
     }
 }
 

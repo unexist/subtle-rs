@@ -29,8 +29,10 @@ bitflags! {
     /// Config and state-flags for [`Style`]
     #[derive(Default, Debug)]
     pub(crate) struct StyleFlags: u32 {
-        const FONT = 1 << 0; // Style has custom font
-        const SEPARATOR = 1 << 1; // Style has separator
+        /// Style has custom font
+        const FONT = 1 << 0;
+        /// Style has separator
+        const SEPARATOR = 1 << 1;
     }
 }
 

@@ -27,26 +27,43 @@ bitflags! {
     /// Config and state-flags for [`Grab`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct GrabFlags: u32 {
-        const IS_KEY = 1 << 0; // Key grab
-        const IS_MOUSE = 1 << 1; // Mouse grab
-        const COMMAND = 1 << 2; // Run a command
+        /// Key grab
+        const IS_KEY = 1 << 0;
+        /// Mouse grab
+        const IS_MOUSE = 1 << 1;
+        /// Run a command
+        const COMMAND = 1 << 2;
 
-        const VIEW_JUMP = 1 << 3; // Jump to view
-        const VIEW_SWITCH = 1 << 4; // Jump to view
-        const VIEW_SELECT = 1 << 5; // Jump to view
+        /// Jump to view
+        const VIEW_JUMP = 1 << 3;
+        /// Jump to view
+        const VIEW_SWITCH = 1 << 4;
+        /// Jump to view
+        const VIEW_SELECT = 1 << 5;
 
-        const SCREEN_JUMP = 1 << 6; // Jump to screen
-        const SUBTLE_RELOAD = 1 << 7; // Reload subtle
-        const SUBTLE_RESTART = 1 << 8; // Restart subtle
-        const SUBTLE_QUIT = 1 << 9; // Quit subtle
+        /// Jump to screen
+        const SCREEN_JUMP = 1 << 6;
+        /// Reload subtle
+        const SUBTLE_RELOAD = 1 << 7;
+        /// Restart subtle
+        const SUBTLE_RESTART = 1 << 8;
+        /// Quit subtle
+        const SUBTLE_QUIT = 1 << 9;
 
-        const WINDOW_MOVE = 1 << 10; // Move window
-        const WINDOW_RESIZE = 1 << 11; // Resize window
-        const WINDOW_MODE = 1 << 12; // Toggle window mode
-        const WINDOW_RESTACK = 1 << 13; // Restack window
-        const WINDOW_SELECT = 1 << 14; // Select window
-        const WINDOW_GRAVITY = 1 << 15; // Set gravity of window
-        const WINDOW_KILL = 1 << 16; // Kill window
+        /// Move window
+        const WINDOW_MOVE = 1 << 10;
+        /// Resize window
+        const WINDOW_RESIZE = 1 << 11;
+        /// Toggle window mode
+        const WINDOW_MODE = 1 << 12;
+        /// Restack window
+        const WINDOW_RESTACK = 1 << 13;
+        /// Select window
+        const WINDOW_SELECT = 1 << 14;
+        /// Set gravity of window
+        const WINDOW_GRAVITY = 1 << 15;
+        /// Kill window
+        const WINDOW_KILL = 1 << 16;
     }
 }
 

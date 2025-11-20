@@ -32,25 +32,40 @@ bitflags! {
     /// Config and state-flags for [`Panel`]
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct PanelFlags: u32 {
-        const TITLE = 1 << 0; // Title type
-        const VIEWS = 1 << 1; // Views type
-        const TRAY = 1 << 2; // Tray type
-        const ICON = 1 << 3; // Icon type
-        const SCRIPT = 1 << 4; // Script type
-        const SEPARATOR = 1 << 5; // Separator type
-        const COPY = 1 << 6; // Copy type
+        /// Title type
+        const TITLE = 1 << 0;
+        /// Views type
+        const VIEWS = 1 << 1;
+        /// Tray type
+        const TRAY = 1 << 2;
+        /// Icon type
+        const ICON = 1 << 3;
+        /// Script type
+        const SCRIPT = 1 << 4;
+        /// Separator type
+        const SEPARATOR = 1 << 5;
+        /// Copy type
+        const COPY = 1 << 6;
 
-        const BOTTOM_START_MARKER = 1 << 7; // Bottom marker
+        /// Bottom marker
+        const BOTTOM_START_MARKER = 1 << 7;
 
-        const LEFT_POS = 1 << 8; // Left position
-        const CENTER_POS = 1 << 9; // Center position
-        const RIGHT_POS = 1 << 10; // Right position
+        /// Left position
+        const LEFT_POS = 1 << 8;
+        /// Center position
+        const CENTER_POS = 1 << 9;
+        /// Right position
+        const RIGHT_POS = 1 << 10;
 
-        const HIDDEN = 1 << 11; // Hidden panel
+        /// Hidden panel
+        const HIDDEN = 1 << 11;
 
-        const MOUSE_DOWN = 1 << 12; // Mouse downction
-        const MOUSE_OVER = 1 << 13; // Mouse over action
-        const MOUSE_OUT = 1 << 14; // Mouse out action
+        /// Mouse downction
+        const MOUSE_DOWN = 1 << 12;
+        /// Mouse over action
+        const MOUSE_OVER = 1 << 13;
+        /// Mouse out action
+        const MOUSE_OUT = 1 << 14;
     }
 }
 
