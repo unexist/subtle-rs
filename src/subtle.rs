@@ -134,30 +134,71 @@ pub(crate) struct Subtle {
 }
 
 impl Subtle {
+    /// Find client by given window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Window to search
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_client(&'_ self, win: Window) -> Option<Ref<'_, Client>> {
         Ref::filter_map(self.clients.borrow(), |clients| {
             clients.iter().find(|c| c.win == win)
         }).ok()
     }
 
+    /// Find mut client by given window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Window to search
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_client_mut(&'_ self, win: Window) -> Option<RefMut<'_, Client>> {
         RefMut::filter_map(self.clients.borrow_mut(), |clients| {
             clients.iter_mut().find(|c| c.win == win)
         }).ok()
     }
 
+    /// Find tray by given window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Window to search
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_tray(&'_ self, win: Window) -> Option<Ref<'_, Tray>> {
         Ref::filter_map(self.trays.borrow(), |trays| {
             trays.iter().find(|t| t.win == win)
         }).ok()
     }
 
+    /// Find mut tray by given window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Window to search
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_tray_mut(&'_ self, win: Window) -> Option<RefMut<'_, Tray>> {
         RefMut::filter_map(self.trays.borrow_mut(), |trays| {
             trays.iter_mut().find(|c| c.win == win)
         }).ok()
     }
 
+    /// Find focus client
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_focus_client(&'_ self) -> Option<Ref<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client(*win)
@@ -166,6 +207,11 @@ impl Subtle {
         None
     }
 
+    /// Find mut focus client
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_focus_client_mut(&'_ self) -> Option<RefMut<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
             return self.find_client_mut(*win)
@@ -174,6 +220,11 @@ impl Subtle {
         None
     }
 
+    /// Find focus window
+    ///
+    /// # Returns
+    ///
+    /// Either the found [`Window`] on success or otherwise [`NONE`]
     pub(crate) fn find_focus_win(&self) -> Window {
         if let Some(win) = self.focus_history.borrow(0)
             && NONE != *win
@@ -184,6 +235,15 @@ impl Subtle {
         NONE
     }
 
+    /// Find mut tray by given window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Window to search
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_grab(&self, code: Keycode, modifiers: ModMask) -> Option<&Grab> {
         for grab in self.grabs.iter() {
             if grab.keycode == code && grab.modifiers == modifiers {
@@ -194,6 +254,16 @@ impl Subtle {
         None
     }
 
+    /// Find screen by x/x coordinates
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - X coordinate
+    /// * `y` - Y coordinate
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
         for (idx, screen) in self.screens.iter().enumerate() {
             if x >= screen.base.x && x < screen.base.x + screen.base.width as i16
@@ -206,6 +276,11 @@ impl Subtle {
         None
     }
 
+    /// Find screen based on current pointer position
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_screen_by_pointer(&self) -> Option<(usize, &Screen)> {
         // Check if there is only one screen
         if 1 == self.screens.len() {
@@ -225,6 +300,15 @@ impl Subtle {
         None
     }
 
+    /// Find screen by panel window
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Panel window
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_screen_by_panel_win(&self, win: Window) -> Option<(usize, &Screen)> {
         for (screen_idx, screen) in self.screens.iter().enumerate() {
             if screen.top_panel_win == win || screen.bottom_panel_win == win {
@@ -235,22 +319,52 @@ impl Subtle {
         None
     }
 
+    /// Add client to internal list
+    ///
+    /// # Arguments
+    ///
+    /// * `client` - Client to add
     pub(crate) fn add_client(&self, client: Client) {
         self.clients.borrow_mut().push(client);
     }
 
+    /// Remove client by window from list
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Client window
     pub(crate) fn remove_client_by_win(&self, win: Window) {
         self.clients.borrow_mut().retain(|c| c.win != win);
     }
 
+    /// Add tray to internal list
+    ///
+    /// # Arguments
+    ///
+    /// * `tray` - Tray to add
     pub(crate) fn add_tray(&self, tray: Tray) {
         self.trays.borrow_mut().push(tray);
     }
 
+    /// Remove tray by window from list
+    ///
+    /// # Arguments
+    ///
+    /// * `win` - Client window
     pub(crate) fn remove_tray_by_win(&self, win: Window) {
         self.trays.borrow_mut().retain(|t| t.win != win);
     }
 
+    /// Update tray window size
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - X coordinate
+    /// * `width` - Window width
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`Error`]
     pub(crate) fn update_tray_win(&self, parent_win: Window, x: i32, width: u32) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
@@ -276,6 +390,11 @@ impl Subtle {
         Ok(())
     }
 
+    /// Restack window list
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`Error`]
     pub(crate) fn restack_windows(&self) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
