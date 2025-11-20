@@ -364,7 +364,7 @@ impl Subtle {
     ///
     /// # Returns
     ///
-    /// A [`Result`] with either [`unit`] on success or otherwise [`Error`]
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn update_tray_win(&self, parent_win: Window, x: i32, width: u32) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
@@ -394,7 +394,7 @@ impl Subtle {
     ///
     /// # Returns
     ///
-    /// A [`Result`] with either [`unit`] on success or otherwise [`Error`]
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn restack_windows(&self) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
