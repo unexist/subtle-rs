@@ -67,6 +67,15 @@ pub(crate) struct Style {
 }
 
 impl Style {
+    /// Calculate the spacing of the style for the given dimension
+    ///
+    /// # Arguments
+    ///
+    /// * `spacing` - Spacing dimension
+    ///
+    /// # Returns
+    ///
+    /// Pixel width of the style for the dimension
     pub(crate) fn calc_spacing(&self, spacing: CalcSpacing) -> i16 {
         match spacing {
             CalcSpacing::Top => self.border.top + self.padding.top + self.margin.top,
@@ -80,6 +89,11 @@ impl Style {
         }
     }
 
+    /// Inherit style values from other style
+    ///
+    /// # Arguments
+    ///
+    /// * `other_style` - The other style
     pub(crate) fn inherit(&mut self, other_style: &Style) {
         // Inherit unset values
         if -1 == self.fg {
@@ -124,6 +138,11 @@ impl Style {
         self.min_width = max!(0, self.min_width);
     }
 
+    /// Reset style values to the given default
+    ///
+    /// # Arguments
+    ///
+    /// * `default_value` - Default value to set
     pub(crate) fn reset(&mut self, default_value: i32) {
         // Set values
         self.fg = default_value;
@@ -142,6 +161,15 @@ impl Style {
         self.font_id = -1;
     }
 
+    /// Helper to get the defined font if any
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some(Font)`] on success or otherwise [`None`]
     pub(crate) fn get_font<'a>(&self, subtle: &'a Subtle) -> Option<&'a Font> {
         if -1 != self.font_id {
             return subtle.fonts.get(self.font_id as usize);
@@ -174,6 +202,7 @@ impl Default for Style {
     }
 }
 
+/// Macro to scale value for given div and mul
 macro_rules! scale_value {
     ($val:expr, $div:expr, $mul:expr) => {
         if 0 < $val {
@@ -184,6 +213,17 @@ macro_rules! scale_value {
     };
 }
 
+
+/// Allocate color based on hex string for given colormap
+///
+/// # Arguments
+///
+/// * `conn` - X11 connection
+/// * `color_str` - Hex color string like #000000
+///
+/// # Returns
+///
+/// A [`Result`] with either [`i32`] on success or otherwise [`anyhow::Error`]
 fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result<i32> {
     let hex_color = HexColor::parse(color_str)?;
 
