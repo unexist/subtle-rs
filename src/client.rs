@@ -272,6 +272,15 @@ impl Client {
         Ok(client)
     }
 
+    /// Set and evaluate strut values for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_strut(&mut self, subtle: &mut Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -300,6 +309,15 @@ impl Client {
         Ok(())
     }
 
+    /// Set and evaluate size hints values for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_size_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -407,6 +425,15 @@ impl Client {
         Ok(())
     }
 
+    /// Set WM_NAME for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_name(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -439,7 +466,16 @@ impl Client {
         Ok(())
     }
 
-
+    /// Set WM_STATE for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `state` - The state to set
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_state(&self, subtle: &Subtle, state: WMState) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -454,6 +490,15 @@ impl Client {
         Ok(())
     }
 
+    /// Set and evaluate wm protocols for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_protocols(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -474,6 +519,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set wm type for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_type(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -504,6 +559,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set and evaluate wm hints for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_wm_hints(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -538,6 +603,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set and evaluate _MOTIF_WM_HINTS for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_motif_wm_hints(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -552,6 +627,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set and evaluate _NET_WM_STATE for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_net_wm_state(&self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -576,6 +661,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set transient state for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn set_transient(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -604,6 +699,16 @@ impl Client {
         Ok(())
     }
 
+    /// Set focus to client on active screen
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `warp_pointer` - Whether to move pointer to focus window
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn focus(&self, subtle: &Subtle, warp_pointer: bool) -> Result<()> {
         if !self.is_visible(subtle) {
             return Ok(());
@@ -672,6 +777,17 @@ impl Client {
         Ok(())
     }
 
+    /// Toggle mode flags for client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to toggle for this type
+    /// * `set_gravity` - Whether to also set gravity
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn toggle(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags, set_gravity: bool) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -859,6 +975,18 @@ impl Client {
         Ok(())
     }
 
+    /// Add tag given by idx to this client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `tag_idx` - Tag index
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
+
     pub(crate) fn tag(&mut self, subtle: &Subtle, tag_idx: usize, mode_flags: &mut ClientFlags) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -872,6 +1000,16 @@ impl Client {
         Ok(())
     }
 
+    /// Re-add every matching tag to this client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn retag(&mut self, subtle: &Subtle, mode_flags: &mut ClientFlags) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -907,6 +1045,18 @@ impl Client {
         Ok(())
     }
 
+    /// Update and re-arrange this client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `mode_flags` - Mode flags to set for this type
+    /// * `gravity_idx` - Gravity index
+    /// * `screen_idx` - Screen index
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn arrange(&mut self, subtle: &Subtle, gravity_idx: isize, screen_idx: isize) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1034,6 +1184,17 @@ impl Client {
         Ok(())
     }
 
+    /// Resize client window
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `bounds` - Outer bounds for sizes
+    /// * `use_size_hints` - Whether to apply and honor size hints
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn resize(&mut self, subtle: &Subtle, bounds: &Rectangle, use_size_hints: bool) -> Result<()> {
         let mut geom = self.geom;
 
@@ -1084,12 +1245,6 @@ impl Client {
         debug!("{}: client={}", function_name!(), self);
 
         Ok(())
-    }
-
-    fn compare_client(client_a: &Client, client_b: &Client) -> Ordering {
-       let ret_val = Ordering::Equal;
-
-        ret_val
     }
 
     pub(crate) fn restack(&mut self, subtle: &Subtle, order: RestackOrder) -> Result<()> {
