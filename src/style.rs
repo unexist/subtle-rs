@@ -169,7 +169,7 @@ impl Style {
     ///
     /// # Returns
     ///
-    /// A [`Option`] with either [`Some(Font)`] on success or otherwise [`None`]
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn get_font<'a>(&self, subtle: &'a Subtle) -> Option<&'a Font> {
         if -1 != self.font_id {
             return subtle.fonts.get(self.font_id as usize);
