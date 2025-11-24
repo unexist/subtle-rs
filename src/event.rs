@@ -358,9 +358,6 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                             let mut mode_flags = focus_client.flags & (ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL);
                             focus_client.toggle(subtle, &mut mode_flags, true)?;
 
-                            screen::configure(subtle)?;
-                            panel::update(subtle)?;
-
                             focus_client.gravity_idx = -1; // Reset
                         }
 
@@ -386,6 +383,11 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                         if !subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP) {
                             focus_client.warp_pointer(subtle)?;
                         }
+
+                        drop(focus_client);
+
+                        screen::configure(subtle)?;
+                        panel::update(subtle)?;
                     }
                 }
             },
