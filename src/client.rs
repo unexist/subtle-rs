@@ -1247,6 +1247,16 @@ impl Client {
         Ok(())
     }
 
+    /// Sort and restack client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `order` - Sorting / restacking order
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn restack(&mut self, subtle: &Subtle, order: RestackOrder) -> Result<()> {
         self.order = order;
 
@@ -1255,6 +1265,17 @@ impl Client {
         Ok(())
     }
 
+    /// Snap window to outer bounds of screen
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `screen` - Screen to use
+    /// * `geom` - Geometry to snap to screen bounds
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn snap(&self, subtle: &Subtle, screen: &Screen, geom: &mut Rectangle) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1279,6 +1300,15 @@ impl Client {
         Ok(())
     }
 
+    /// Warp pointer to center of client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn warp_pointer(&self, subtle: &Subtle) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1295,6 +1325,17 @@ impl Client {
         Ok(())
     }
 
+    /// Start dragging of client window
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `drag_mode` - Dragging mode
+    /// * `drag_dir` - Dragging direction
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn drag(&mut self, subtle: &Subtle, drag_mode: DragMode, drag_dir: DirectionOrder) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1400,6 +1441,16 @@ impl Client {
         Ok(())
     }
 
+
+    /// Map client window on display
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn map(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -1410,6 +1461,15 @@ impl Client {
         Ok(())
     }
 
+    /// Unmap client window from display
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn unmap(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -1420,15 +1480,38 @@ impl Client {
         Ok(())
     }
 
+    /// Whether client window is currently visible
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn is_visible(&self, subtle: &Subtle) -> bool {
         subtle.visible_tags.get().intersects(self.tags)
             || self.flags.intersects(ClientFlags::TYPE_DESKTOP | ClientFlags::MODE_STICK)
     }
 
+    /// Whether client is marked as dead (aka ignore further events)
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn is_alive(&self) -> bool {
         !self.flags.intersects(ClientFlags::DEAD)
     }
 
+    /// Convert modes into displayable string
+    ///
+    /// # Returns
+    ///
+    /// Mode string
     pub(crate) fn mode_string(&self) -> String {
         let mut mode_str =  String::with_capacity(6);
 
@@ -1455,6 +1538,15 @@ impl Client {
         mode_str
     }
 
+    /// Send compliant clients the close property and kill the rest
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn close(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -1482,6 +1574,15 @@ impl Client {
         Ok(())
     }
 
+    /// Kill client along with its window
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
@@ -1514,6 +1615,16 @@ impl Client {
         Ok(())
     }
 
+    /// Mode and resize client window
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `bounds` - Outer bounds for sizes
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn move_resize(&mut self, subtle: &Subtle, bounds: &Rectangle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
@@ -1540,6 +1651,17 @@ impl Client {
         Ok(())
     }
 
+    /// Tile client windows with the same gravity
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `gravity_id` - Gravity index
+    /// * `screen_id` - Screen index
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn gravity_tile(&self, subtle: &Subtle, gravity_id: isize, screen_id: isize) -> Result<()> {
         let gravity = subtle.gravities.get(gravity_id as usize)
             .ok_or(anyhow!("Gravity not found"))?;
@@ -1773,14 +1895,12 @@ fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    let geom: [Rectangle; 1] = [Rectangle {
+    conn.poly_rectangle(default_screen.root, subtle.invert_gc, &[Rectangle {
         x: geom.x - 1,
         y: geom.y - 1,
         width: geom.width + 1,
         height: geom.height + 1
-    }];
-
-    conn.poly_rectangle(default_screen.root, subtle.invert_gc, &geom)?.check()?;
+    }])?.check()?;
 
     Ok(())
 }
