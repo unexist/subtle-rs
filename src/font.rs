@@ -58,6 +58,17 @@ impl Font {
         Ok(font)
     }
 
+    /// Calculate width of the text for string
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Connection to display
+    /// * `text` - Text to calculate
+    /// * `center` - Whether to center text
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn calc_text_width(&self, conn: &RustConnection, text: &String, center: bool) -> Result<(u16, u16, u16)> {
         let text_char2b: Vec<Char2b> = text.as_bytes()
             .to_vec()
@@ -76,6 +87,15 @@ impl Font {
         }) as u16, reply.overall_left as u16, reply.overall_right as u16))
     }
 
+    /// Close font
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - Connection to display
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn kill(&self, conn: &RustConnection) -> Result<()> {
         conn.close_font(self.fontable)?.check()?;
 
