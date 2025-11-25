@@ -121,6 +121,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Helper to send message to window
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `win` - Receiving window
+/// * `message_type` - Message type
+/// * `data32` - Slice of data to send
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn send_message(subtle: &Subtle, win: Window, message_type: Atom, data32: &[u32; 5]) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
@@ -134,6 +146,15 @@ pub(crate) fn send_message(subtle: &Subtle, win: Window, message_type: Atom, dat
     Ok(())
 }
 
+/// Tidy up afterwards
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn finish(subtle: &Subtle) -> Result<()> {
 
     // Delete root properties on real shutdown
