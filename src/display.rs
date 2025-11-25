@@ -144,6 +144,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Claim display selection
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     let session = conn.intern_atom(false,
@@ -175,6 +184,15 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Scan display for clients and adopt them
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -202,6 +220,15 @@ pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Get tray selection for display
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn select_tray(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
@@ -224,6 +251,15 @@ pub(crate) fn select_tray(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Remove tray selection
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A `Result` with either `Unit` on success or otherwise `Error
 pub(crate) fn deselect_tray(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
@@ -242,9 +278,18 @@ pub(crate) fn deselect_tray(subtle: &Subtle) -> Result<()> {
 }
 
 pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
-    Ok(())
+    todo!()
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
