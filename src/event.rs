@@ -26,6 +26,16 @@ use crate::grab::{DirectionOrder, GrabAction, GrabFlags};
 use crate::panel::PanelAction;
 use crate::tray::{Tray, TrayFlags, XEmbed, XEmbedFocus};
 
+/// Handle button press events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
         screen.handle_action(subtle, &PanelAction::MouseDown(event.event_x, event.event_y, event.detail as i8),
@@ -80,12 +90,32 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle configure notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_configure_notify(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
     debug!("{}: win={}", function_name!(), event.window);
 
     Ok(())
 }
 
+/// Handle configure request events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -112,6 +142,16 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
     Ok(())
 }
 
+/// Handle client message events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     let atoms = subtle.atoms.get().unwrap();
@@ -167,6 +207,16 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
     Ok(())
 }
 
+/// Handle destroy notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_destroy_notify(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(client) = subtle.find_client(event.window) {
@@ -207,6 +257,16 @@ fn handle_destroy_notify(subtle: &Subtle, event: DestroyNotifyEvent) -> Result<(
     Ok(())
 }
 
+/// Handle enter notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_enter_notify(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     if let Some(client) = subtle.find_client(event.event) {
         if !subtle.flags.intersects(SubtleFlags::CLICK_TO_FOCUS) {
@@ -220,6 +280,16 @@ fn handle_enter_notify(subtle: &Subtle, event: EnterNotifyEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle leave notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_leave_notify(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
     if let Some((_, screen)) = subtle.find_screen_by_panel_win(event.event) {
             screen.handle_action(subtle, &PanelAction::MouseOut,
@@ -232,6 +302,16 @@ fn handle_leave_notify(subtle: &Subtle, event: LeaveNotifyEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle expose events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     // Render only once
     if 0 == event.count {
@@ -243,6 +323,16 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle focus in events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
     if let Some(mut client) = subtle.find_client_mut(event.event) {
 
@@ -269,6 +359,16 @@ fn handle_focus_in(subtle: &Subtle, event: FocusInEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle key press events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     // Limit mod mask to relevant ones
     let relevant_modifiers = ModMask::from(event.state.bits()
@@ -434,6 +534,16 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle map notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_map_notify(subtle: &Subtle, event: MapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut tray) = subtle.find_tray_mut(event.window) {
@@ -450,6 +560,16 @@ fn handle_map_notify(subtle: &Subtle, event: MapNotifyEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle mapping notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_mapping_notify(subtle: &Subtle, event: MappingNotifyEvent) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -468,6 +588,16 @@ fn handle_mapping_notify(subtle: &Subtle, event: MappingNotifyEvent) -> Result<(
     Ok(())
 }
 
+/// Handle property notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_property_notify(subtle: &Subtle, event: PropertyNotifyEvent) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
 
@@ -552,6 +682,16 @@ fn handle_property_notify(subtle: &Subtle, event: PropertyNotifyEvent) -> Result
     Ok(())
 }
 
+/// Handle map request events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
@@ -577,6 +717,16 @@ fn handle_map_request(subtle: &Subtle, event: MapRequestEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle unmap notify events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_unmap_notify(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     // Check if we know the window
     if let Some(mut client) = subtle.find_client_mut(event.window) {
@@ -626,6 +776,16 @@ fn handle_unmap_notify(subtle: &Subtle, event: UnmapNotifyEvent) -> Result<()> {
     Ok(())
 }
 
+/// Handle selection clear events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn handle_selection_clear(subtle: &Subtle, event: SelectionClearEvent) -> Result<()> {
     if event.owner == subtle.tray_win {
         unimplemented!()
@@ -634,13 +794,23 @@ fn handle_selection_clear(subtle: &Subtle, event: SelectionClearEvent) -> Result
 
         subtle.shutdown.store(false, atomic::Ordering::Relaxed);
     }
-    
+
     debug!("{}: win={}, tray={}, support={}",
         function_name!(), event.owner, subtle.tray_win, subtle.support_win);
 
     Ok(())
 }
 
+/// Run event loop and handle events
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `event` - Event to handle
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
