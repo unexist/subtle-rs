@@ -409,6 +409,15 @@ macro_rules! update_panel_height {
     };
 }
 
+/// Update all styles
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     // Inherit styles
     subtle.views_style.inherit(&subtle.all_style);
