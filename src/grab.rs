@@ -96,7 +96,6 @@ pub(crate) struct Grab {
     pub(crate) action: GrabAction,
 }
 
-
 /// Parse keys of grabs
 ///
 /// # Arguments

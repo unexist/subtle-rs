@@ -77,13 +77,25 @@ bitflags! {
 }
 
 pub(crate) struct Subtle {
+    /// Config and state-flags
     pub(crate) flags: SubtleFlags,
+
+    /// Total display width
     pub(crate) width: u16,
+
+    /// Total display height
     pub(crate) height: u16,
 
+    /// Height of the panel
     pub(crate) panel_height: u16,
+
+    /// Step size on move/resize via keys
     pub(crate) step_size: i16,
+
+    /// Snap size to screen bounds
     pub(crate) snap_size: u16,
+
+    /// Default gravity for clients
     pub(crate) default_gravity: isize,
 
     pub(crate) visible_tags: Cell<Tagging>,
@@ -91,10 +103,16 @@ pub(crate) struct Subtle {
     pub(crate) client_tags: Cell<Tagging>,
     pub(crate) urgent_tags: Cell<Tagging>,
 
+    /// Flag to indicate shutdown
     pub(crate) shutdown: Arc<AtomicBool>,
+
+    /// Connection to X11
     pub(crate) conn: OnceCell<RustConnection>,
+
+    /// X11 screen number
     pub(crate) screen_num: usize,
 
+    /// List of supported atoms
     pub(crate) atoms: OnceCell<Atoms>,
 
     pub(crate) support_win: Window,
