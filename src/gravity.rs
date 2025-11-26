@@ -71,6 +71,12 @@ impl Gravity {
         grav
     }
 
+    /// Apply size of bounds to rectangle
+    ///
+    /// # Arguments
+    ///
+    /// * `bounds` - Bounds to use
+    /// * `geom` - Geometry to resize
     pub(crate) fn apply_size(&self, bounds: &Rectangle, geom: &mut Rectangle) {
         geom.x = bounds.x + (bounds.width as i16 * self.geom.x / 100);
         geom.y = bounds.y + (bounds.height as i16 * self.geom.y / 100);
