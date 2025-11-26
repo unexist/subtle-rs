@@ -118,6 +118,18 @@ pub(crate) struct Panel {
 }
 
 impl Panel {
+    /// Pick relevant style for drawing
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `style` - Style to use
+    /// * `view_idx` - View index
+    /// * `view` - View to use
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn pick_style(&self, subtle: &Subtle, style: &mut Style, view_idx: usize, view: &View) {
         style.reset(-1);
 
@@ -142,6 +154,19 @@ impl Panel {
         }
     }
 
+    /// Draw rect on panel
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `drawable` - Drawable to use
+    /// * `offset_x` - X offset on panel
+    /// * `width` - Width of the rectable
+    /// * `style` - Style to use
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn draw_rect(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16,
                  width: u16, style: &Style) -> Result<()>
     {
@@ -207,6 +232,19 @@ impl Panel {
         Ok(())
     }
 
+    /// Draw text on panel
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `drawable` - Drawable to use
+    /// * `offset_x` - X offset on panel
+    /// * `text` - Text to draw
+    /// * `style` - Style to use
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn draw_text(&self, subtle: &Subtle, drawable: Drawable, offset_x: u16,
                  text: &String, style: &Style) -> Result<()>
     {
@@ -227,6 +265,19 @@ impl Panel {
         Ok(())
     }
 
+    /// Draw icon on panel
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `icon` - Icon to draw
+    /// * `drawable` - Drawable to use
+    /// * `offset_x` - X offset on panel
+    /// * `style` - Style to use
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     fn draw_icon(&self, subtle: &Subtle, icon: &Icon, drawable: Drawable,
                  offset_x: u16, style: &Style) -> Result<()>
     {
@@ -277,6 +328,15 @@ impl Panel {
         Some(panel)
     }
 
+    /// Render the panel
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn update(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -405,6 +465,15 @@ impl Panel {
         Ok(())
     }
 
+    /// Render the panel
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn render(&mut self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -517,6 +586,17 @@ impl Panel {
         Ok(())
     }
 
+    /// Handle the panel action
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `action` - Action to handle
+    /// * `is_bottom` - Whether the panel is at the bottom
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
         if let &PanelAction::MouseDown(x, y, button) = action {
 
@@ -584,7 +664,17 @@ impl fmt::Display for Panel {
     }
 }
 
-
+/// Clear the double buffer and init from style
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `screen` - Screen for drawing
+/// * `style` - Style for clearing
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn clear_double_buffer(subtle: &Subtle, screen: &Screen, style: &Style) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -601,7 +691,15 @@ fn clear_double_buffer(subtle: &Subtle, screen: &Screen, style: &Style) -> Resul
     Ok(())
 }
 
-
+/// Resize the double buffer e.g. on screen size changes
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -627,6 +725,17 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Parse panel list
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `panel_list` - List of panels
+/// * `is_bottom` - Whether the panel is at the bottom
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
     let mut flags = PanelFlags::empty();
 
@@ -654,6 +763,15 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
     }
 }
 
+/// Update all panels
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
@@ -756,6 +874,15 @@ pub(crate) fn update(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Render all panels
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
