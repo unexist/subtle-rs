@@ -97,7 +97,16 @@ pub(crate) struct Grab {
 }
 
 
-#[doc(hidden)]
+/// Parse keys of grabs
+///
+/// # Arguments
+///
+/// * `keys` - Keys to parse
+/// * `keysyms_to_keycode` - Mapping table for keysyms to keycode
+///
+/// # Returns
+///
+/// A [`Result`] with either ([`Keycode`], [`ModMask`], [`bool`]) on success or otherwise [`anyhow::Error`]
 pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycode>) -> Result<(Keycode, ModMask, bool)> {
     let mut keycode: Keycode = 0;
     let mut modifiers = ModMask::default();
@@ -133,7 +142,15 @@ pub(crate) fn parse_keys(keys: &str, keysyms_to_keycode: &HashMap<Keysym, Keycod
     Ok((keycode, modifiers, is_mouse))
 }
 
-#[doc(hidden)]
+/// Parse names of grabs
+///
+/// # Arguments
+///
+/// * `str` - Name to parse
+///
+/// # Returns
+///
+/// A [`Result`] with either ([`GrabFlags`], [`GrabAction`]) on success or otherwise [`anyhow::Error`]
 pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
     Ok(match name {
         "subtle_reload" => (GrabFlags::SUBTLE_RELOAD, GrabAction::None),
