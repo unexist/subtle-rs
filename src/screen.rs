@@ -237,6 +237,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Publish and export all relevant atoms to allow IPC
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
     let atoms = subtle.atoms.get().unwrap();
