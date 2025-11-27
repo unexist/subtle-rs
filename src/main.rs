@@ -14,24 +14,43 @@
 #[cfg(test)]
 mod tests;
 
+/// Main module
 mod subtle;
+/// Display handling module
 mod display;
+/// Event handling module
 mod event;
+/// Client module
 mod client;
+/// View module
 mod view;
+/// Tag module
 mod tag;
+/// Screen module
 mod screen;
+/// Gravity module
 mod gravity;
+/// Log facility
 mod logger;
+/// Config module
 mod config;
+/// Grab module
 mod grab;
+/// EWMH module
 mod ewmh;
+/// Helper module to ease tagging
 mod tagging;
+/// Style module
 mod style;
+/// Font module
 mod font;
+/// Panel module
 mod panel;
+/// Helper module for spacing
 mod spacing;
+/// Icon module
 mod icon;
+/// Tray module
 mod tray;
 
 use std::env;
@@ -42,6 +61,15 @@ use log::{debug, error, info};
 use crate::config::Config;
 use crate::subtle::{SubtleFlags, Subtle};
 
+///  Install signal handler
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&subtle.shutdown))
         .map_err(|e| anyhow!("Failed to register SIGINT handler: {}", e))?;
@@ -52,6 +80,7 @@ fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Print version info
 fn print_version() {
     info!("{} {} - Copyright (c) 2025-present {}",
         env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), env!("CARGO_PKG_AUTHORS"));
@@ -59,6 +88,15 @@ fn print_version() {
     info!("Compiled for X11");
 }
 
+/// Sanity-check configuration
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn sanity_check(subtle: &mut Subtle) -> Result<()> {
 
     // Check and update screens
@@ -69,6 +107,11 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Main function
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn main() -> Result<()> {
     // Load config
     let (config, path, _format) = Config::parse_info();
