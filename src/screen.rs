@@ -365,6 +365,15 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Resize screen
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
