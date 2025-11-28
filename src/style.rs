@@ -397,6 +397,16 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Helper macro to update spacing
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `style` - Style to use
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 macro_rules! update_panel_height {
     ($subtle:expr, $style:ident) => {
         if -1 != $subtle.$style.font_id {
