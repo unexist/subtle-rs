@@ -308,6 +308,17 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Set active grabs on given window
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `win` - Window to use
+/// * `grab_mask` - Grab mask
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
@@ -349,6 +360,16 @@ pub(crate) fn set(subtle: &Subtle, win: Window, grab_mask: GrabFlags) -> Result<
     Ok(())
 }
 
+/// Unset active grabs on given window
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `win` - Window to use
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn unset(subtle: &Subtle, win: Window) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
