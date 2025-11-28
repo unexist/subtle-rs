@@ -98,9 +98,16 @@ pub(crate) struct Subtle {
     /// Default gravity for clients
     pub(crate) default_gravity: isize,
 
+    /// Visible tags as taggings
     pub(crate) visible_tags: Cell<Tagging>,
+
+    /// Visible views as taggings
     pub(crate) visible_views: Cell<Tagging>,
+
+    /// Visible clients as taggings
     pub(crate) client_tags: Cell<Tagging>,
+
+    /// Visible urgent clients as taggings
     pub(crate) urgent_tags: Cell<Tagging>,
 
     /// Flag to indicate shutdown
@@ -115,39 +122,91 @@ pub(crate) struct Subtle {
     /// List of supported atoms
     pub(crate) atoms: OnceCell<Atoms>,
 
+    /// Support window for EWMH
     pub(crate) support_win: Window,
+
+    /// Support window for tray handling
     pub(crate) tray_win: Window,
+
+    /// Double buffer for panel drawing
     pub(crate) panel_double_buffer: Pixmap,
+
+    /// Focus history list
     pub(crate) focus_history: VecCell<Window>,
 
+    /// Graphic context to draw resize/move outlines
     pub(crate) invert_gc: Gcontext,
+
+    /// Graphic context for general drawing
     pub(crate) draw_gc: Gcontext,
 
+    /// Arrow cursor for normal mode
     pub(crate) arrow_cursor: Cursor,
+
+    /// Move cursor for move
     pub(crate) move_cursor: Cursor,
+
+    /// Move cursor for resize
     pub(crate) resize_cursor: Cursor,
 
+    /// Default parent style
     pub(crate) all_style: Style,
+
+    /// Default style for views
     pub(crate) views_style: Style,
+
+    /// Style for active views
     pub(crate) views_active_style: Style,
+
+    /// Style for views with clients
     pub(crate) views_occupied_style: Style,
+
+    /// Style for currently visible views
     pub(crate) views_visible_style: Style,
+
+    /// Style for the title of clients in the panel
     pub(crate) title_style: Style,
+
+    /// Style of urgent clients
     pub(crate) urgent_style: Style,
+
+    /// Style of separator in the panel
     pub(crate) separator_style: Style,
+
+    /// Style for clients like border
     pub(crate) clients_style: Style,
+
+    /// Style for tray icons in panel
     pub(crate) tray_style: Style,
+
+    /// Style for the top panel
     pub(crate) top_panel_style: Style,
+
+    /// Style for the bottom panel
     pub(crate) bottom_panel_style: Style,
 
+    /// Font list
     pub(crate) fonts: Vec<Font>,
 
+    /// Screen list
     pub(crate) screens: Vec<Screen>,
+
+    /// Client list
     pub(crate) clients: RefCell<Vec<Client>>,
+
+    /// Tras list
     pub(crate) trays: RefCell<Vec<Tray>>,
+
+    /// Gravity list
     pub(crate) gravities: Vec<Gravity>,
+
+    /// Grab list
     pub(crate) grabs: Vec<Grab>,
+
+    /// Tag list
     pub(crate) tags: Vec<Tag>,
+
+    /// View list
     pub(crate) views: Vec<View>,
 }
 
