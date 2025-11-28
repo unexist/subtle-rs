@@ -341,6 +341,15 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Tidy up
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
