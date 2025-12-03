@@ -4,6 +4,7 @@ env:
   DISPLAY: ':2'
 
 tasks:
+  # Test helpers
   test:
     cmds:
       - cargo test -- --nocapture
@@ -30,6 +31,7 @@ tasks:
     cmds:
       - cargo test {{.MOD}}_test -- --no-capture --include-ignored
 
+  # Debug helpers
   debug:
     cmds:
       - cargo run -- -d {{.DISPLAY}} --replace --debug {{.CLI_ARGS}}
@@ -38,6 +40,15 @@ tasks:
     aliases: [v]
     cmds:
       - cargo valgrind run -- -d {{.DISPLAY}} --replace {{.CLI_ARGS}}
+
+  # Cargo helpers
+  release:
+    cmds:
+      - cargo build --release
+
+  pkglist:
+    cmds:
+      - cargo package --list
 
   doc:
     cmds:
@@ -55,6 +66,11 @@ tasks:
     cmds:
       - cargo clean
 
+  bloat:
+    cmds:
+      - cargo bloat
+
+  # Tool helpers
   background:
     aliases: [bg]
     cmds:
@@ -76,11 +92,3 @@ tasks:
   tray:
     cmds:
       - yad --notification
-
-  release:
-    cmds:
-      - cargo build --release
-
-  pkglist:
-    cmds:
-      - cargo package --list
