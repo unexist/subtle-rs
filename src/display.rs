@@ -278,7 +278,9 @@ pub(crate) fn deselect_tray(subtle: &Subtle) -> Result<()> {
 }
 
 pub(crate) fn configure(_subtle: &Subtle) -> Result<()> {
-    todo!()
+    debug!("{}", function_name!());
+
+    Ok(())
 }
 
 /// Publish and export all relevant atoms to allow IPC
