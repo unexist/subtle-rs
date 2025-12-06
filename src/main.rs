@@ -56,10 +56,14 @@ mod tray;
 use std::env;
 use std::env::current_exe;
 use std::sync::Arc;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use log::{debug, error, info};
 use crate::config::Config;
+use crate::font::Font;
+use crate::style::StyleFlags;
 use crate::subtle::{SubtleFlags, Subtle};
+
+const DEFAULT_FONT_NAME: &str = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*";
 
 ///  Install signal handler
 ///
@@ -102,6 +106,23 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
     // Check and update screens
     for (screen_idx, screen) in subtle.screens.iter_mut().enumerate() {
         screen.view_idx.set(if screen_idx < subtle.views.len() { screen_idx as isize } else { -1 });
+    }
+
+    // Enforce sane defaults
+    if -1 == subtle.title_style.min_width {
+        subtle.title_style.min_width = 50;
+    }
+
+    // Check fonts
+    if !subtle.title_style.flags.intersects(StyleFlags::FONT) {
+        let conn = subtle.conn.get().context("Failed to get connection")?;
+
+        let font = Font::new(conn, DEFAULT_FONT_NAME)?;
+
+        subtle.title_style.font_id = subtle.fonts.len() as isize;
+        subtle.title_style.flags.insert(StyleFlags::FONT);
+
+        subtle.fonts.push(font);
     }
 
     Ok(())
