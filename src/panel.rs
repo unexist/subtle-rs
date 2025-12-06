@@ -398,7 +398,7 @@ impl Panel {
 
                         // Finally update actual length
                         self.width = self.text_widths[0]
-                            + max!(subtle.clients_style.right as u16, self.text_widths[1])
+                            + if self.text_widths[1] > subtle.clients_style.right as u16 { subtle.clients_style.right as u16 } else { self.text_widths[1] }
                             + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                     }
 
