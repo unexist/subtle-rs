@@ -1353,10 +1353,10 @@ impl Client {
             .context("Can't get screen")?;
 
         // Select starting edge
-        let drag_edge = (if query_reply.win_x < (geom.width / 2) as i16 {
+        let drag_edge = if query_reply.win_x < (geom.width / 2) as i16 {
                 DragEdge::LEFT } else { DragEdge::RIGHT }
             | if query_reply.win_y < (geom.height / 2) as i16 {
-                DragEdge::TOP } else { DragEdge::BOTTOM });
+                DragEdge::TOP } else { DragEdge::BOTTOM };
 
         // Set variables according to mode
         let cursor = match drag_mode {
