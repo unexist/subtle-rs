@@ -303,9 +303,7 @@ impl Subtle {
     ///
     /// Either the found [`Window`] on success or otherwise [`NONE`]
     pub(crate) fn find_focus_win(&self) -> Window {
-        if let Some(win) = self.focus_history.borrow(0)
-            && NONE != *win
-        {
+        if let Some(win) = self.focus_history.borrow(0) {
             return *win
         }
 
@@ -432,7 +430,7 @@ impl Subtle {
         self.trays.borrow_mut().retain(|t| t.win != win);
     }
 
-    /// Update tray window size
+    /// Update tray window attributes
     ///
     /// # Arguments
     ///
@@ -467,7 +465,7 @@ impl Subtle {
         Ok(())
     }
 
-    /// Restack window list
+    /// Reorder and restack windows based on sorting rules
     ///
     /// # Returns
     ///
