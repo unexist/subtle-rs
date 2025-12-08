@@ -10,7 +10,7 @@
 ///
 
 use std::fmt;
-use bitflags::{bitflags, Flags};
+use bitflags::bitflags;
 use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::max;
@@ -25,8 +25,6 @@ use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 use crate::tray::TrayFlags;
 use crate::view::{View, ViewFlags};
-
-const ICON_TEXT_SPACING: u16 = 3;
 
 bitflags! {
     /// Config and state-flags for [`Panel`]
@@ -387,18 +385,24 @@ impl Panel {
                     // Font offset, panel border and padding
                     if let Some(font) = subtle.title_style.get_font(subtle) {
                         // Cache length of mode string
-                        if let Ok((width, _, _)) = font.calc_text_width(conn, &mode_str, false) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn,
+                                                                        &mode_str, false)
+                        {
                             self.text_widths[0] = width;
                         }
 
                         // Cache length of actual title
-                        if let Ok((width, _, _)) = font.calc_text_width(conn, &focus_client.name, false) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn,
+                                                                        &focus_client.name, false)
+                        {
                             self.text_widths[1] = width;
                         }
 
                         // Finally update actual length
                         self.width = self.text_widths[0]
-                            + if self.text_widths[1] > subtle.clients_style.right as u16 { subtle.clients_style.right as u16 } else { self.text_widths[1] }
+                            + if self.text_widths[1] > subtle.clients_style.right as u16 {
+                                subtle.clients_style.right as u16 } else { self.text_widths[1]
+                            }
                             + subtle.title_style.calc_spacing(CalcSpacing::Width) as u16;
                     }
 
@@ -445,7 +449,7 @@ impl Panel {
                         if view.flags.intersects(ViewFlags::MODE_ICON)
                             && let Some(icon) = view.icon.as_ref()
                         {
-                            view_width += icon.width + ICON_TEXT_SPACING;
+                            view_width += icon.width + style.calc_spacing(CalcSpacing::Left) as u16;
                         }
                     }
                 }
@@ -541,7 +545,7 @@ impl Panel {
                     view_width += icon.width;
 
                     if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                        view_width += ICON_TEXT_SPACING;
+                        view_width += style.calc_spacing(CalcSpacing::Left) as u16;
                     }
                 }
 
@@ -567,7 +571,7 @@ impl Panel {
                     if view.flags.intersects(ViewFlags::MODE_ICON)
                         && let Some(icon) = view.icon.as_ref()
                     {
-                        icon_offset_x += icon.width + ICON_TEXT_SPACING;
+                        icon_offset_x += icon.width + style.calc_spacing(CalcSpacing::Left) as u16;
                     }
 
                     self.draw_text(subtle, subtle.panel_double_buffer, offset_x + icon_offset_x,
@@ -629,7 +633,7 @@ impl Panel {
                         if view.flags.intersects(ViewFlags::MODE_ICON)
                             && let Some(icon) = view.icon.as_ref()
                         {
-                            view_width += (icon.width + ICON_TEXT_SPACING) as i16;
+                            view_width += icon.width as i16 + style.calc_spacing(CalcSpacing::Left);
                         }
 
                         if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
