@@ -10,7 +10,7 @@
 ///
 
 use std::fmt;
-use bitflags::bitflags;
+use bitflags::{bitflags, Flags};
 use log::debug;
 use anyhow::{Context, Result};
 use easy_min_max::max;
@@ -538,7 +538,11 @@ impl Panel {
                 if view.flags.intersects(ViewFlags::MODE_ICON)
                     && let Some(icon) = view.icon.as_ref()
                 {
-                    view_width += icon.width + ICON_TEXT_SPACING;
+                    view_width += icon.width;
+
+                    if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                        view_width += ICON_TEXT_SPACING;
+                    }
                 }
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
