@@ -1629,12 +1629,12 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
 
         // Update border and gap
-        /*self.geom.x += subtle.clients_style.margin.left;
+        self.geom.x += subtle.clients_style.margin.left;
         self.geom.y += subtle.clients_style.margin.left;
         self.geom.width -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.left
             + subtle.clients_style.margin.right) as u16;
         self.geom.height -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.top
-            + subtle.clients_style.margin.bottom) as u16;*/
+            + subtle.clients_style.margin.bottom) as u16;
 
         self.resize(subtle, bounds, true)?;
 
