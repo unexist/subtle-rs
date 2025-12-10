@@ -444,7 +444,8 @@ impl Panel {
                             self.text_widths[view_idx] = width;
                         }
 
-                        view_width += self.text_widths[view_idx];
+                        view_width += self.text_widths[view_idx]
+                            + style.calc_spacing(CalcSpacing::Left) as u16;
 
                         if view.flags.intersects(ViewFlags::MODE_ICON)
                             && let Some(icon) = view.icon.as_ref()
@@ -501,12 +502,14 @@ impl Panel {
                     let mut offset_x = subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
 
                     // Set window background and border
-                    self.draw_rect(subtle, subtle.panel_double_buffer, 0, self.width, &subtle.title_style)?;
+                    self.draw_rect(subtle, subtle.panel_double_buffer, 0,
+                                   self.width, &subtle.title_style)?;
 
                     // Draw modes and title
                     let mode_str= focus_client.mode_string();
 
-                    self.draw_text(subtle, subtle.panel_double_buffer, 0, &mode_str, &subtle.title_style)?;
+                    self.draw_text(subtle, subtle.panel_double_buffer, 0,
+                                   &mode_str, &subtle.title_style)?;
 
                     // TODO: CACHE!
                     if let Some(font) = subtle.title_style.get_font(subtle) {
@@ -550,7 +553,8 @@ impl Panel {
                 }
 
                 if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                    view_width += self.text_widths[view_idx];
+                    view_width += self.text_widths[view_idx]
+                        + style.calc_spacing(CalcSpacing::Left) as u16;
                 }
 
                 // Draw window background and borders
@@ -571,11 +575,12 @@ impl Panel {
                     if view.flags.intersects(ViewFlags::MODE_ICON)
                         && let Some(icon) = view.icon.as_ref()
                     {
-                        icon_offset_x += icon.width + style.calc_spacing(CalcSpacing::Left) as u16;
+                        icon_offset_x += icon.width
+                            + style.calc_spacing(CalcSpacing::Left) as u16;
                     }
 
-                    self.draw_text(subtle, subtle.panel_double_buffer, offset_x + icon_offset_x,
-                                   &view.name, &style)?;
+                    self.draw_text(subtle, subtle.panel_double_buffer,
+                                   offset_x + icon_offset_x, &view.name, &style)?;
                 }
 
                 offset_x += max!(style.min_width as u16, view_width);
