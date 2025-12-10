@@ -539,22 +539,23 @@ impl Panel {
                 self.pick_style(subtle, &mut style, view_idx, view);
 
                 // Calculate view width
-                let mut view_width= style.calc_spacing(CalcSpacing::Width) as u16;
+                let mut view_width = style.calc_spacing(CalcSpacing::Width) as u16;
 
                 // Add space between icon and text
-                if view.flags.intersects(ViewFlags::MODE_ICON)
+                if view.flags.intersects(ViewFlags::MODE_ICON_ONLY)
                     && let Some(icon) = view.icon.as_ref()
                 {
                     view_width += icon.width;
-
-                    if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
-                        view_width += style.calc_spacing(CalcSpacing::Left) as u16;
-                    }
-                }
-
-                if !view.flags.intersects(ViewFlags::MODE_ICON_ONLY) {
+                } else {
                     view_width += self.text_widths[view_idx]
                         + style.calc_spacing(CalcSpacing::Left) as u16;
+
+                    if view.flags.intersects(ViewFlags::MODE_ICON)
+                        && let Some(icon) = view.icon.as_ref()
+                    {
+                        view_width += icon.width + style.calc_spacing(CalcSpacing::Left) as u16;
+                        offset_x += style.calc_spacing(CalcSpacing::Left) as u16;
+                    }
                 }
 
                 // Draw window background and borders
