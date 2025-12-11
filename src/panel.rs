@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use log::debug;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -38,8 +38,8 @@ bitflags! {
         const TRAY = 1 << 2;
         /// Icon type
         const ICON = 1 << 3;
-        /// Script type
-        const SCRIPT = 1 << 4;
+        /// Plugin type
+        const PLUGIN = 1 << 4;
         /// Separator type
         const SEPARATOR = 1 << 5;
         /// Copy type
@@ -88,7 +88,8 @@ impl From<&String> for PanelFlags {
             "title" => PanelFlags::TITLE | pos_flags,
             "views" => PanelFlags::VIEWS | pos_flags,
             "tray" => PanelFlags::TRAY | pos_flags,
-            _ => PanelFlags::SEPARATOR | pos_flags,
+            panel if panel.starts_with("$") => PanelFlags::PLUGIN | pos_flags,
+            _ => PanelFlags::SEPARATOR | pos_flags
         }
     }
 }
@@ -111,6 +112,7 @@ pub(crate) struct Panel {
     pub(crate) x: i16,
     pub(crate) width: u16,
     pub(crate) screen_id: usize,
+    pub(crate) plugin_id: usize,
     pub(crate) text: Option<String>,
     pub(crate) text_widths: Vec<u16>,
 }
@@ -302,7 +304,7 @@ impl Panel {
     /// # Returns
     ///
     /// A [`Result`] with either [`Panel`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn new(flags: PanelFlags) -> Option<Self> {
+    pub(crate) fn new(flags: PanelFlags) -> Result<Self> {
         let mut panel = Self {
             flags,
             ..Self::default()
@@ -315,15 +317,17 @@ impl Panel {
             panel.text_widths.resize(2, Default::default());
         } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
+        } else if flags.intersects(PanelFlags::PLUGIN) {
+
         } else if !flags.intersects(PanelFlags::TRAY) {
             debug!("Unhandled panel type: {:?}", flags);
 
-            return None
+            return Err(anyhow!("Unhandled panel type"));
         }
 
         debug!("{}: panel={}", function_name!(), panel);
 
-        Some(panel)
+        Ok(panel)
     }
 
     /// Render the panel
@@ -761,7 +765,7 @@ pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bo
     for (panel_idx, panel_name) in panel_list.iter().enumerate() {
 
         // Create panel
-        if let Some(mut panel) = Panel::new(PanelFlags::from(panel_name) | flags) {
+        if let Ok(mut panel) = Panel::new(PanelFlags::from(panel_name) | flags) {
             // Separator use its name as a value
             if panel.flags.intersects(PanelFlags::SEPARATOR) {
                 let idx = if panel.flags.intersects(PanelFlags::LEFT_POS
