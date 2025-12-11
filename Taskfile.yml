@@ -3,6 +3,11 @@ version: '3'
 env:
   DISPLAY: ':2'
 
+includes:
+  time:
+    taskfile: plugins/time/Taskfile.yml
+    dir: plugins/time
+
 tasks:
   # Test helpers
   test:
