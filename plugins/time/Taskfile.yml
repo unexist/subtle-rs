@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - zig build
+
+  run:
+    cmds:
+      - extism call ./zig-out/bin/time.wasm
