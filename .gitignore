@@ -35,6 +35,10 @@ pom.xml.releaseBackup
 pom.xml.versionsBackup
 release.properties
 
+# Zig
+**/zig-cache/*
+**/zig-out/*
+
 # Rust
 **/target/*
 proptest-regressions/
