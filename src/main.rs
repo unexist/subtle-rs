@@ -153,12 +153,12 @@ fn main() -> Result<()> {
     display::init(&config, &mut subtle)?;
     ewmh::init(&config, &mut subtle)?;
     style::init(&config, &mut subtle)?;
+    plugin::init(&config, &mut subtle)?; // Must be before screen init
     screen::init(&config, &mut subtle)?;
     gravity::init(&config, &mut subtle)?;
     tag::init(&config, &mut subtle)?;
     view::init(&config, &mut subtle)?;
     grab::init(&config, &mut subtle)?;
-    plugin::init(&config, &mut subtle)?;
 
     drop(config);
 
