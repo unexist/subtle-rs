@@ -1,0 +1,23 @@
+.{
+    .name = "time",
+    .version = "0.0.0",
+    .dependencies = .{
+        .@"extism-pdk" = .{
+            .url = "https://github.com/extism/zig-pdk/archive/refs/tags/v1.3.0.tar.gz",
+            .hash = "1220d21f918a4e96d7ccea385d7609d97c39430d027997f82121e3fbae273e4d4c06",
+        },
+    },
+    .paths = .{
+        // This makes *all* files, recursively, included in this package. It is generally
+        // better to explicitly list the files and directories instead, to insure that
+        // fetching from tarballs, file system paths, and version control all result
+        // in the same contents hash.
+        "",
+        // For example...
+        //"build.zig",
+        //"build.zig.zon",
+        //"src",
+        //"LICENSE",
+        //"README.md",
+    },
+}
