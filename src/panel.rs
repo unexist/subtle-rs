@@ -317,9 +317,7 @@ impl Panel {
             panel.text_widths.resize(2, Default::default());
         } else if flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else if flags.intersects(PanelFlags::PLUGIN) {
-
-        } else if !flags.intersects(PanelFlags::TRAY) {
+        } else if !flags.intersects(PanelFlags::TRAY | PanelFlags::PLUGIN) {
             debug!("Unhandled panel type: {:?}", flags);
 
             return Err(anyhow!("Unhandled panel type"));
@@ -748,13 +746,14 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
 /// # Arguments
 ///
 /// * `subtle` - Global state object
+/// * `screen` - Referenced screen
 /// * `panel_list` - List of panels
 /// * `is_bottom` - Whether the panel is at the bottom
 ///
 /// # Returns
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-pub(crate) fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
+pub(crate) fn parse(subtle: &Subtle, screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
     let mut flags = PanelFlags::empty();
 
     // Add bottom marker to first panel on bottom panel in linear vec
