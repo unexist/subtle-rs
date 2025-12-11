@@ -7,4 +7,4 @@ tasks:
 
   run:
     cmds:
-      - extism call ./zig-out/bin/time.wasm time
+      - extism call ./zig-out/bin/time.wasm run

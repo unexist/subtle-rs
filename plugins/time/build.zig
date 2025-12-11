@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) !void {
     plugin_example_step.dependOn(b.getInstallStep());
 
     // Run test using extism CLI
-    const args = [_][]const u8{ "extism", "call", plugin.out_filename, "time" };
+    const args = [_][]const u8{ "extism", "call", plugin.out_filename, "run" };
     var run_cmd = b.addSystemCommand(&args);
     run_cmd.step.dependOn(b.getInstallStep());
     run_cmd.cwd = plugin.getEmittedBinDirectory();
