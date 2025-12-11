@@ -28,6 +28,7 @@ use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::font::Font;
 use crate::grab::Grab;
+use crate::plugin::Plugin;
 use crate::screen::Screen;
 use crate::style::{CalcSpacing, Style};
 use crate::tagging::Tagging;
@@ -208,6 +209,9 @@ pub(crate) struct Subtle {
 
     /// View list
     pub(crate) views: Vec<View>,
+
+    /// Plugins list
+    pub(crate) plugins: Vec<Plugin>,
 }
 
 impl Subtle {
@@ -542,6 +546,7 @@ impl Default for Subtle {
             grabs: Vec::new(),
             tags: Vec::new(),
             views: Vec::new(),
+            plugins: Vec::new(),
         }
     }
 }

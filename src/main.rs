@@ -52,6 +52,8 @@ mod spacing;
 mod icon;
 /// Tray module
 mod tray;
+/// Plugin module
+mod plugin;
 
 use std::env;
 use std::env::current_exe;
@@ -156,6 +158,7 @@ fn main() -> Result<()> {
     tag::init(&config, &mut subtle)?;
     view::init(&config, &mut subtle)?;
     grab::init(&config, &mut subtle)?;
+    plugin::init(&config, &mut subtle)?;
 
     drop(config);
 
