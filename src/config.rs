@@ -50,9 +50,6 @@ pub(crate) struct Config {
     #[config_arg(name = "style", multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) styles: Vec<HashMap<String, MixedConfigVal>>,
 
-    #[config_arg(name = "panel", multi_value_behavior = "extend", accept_from = "config_only")]
-    pub(crate) panels: Vec<HashMap<String, MixedConfigVal>>,
-
     #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) gravities: Vec<HashMap<String, MixedConfigVal>>,
 
@@ -64,6 +61,9 @@ pub(crate) struct Config {
 
     #[config_arg(name = "view", multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) views: Vec<HashMap<String, MixedConfigVal>>,
+
+    #[config_arg(name = "plugin", multi_value_behavior = "extend", accept_from = "config_only")]
+    pub(crate) plugins: Vec<HashMap<String, MixedConfigVal>>,
 
     #[config_arg(name = "screen", multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) screens: Vec<HashMap<String, MixedConfigVal>>,
