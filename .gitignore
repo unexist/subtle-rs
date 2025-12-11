@@ -38,6 +38,7 @@ release.properties
 # Zig
 **/zig-cache/*
 **/zig-out/*
+**/.zig-cache/*
 
 # Rust
 **/target/*
