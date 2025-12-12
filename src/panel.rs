@@ -304,21 +304,28 @@ impl Panel {
     /// # Returns
     ///
     /// A [`Result`] with either [`Panel`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn new(flags: PanelFlags) -> Result<Self> {
+    pub(crate) fn new(name: &String) -> Result<Self> {
         let mut panel = Self {
-            flags,
+            flags: PanelFlags::from(name),
             ..Self::default()
         };
 
         // Handle panel types
-        if flags.intersects(PanelFlags::SEPARATOR) {
+        if panel.flags.intersects(PanelFlags::SEPARATOR) {
             panel.text_widths.resize(1, Default::default());
-        } else if flags.intersects(PanelFlags::TITLE) {
+
+            // Separator use its name as a value
+            let idx = if panel.flags.intersects(PanelFlags::LEFT_POS
+                | PanelFlags::CENTER_POS
+                | PanelFlags::RIGHT_POS) { 1 } else { 0 };
+
+            panel.text = Some(name[idx..].to_string());
+        } else if panel.flags.intersects(PanelFlags::TITLE) {
             panel.text_widths.resize(2, Default::default());
-        } else if flags.intersects(PanelFlags::VIEWS) {
+        } else if panel.flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else if !flags.intersects(PanelFlags::TRAY | PanelFlags::PLUGIN) {
-            debug!("Unhandled panel type: {:?}", flags);
+        } else if !panel.flags.intersects(PanelFlags::TRAY | PanelFlags::PLUGIN) {
+            debug!("Unhandled panel type: {:?}", panel.flags);
 
             return Err(anyhow!("Unhandled panel type"));
         }
@@ -739,45 +746,6 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
                        width, subtle.panel_height)?.check()?;
 
     Ok(())
-}
-
-/// Parse panel list
-///
-/// # Arguments
-///
-/// * `subtle` - Global state object
-/// * `screen` - Referenced screen
-/// * `panel_list` - List of panels
-/// * `is_bottom` - Whether the panel is at the bottom
-///
-/// # Returns
-///
-/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-pub(crate) fn parse(subtle: &Subtle, screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
-    let mut flags = PanelFlags::empty();
-
-    // Add bottom marker to first panel on bottom panel in linear vec
-    if is_bottom {
-        flags = PanelFlags::BOTTOM_START_MARKER;
-    }
-
-    for (panel_idx, panel_name) in panel_list.iter().enumerate() {
-
-        // Create panel
-        if let Ok(mut panel) = Panel::new(PanelFlags::from(panel_name) | flags) {
-            // Separator use its name as a value
-            if panel.flags.intersects(PanelFlags::SEPARATOR) {
-                let idx = if panel.flags.intersects(PanelFlags::LEFT_POS
-                    | PanelFlags::CENTER_POS
-                    | PanelFlags::RIGHT_POS) { 1 } else { 0 };
-
-                panel.text = Some(panel_name[idx..].to_string());
-            }
-
-            screen.panels.push(panel);
-            flags.remove(PanelFlags::BOTTOM_START_MARKER);
-        }
-    }
 }
 
 /// Update all panels
