@@ -27,7 +27,7 @@ use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::ClientFlags;
 use crate::ewmh::WMState;
 use crate::panel;
-use crate::panel::{Panel, PanelAction};
+use crate::panel::{Panel, PanelAction, PanelFlags};
 use crate::tagging::Tagging;
 
 bitflags! {
@@ -152,6 +152,37 @@ impl fmt::Display for Screen {
     }
 }
 
+/// Parse panel list
+///
+/// # Arguments
+///
+/// * `screen` - Referenced screen
+/// * `panel_list` - List of panels
+/// * `is_bottom` - Whether the panel is at the bottom
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
+fn parse(screen: &mut Screen, panel_list: &Vec<String>, is_bottom: bool) {
+    let mut flags = PanelFlags::empty();
+
+    // Add bottom marker to first panel on bottom panel in linear vec
+    if is_bottom {
+        flags = PanelFlags::BOTTOM_START_MARKER;
+    }
+
+    for (panel_idx, panel_name) in panel_list.iter().enumerate() {
+
+        // Create panel
+        if let Ok(mut panel) = Panel::new(panel_name) {
+            panel.flags |= flags;
+
+            screen.panels.push(panel);
+            flags.remove(PanelFlags::BOTTOM_START_MARKER);
+        }
+    }
+}
+
 /// Check config and init all screen related options
 ///
 /// # Arguments
@@ -165,7 +196,7 @@ impl fmt::Display for Screen {
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
-    // Check both Xinerama and xrandr, but prefer the latter
+    // Check xrandr support
     if subtle.flags.intersects(SubtleFlags::XRANDR) {
         let default_screen = &conn.setup().roots[subtle.screen_num];
         let crtcs= conn.randr_get_screen_resources_current(default_screen.root)?.reply()?.crtcs;
@@ -181,6 +212,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
     }
 
+    // Check xinerama support, but prefer xrandr
     if subtle.flags.intersects(SubtleFlags::XINERAMA) && subtle.screens.is_empty() {
         if 0 != conn.xinerama_is_active()?.reply()?.state {
             let screens = conn.xinerama_query_screens()?.reply()?.screen_info;
@@ -211,7 +243,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
                 if !top_panels.is_empty() {
-                    panel::parse(screen, top_panels, false);
+                    parse(screen, top_panels, false);
 
                     screen.flags.insert(ScreenFlags::TOP_PANEL);
                 }
@@ -219,7 +251,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
                 if !bottom_panels.is_empty() {
-                    panel::parse(screen, bottom_panels, true);
+                    parse(screen, bottom_panels, true);
 
                     screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
                 }
