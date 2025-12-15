@@ -47,7 +47,7 @@ impl PluginBuilder {
         let url = self.url.clone().context("Url not set")?;
         
         // Load wasm plugin
-        let wasm = Wasm::url(url.clone());
+        let wasm = Wasm::file(url.clone());
         let manifest = Manifest::new([wasm]);
 
         let wasm = extism::Plugin::new(&manifest, [], true)?;
