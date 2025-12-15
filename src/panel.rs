@@ -472,6 +472,11 @@ impl Panel {
             //if subtle.views_style.sep_string.is_some() {
             //    self.width += (subtle.views.len() - 1) as u16 * subtle.views_style.sep_width as u16;
             //}
+        } else if self.flags.intersects(PanelFlags::PLUGIN) {
+            if let Some(plugin) = subtle.plugins.get(self.plugin_id) {
+                plugin.update()?;
+
+            }
         }
 
         debug!("{}: panel={}", function_name!(), self);
