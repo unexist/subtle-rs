@@ -13,7 +13,7 @@ use std::fmt;
 use std::cell::RefCell;
 use std::rc::Rc;
 use extism::{Manifest, Wasm};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use derive_builder::Builder;
 use log::debug;
 use stdext::function_name;
