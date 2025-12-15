@@ -45,12 +45,12 @@ impl PluginBuilder {
     /// A [`Result`] with either [`Plugin`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn build(&self) -> Result<Plugin> {
         let url = self.url.clone().context("Url not set")?;
-        
+
         // Load wasm plugin
         let wasm = Wasm::file(url.clone());
         let manifest = Manifest::new([wasm]);
 
-        let wasm = extism::Plugin::new(&manifest, [], true)?;
+        let plug = extism::Plugin::new(&manifest, [], true)?;
 
         debug!("{}", function_name!());
 
@@ -58,8 +58,7 @@ impl PluginBuilder {
             name: self.name.clone().context("Name not set")?,
             url,
             interval: self.interval.unwrap(),
-            plugin: Rc::new(RefCell::new(
-                extism::Plugin::new(&manifest, [], true)?)),
+            plugin: Rc::new(RefCell::new(plug)),
         })
     }
 }
