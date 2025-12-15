@@ -10,7 +10,8 @@
 //
 
 use std::fmt;
-use std::cell::OnceCell;
+use std::cell::RefCell;
+use std::rc::Rc;
 use extism::{Manifest, Wasm};
 use anyhow::{anyhow, Context, Result};
 use derive_builder::Builder;
@@ -19,17 +20,19 @@ use stdext::function_name;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
-#[derive(Default, Builder, Debug)]
+#[derive(Builder, Debug)]
+#[builder(build_fn(skip))]
 pub(crate) struct Plugin {
     pub(crate) name: String,
     pub(crate) url: String,
     pub(crate) interval: i32,
 
     #[builder(setter(skip))]
-    pub(crate) plugin: OnceCell<extism::Plugin>,
+    pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
 
-impl Plugin {
+impl PluginBuilder {
+
     /// Create a new instance
     ///
     /// # Arguments
@@ -40,34 +43,36 @@ impl Plugin {
     /// # Returns
     ///
     /// A [`Result`] with either [`Plugin`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn new(name: String, url: String) -> Result<Self> {
-        let plugin = Self {
-            name: name.clone(),
-            url: url.clone(),
-            ..Default::default()
-        };
-
+    pub(crate) fn build(&self) -> Result<Plugin> {
+        let url = self.url.clone().context("Url not set")?;
+        
         // Load wasm plugin
-        let wasm_url = Wasm::url(url);
-        let manifest = Manifest::new([wasm_url]);
+        let wasm = Wasm::url(url.clone());
+        let manifest = Manifest::new([wasm]);
 
         let wasm = extism::Plugin::new(&manifest, [], true)?;
 
-        plugin.plugin.set(wasm).map_err(|e| anyhow!("Plugin already set?"))?;
+        debug!("{}", function_name!());
 
-        debug!("{}: plugin={}", function_name!(), plugin);
-
-        Ok(plugin)
+        Ok(Plugin {
+            name: self.name.clone().context("Name not set")?,
+            url,
+            interval: self.interval.unwrap(),
+            plugin: Rc::new(RefCell::new(
+                extism::Plugin::new(&manifest, [], true)?)),
+        })
     }
+}
+
+impl Plugin {
 
     /// Call the run method of the plugin
     ///
     /// # Returns
     ///
     /// A [`Result`] with either [`String`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn update(&mut self) -> Result<String> {
-       let res = self.plugin.get_mut()
-           .context("Plugin not loaded")?.call("run", "")?;
+    pub(crate) fn update(&self) -> Result<String> {
+       let res = self.plugin.borrow_mut().call("run", "")?;
 
         debug!("{}: res={}", function_name!(), res);
 
