@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - tinygo build -target wasi -o fuzzytime.wasm fuzzytime.go
+
+  run:
+    cmds:
+      - extism call ./fuzzytime.wasm run
