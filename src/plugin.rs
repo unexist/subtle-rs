@@ -15,7 +15,7 @@ use std::rc::Rc;
 use extism::{Manifest, Wasm};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
-use log::debug;
+use log::{debug, info};
 use stdext::function_name;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
@@ -111,7 +111,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.url(value.to_string());
         }
 
-        subtle.plugins.push(builder.build()?);
+        // Finally create plugin
+        let plugin = builder.build()?;
+
+        info!("Loaded plugin ({})", plugin.name);
+
+        subtle.plugins.push(plugin);
     }
 
     debug!("{}", function_name!());

@@ -12,7 +12,7 @@
 use std::fmt;
 use std::cell::Cell;
 use bitflags::bitflags;
-use log::debug;
+use log::{debug, info};
 use anyhow::{Context, Result};
 use stdext::function_name;
 use veccell::VecCell;
@@ -270,6 +270,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     }
 
     publish(subtle, true)?;
+
+    info!("Running on {} screen(s)", subtle.screens.len());
 
     debug!("{}", function_name!());
 
