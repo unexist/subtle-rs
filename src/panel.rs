@@ -58,7 +58,7 @@ bitflags! {
         /// Hidden panel
         const HIDDEN = 1 << 11;
 
-        /// Mouse downction
+        /// Mouse down action
         const MOUSE_DOWN = 1 << 12;
         /// Mouse over action
         const MOUSE_OVER = 1 << 13;
