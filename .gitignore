@@ -44,6 +44,9 @@ release.properties
 **/target/*
 proptest-regressions/
 
+# Wasm
+**/*.wasm
+
 # subtle
 build/*
 config.*

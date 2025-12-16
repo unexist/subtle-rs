@@ -19,6 +19,9 @@ target/
 **/target/*
 proptest-regressions/
 
+# Wasm
+**/*.wasm
+
 # subtle
 build/*
 config.*
