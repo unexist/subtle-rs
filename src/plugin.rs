@@ -12,11 +12,13 @@
 use std::fmt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use extism::{Manifest, Wasm};
+use std::time::SystemTime;
+use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
 use log::{debug, info};
 use stdext::function_name;
+use time::{format_description, OffsetDateTime};
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
@@ -30,6 +32,14 @@ pub(crate) struct Plugin {
     #[builder(setter(skip))]
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
+
+host_fn!(get_formatted_time(user_data: (); format: String) -> String {
+    let dt: OffsetDateTime = SystemTime::now().into();
+
+    let parsed_format = format_description::parse(&*format)?;
+
+    Ok(dt.format(&parsed_format)?)
+});
 
 impl PluginBuilder {
 
@@ -50,7 +60,11 @@ impl PluginBuilder {
         let wasm = Wasm::file(url.clone());
         let manifest = Manifest::new([wasm]);
 
-        let plug = extism::Plugin::new(&manifest, [], true)?;
+        let plugin = extism::PluginBuilder::new(&manifest)
+            .with_wasi(true)
+            .with_function("get_formatted_time", [PTR], [PTR],
+                           UserData::default(), get_formatted_time)
+            .build()?;
 
         debug!("{}", function_name!());
 
@@ -58,7 +72,7 @@ impl PluginBuilder {
             name: self.name.clone().context("Name not set")?,
             url,
             interval: self.interval.unwrap(),
-            plugin: Rc::new(RefCell::new(plug)),
+            plugin: Rc::new(RefCell::new(plugin)),
         })
     }
 }
