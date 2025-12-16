@@ -1,26 +1,26 @@
 const std = @import("std");
 const extism_pdk = @import("extism-pdk");
-//const ctime = @cImport(@cInclude("time.h"));
-
-//const warn = @import("std").debug.warn;
 
 const Plugin = extism_pdk.Plugin;
 const alloc = std.heap.wasm_allocator;
 
+pub extern "extism:host/user" fn get_formatted_time(u64) u64;
+
 export fn run() i32 {
     const plugin = Plugin.init(alloc);
 
-    //const curtime = ctime.time(null);
-    //const ltime = ctime.localtime(&curtime);
+    const format = "[hour]:[minute]:[second]";
+    const mem = plugin.allocateBytes(format);
+    defer mem.free();
 
-    //var buf: [40]u8 = undefined;
+    const ptr = get_formatted_time(mem.offset);
+    const rmem = plugin.findMemory(ptr);
 
-    //const format = "%a %b %e %H:%M:%S %Z %Y";
-    //_ = ctime.strftime(&buf, buf.len, format, ltime);
+    const buffer = plugin.allocator.alloc(u8, @intCast(rmem.length)) catch unreachable;
 
-    //warn("{}\n", buf);
+    rmem.load(buffer);
 
-    plugin.output("Ten past one");
+    plugin.outputMemory(rmem);
 
     return 0;
 }
