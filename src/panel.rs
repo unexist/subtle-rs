@@ -322,9 +322,11 @@ impl Panel {
             panel.text = Some(name[idx..].to_string());
         } else if panel.flags.intersects(PanelFlags::TITLE) {
             panel.text_widths.resize(2, Default::default());
+        } else if panel.flags.intersects(PanelFlags::PLUGIN) {
+            panel.text_widths.resize(1, Default::default());
         } else if panel.flags.intersects(PanelFlags::VIEWS) {
             panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else if !panel.flags.intersects(PanelFlags::TRAY | PanelFlags::PLUGIN) {
+        } else if !panel.flags.intersects(PanelFlags::TRAY) {
             debug!("Unhandled panel type: {:?}", panel.flags);
 
             return Err(anyhow!("Unhandled panel type"));
@@ -348,7 +350,23 @@ impl Panel {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
         // Handle panel item type
-        if self.flags.intersects(PanelFlags::SEPARATOR) {
+        if self.flags.intersects(PanelFlags::PLUGIN) {
+            if let Some(plugin) = subtle.plugins.get(self.plugin_id) {
+                if let Ok(res) = plugin.update() {
+                    if let Some(font) = subtle.views_style.get_font(subtle) {
+                        if let Ok((width, _, _)) = font.calc_text_width(conn, &res, false) {
+                            self.text_widths[0] = width;
+                        }
+                    }
+
+                    // Finally update actual length
+                    self.width = self.text_widths[0]
+                        + subtle.views_style.calc_spacing(CalcSpacing::Width) as u16;
+
+                    self.text = Some(res);
+                }
+            }
+        } else if self.flags.intersects(PanelFlags::SEPARATOR) {
             if let Some(text) = &self.text {
                 if let Some(font) = subtle.separator_style.get_font(subtle) {
                     if let Ok((width, _, _)) = font.calc_text_width(conn, &text, false) {
@@ -472,11 +490,6 @@ impl Panel {
             //if subtle.views_style.sep_string.is_some() {
             //    self.width += (subtle.views.len() - 1) as u16 * subtle.views_style.sep_width as u16;
             //}
-        } else if self.flags.intersects(PanelFlags::PLUGIN) {
-            if let Some(plugin) = subtle.plugins.get(self.plugin_id) {
-                plugin.update()?;
-
-            }
         }
 
         debug!("{}: panel={}", function_name!(), self);
@@ -499,12 +512,19 @@ impl Panel {
         // Handle panel item type
         if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
+        } else if self.flags.intersects(PanelFlags::PLUGIN) {
+            self.draw_rect(subtle, subtle.panel_double_buffer,0, self.width, &subtle.views_style)?;
+
+            if let Some(text) = &self.text {
+                self.draw_text(subtle, subtle.panel_double_buffer, 0, &text, &subtle.views_style)?;
+            }
         } else if self.flags.intersects(PanelFlags::SEPARATOR) {
             self.draw_rect(subtle, subtle.panel_double_buffer,0, self.width, &subtle.separator_style)?;
 
             if let Some(text) = &self.text {
                 self.draw_text(subtle, subtle.panel_double_buffer, 0, &text, &subtle.separator_style)?;
             }
+
         } else if self.flags.intersects(PanelFlags::TRAY) {
             self.draw_rect(subtle, subtle.panel_double_buffer, 0, self.width, &subtle.tray_style)?;
         } else if self.flags.intersects(PanelFlags::TITLE) {
