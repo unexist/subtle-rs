@@ -13,7 +13,7 @@ use bitflags::bitflags;
 use anyhow::{Context, Result};
 use easy_min_max::max;
 use hex_color::HexColor;
-use log::debug;
+use log::{debug, warn};
 use stdext::function_name;
 use std::collections::HashMap;
 use x11rb::connection::Connection;
@@ -233,101 +233,6 @@ macro_rules! set_border_width {
     };
 }
 
-impl TryFrom<(&mut Subtle, &HashMap<String, MixedConfigVal>)> for Style {
-    type Error = anyhow::Error;
-
-    fn try_from(value: (&mut Subtle, &HashMap<String, MixedConfigVal>)) -> Result<Self> {
-        let (subtle, style_values) = value;
-
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
-        let default_screen = &conn.setup().roots[subtle.screen_num];
-
-        let mut style = Style::default();
-
-        // We exploit some unused style variables here:
-        // margin <-> client gap
-        // padding <-> client strut
-
-        // Set client border color and width
-        if let Some(MixedConfigVal::S(color_str)) = style_values.get("active") {
-            style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
-        }
-
-        if let Some(MixedConfigVal::S(color_str)) = style_values.get("inactive") {
-            style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
-        }
-
-        if let Some(MixedConfigVal::I(width)) = style_values.get("border_width") {
-            style.border.top = *width as i16;
-        }
-
-        // Set client strut
-        if let Some(val) = style_values.get("strut") {
-            style.padding = Spacing::try_from(val)?;
-        }
-
-        if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
-            style.min_width = *width as i16;
-        }
-
-        // Handle colors
-        if let Some(MixedConfigVal::S(color_str)) = style_values.get("foreground") {
-            style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
-        }
-
-        if let Some(MixedConfigVal::S(color_str)) = style_values.get("background") {
-            style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
-        }
-
-        // Handle border
-        if let Some(MixedConfigVal::S(color_str)) = style_values.get("border_color") {
-            style.top = alloc_color(conn, color_str, default_screen.default_colormap)?;
-            style.right = style.top;
-            style.bottom = style.top;
-            style.left = style.top;
-        }
-
-        set_border_color!(conn, style_values, style, top, default_screen.default_colormap);
-        set_border_color!(conn, style_values, style, right, default_screen.default_colormap);
-        set_border_color!(conn, style_values, style, bottom, default_screen.default_colormap);
-        set_border_color!(conn, style_values, style, left, default_screen.default_colormap);
-
-        if let Some(MixedConfigVal::I(border_width)) = style_values.get("border_width") {
-            style.border.top = *border_width as i16;
-            style.border.right = style.border.top;
-            style.border.bottom = style.border.top;
-            style.border.left = style.border.top;
-        }
-
-        set_border_width!(style_values, style, top);
-        set_border_width!(style_values, style, right);
-        set_border_width!(style_values, style, bottom);
-        set_border_width!(style_values, style, left);
-
-        // Handle padding and margin
-        if let Some(padding) = style_values.get("padding") {
-            style.padding = Spacing::try_from(padding)?;
-        }
-
-        if let Some(margin) = style_values.get("margin") {
-            style.margin = Spacing::try_from(margin)?;
-        }
-
-        // Handle font
-        if let Some(MixedConfigVal::S(font_name)) = style_values.get("font") {
-            let font = Font::new(conn, font_name)?;
-
-            style.font_id = subtle.fonts.len() as isize;
-            style.flags.insert(StyleFlags::FONT);
-
-            subtle.fonts.push(font);
-        }
-
-        Ok(style)
-    }
-}
-
 /// Helper macro to scale value from range to new range
 ///
 /// # Arguments
@@ -368,6 +273,98 @@ fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
                         scale_value!(hex_color.b, 255, 65535))?.reply()?.pixel as i32)
 }
 
+fn parse(subtle: &mut Subtle, style_values: &HashMap<String, MixedConfigVal>, default_value: i32) -> Result<Style> {
+    let conn = subtle.conn.get().context("Failed to get connection")?;
+
+    let default_screen = &conn.setup().roots[subtle.screen_num];
+
+    // Create new style with default value
+    let mut style = Style::default();
+
+    style.reset(default_value);
+
+    // We exploit some unused style variables here:
+    // margin <-> client gap
+    // padding <-> client strut
+
+    // Set client border color and width
+    if let Some(MixedConfigVal::S(color_str)) = style_values.get("active") {
+        style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+    }
+
+    if let Some(MixedConfigVal::S(color_str)) = style_values.get("inactive") {
+        style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+    }
+
+    if let Some(MixedConfigVal::I(width)) = style_values.get("border_width") {
+        style.border.top = *width as i16;
+    }
+
+    // Set client strut
+    if let Some(val) = style_values.get("strut") {
+        style.padding = Spacing::try_from(val)?;
+    }
+
+    if let Some(MixedConfigVal::I(width)) = style_values.get("title_width") {
+        style.min_width = *width as i16;
+    }
+
+    // Handle colors
+    if let Some(MixedConfigVal::S(color_str)) = style_values.get("foreground") {
+        style.fg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+    }
+
+    if let Some(MixedConfigVal::S(color_str)) = style_values.get("background") {
+        style.bg = alloc_color(conn, color_str, default_screen.default_colormap)?;
+    }
+
+    // Handle border
+    if let Some(MixedConfigVal::S(color_str)) = style_values.get("border_color") {
+        style.top = alloc_color(conn, color_str, default_screen.default_colormap)?;
+        style.right = style.top;
+        style.bottom = style.top;
+        style.left = style.top;
+    }
+
+    set_border_color!(conn, style_values, style, top, default_screen.default_colormap);
+    set_border_color!(conn, style_values, style, right, default_screen.default_colormap);
+    set_border_color!(conn, style_values, style, bottom, default_screen.default_colormap);
+    set_border_color!(conn, style_values, style, left, default_screen.default_colormap);
+
+    if let Some(MixedConfigVal::I(border_width)) = style_values.get("border_width") {
+        style.border.top = *border_width as i16;
+        style.border.right = style.border.top;
+        style.border.bottom = style.border.top;
+        style.border.left = style.border.top;
+    }
+
+    set_border_width!(style_values, style, top);
+    set_border_width!(style_values, style, right);
+    set_border_width!(style_values, style, bottom);
+    set_border_width!(style_values, style, left);
+
+    // Handle padding and margin
+    if let Some(padding) = style_values.get("padding") {
+        style.padding = Spacing::try_from(padding)?;
+    }
+
+    if let Some(margin) = style_values.get("margin") {
+        style.margin = Spacing::try_from(margin)?;
+    }
+
+    // Handle font
+    if let Some(MixedConfigVal::S(font_name)) = style_values.get("font") {
+        let font = Font::new(conn, font_name)?;
+
+        style.font_id = subtle.fonts.len() as isize;
+        style.flags.insert(StyleFlags::FONT);
+
+        subtle.fonts.push(font);
+    }
+
+    Ok(style)
+}
+
 /// Check config and init all style related options
 ///
 /// # Arguments
@@ -380,38 +377,22 @@ fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
-    // Reset styles
-    subtle.all_style.reset(0); // Ensure sane base values
-    subtle.views_style.reset(-1);
-    subtle.views_active_style.reset(-1);
-    subtle.views_occupied_style.reset(-1);
-    subtle.views_visible_style.reset(-1);
-    subtle.title_style.reset(-1);
-    subtle.urgent_style.reset(-1);
-    subtle.separator_style.reset(-1);
-    subtle.clients_style.reset(0);
-    subtle.tray_style.reset(0);
-    subtle.top_panel_style.reset(-1);
-    subtle.bottom_panel_style.reset(-1);
-
     for style_values in config.styles.iter() {
         if let Some(MixedConfigVal::S(kind)) = style_values.get("kind") {
-            let style = Style::try_from((&mut *subtle, style_values))?;
-
             match kind.as_str() {
-                "all" => subtle.all_style = style,
-                "views" => subtle.views_style = style,
-                "active_views" => subtle.views_active_style = style,
-                "occupied_views" => subtle.views_occupied_style = style,
-                "visible_views" => subtle.views_visible_style = style,
-                "separator" => subtle.separator_style = style,
-                "top_panel" => subtle.top_panel_style = style,
-                "bottom_panel" => subtle.bottom_panel_style = style,
-                "tray" => subtle.tray_style = style,
-                "urgent" => subtle.urgent_style = style,
-                "clients" => subtle.clients_style = style,
-                "title" => subtle.title_style = style,
-                _ => {}
+                "all" => subtle.all_style = parse(subtle, style_values, 0)?, // Ensure sane base values
+                "views" => subtle.views_style = parse(subtle, style_values, -1)?,
+                "active_views" => subtle.views_active_style = parse(subtle, style_values, -1)?,
+                "occupied_views" => subtle.views_occupied_style = parse(subtle, style_values, -1)?,
+                "visible_views" => subtle.views_visible_style = parse(subtle, style_values, -1)?,
+                "separator" => subtle.separator_style = parse(subtle, style_values, -1)?,
+                "top_panel" => subtle.top_panel_style = parse(subtle, style_values, -1)?,
+                "bottom_panel" => subtle.bottom_panel_style = parse(subtle, style_values, -1)?,
+                "tray" => subtle.tray_style = parse(subtle, style_values, 0)?,
+                "urgent" => subtle.urgent_style = parse(subtle, style_values, -1)?,
+                "clients" => subtle.clients_style = parse(subtle, style_values, 0)?,
+                "title" => subtle.title_style = parse(subtle, style_values, -1)?,
+                _ => warn!("Unknown style kind `{}`", kind),
             }
         }
     }
@@ -420,8 +401,6 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     Ok(())
 }
-
-
 
 /// Helper macro to update spacing
 ///
@@ -466,6 +445,12 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     subtle.separator_style.inherit(&subtle.all_style);
     subtle.top_panel_style.inherit(&subtle.all_style);
     subtle.bottom_panel_style.inherit(&subtle.all_style);
+
+    println!("all_style={:?}", subtle.all_style);
+    println!("views_style={:?}", subtle.views_style);
+    //println!("active_style={:?}", subtle.views_active_style);
+    //println!("occupied_style={:?}", subtle.views_occupied_style);
+    //println!("visible_style={:?}", subtle.views_visible_style);
 
     // Update panel heights
     update_panel_height!(subtle, views_style);
