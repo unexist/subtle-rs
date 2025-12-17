@@ -273,7 +273,7 @@ fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
                         scale_value!(hex_color.b, 255, 65535))?.reply()?.pixel as i32)
 }
 
-fn parse(subtle: &mut Subtle, style_values: &HashMap<String, MixedConfigVal>, default_value: i32) -> Result<Style> {
+fn parse_style(subtle: &mut Subtle, style_values: &HashMap<String, MixedConfigVal>, default_value: i32) -> Result<Style> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
@@ -380,18 +380,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for style_values in config.styles.iter() {
         if let Some(MixedConfigVal::S(kind)) = style_values.get("kind") {
             match kind.as_str() {
-                "all" => subtle.all_style = parse(subtle, style_values, 0)?, // Ensure sane base values
-                "views" => subtle.views_style = parse(subtle, style_values, -1)?,
-                "active_views" => subtle.views_active_style = parse(subtle, style_values, -1)?,
-                "occupied_views" => subtle.views_occupied_style = parse(subtle, style_values, -1)?,
-                "visible_views" => subtle.views_visible_style = parse(subtle, style_values, -1)?,
-                "separator" => subtle.separator_style = parse(subtle, style_values, -1)?,
-                "top_panel" => subtle.top_panel_style = parse(subtle, style_values, -1)?,
-                "bottom_panel" => subtle.bottom_panel_style = parse(subtle, style_values, -1)?,
-                "tray" => subtle.tray_style = parse(subtle, style_values, 0)?,
-                "urgent" => subtle.urgent_style = parse(subtle, style_values, -1)?,
-                "clients" => subtle.clients_style = parse(subtle, style_values, 0)?,
-                "title" => subtle.title_style = parse(subtle, style_values, -1)?,
+                "all" => subtle.all_style = parse_style(subtle, style_values, 0)?, // Ensure sane base values
+                "views" => subtle.views_style = parse_style(subtle, style_values, -1)?,
+                "active_views" => subtle.views_active_style = parse_style(subtle, style_values, -1)?,
+                "occupied_views" => subtle.views_occupied_style = parse_style(subtle, style_values, -1)?,
+                "visible_views" => subtle.views_visible_style = parse_style(subtle, style_values, -1)?,
+                "separator" => subtle.separator_style = parse_style(subtle, style_values, -1)?,
+                "top_panel" => subtle.top_panel_style = parse_style(subtle, style_values, -1)?,
+                "bottom_panel" => subtle.bottom_panel_style = parse_style(subtle, style_values, -1)?,
+                "tray" => subtle.tray_style = parse_style(subtle, style_values, 0)?,
+                "urgent" => subtle.urgent_style = parse_style(subtle, style_values, -1)?,
+                "clients" => subtle.clients_style = parse_style(subtle, style_values, 0)?,
+                "title" => subtle.title_style = parse_style(subtle, style_values, -1)?,
                 _ => warn!("Unknown style kind `{}`", kind),
             }
         }

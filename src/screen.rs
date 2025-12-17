@@ -164,7 +164,7 @@ impl fmt::Display for Screen {
 /// # Returns
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-fn parse(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec<Plugin>, is_bottom: bool) {
+fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec<Plugin>, is_bottom: bool) {
     let mut flags = PanelFlags::empty();
 
     // Add bottom marker to first panel on bottom panel in linear vec
@@ -252,7 +252,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             // Handle panels
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
                 if !top_panels.is_empty() {
-                    parse(screen, top_panels, &subtle.plugins, false);
+                    parse_panels(screen, top_panels, &subtle.plugins, false);
 
                     screen.flags.insert(ScreenFlags::TOP_PANEL);
                 }
@@ -260,7 +260,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
                 if !bottom_panels.is_empty() {
-                    parse(screen, bottom_panels, &subtle.plugins, true);
+                    parse_panels(screen, bottom_panels, &subtle.plugins, true);
 
                     screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
                 }
