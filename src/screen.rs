@@ -179,7 +179,9 @@ fn parse(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec<Plugin
             panel.flags |= flags;
 
             if panel.flags.intersects(PanelFlags::PLUGIN) {
-                if let Some(idx) = plugin_list.iter().position(|p| panel_name.ends_with(&p.name)) {
+                if let Some(idx) = plugin_list.iter()
+                    .position(|p| panel_name.ends_with(&format!("${}", p.name)))
+                {
                     panel.plugin_id = idx;
                 }
             }
