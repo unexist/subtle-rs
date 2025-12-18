@@ -461,7 +461,8 @@ impl Panel {
                 }
 
                 // Ensure min-width
-                self.width += max!(style.min_width as u16, view_width);
+                self.width += max!(style.min_width as u16, view_width)
+                    + style.calc_spacing(CalcSpacing::Right) as u16;
             }
 
             // TODO Add width of view separator if any
