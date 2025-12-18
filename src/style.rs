@@ -273,6 +273,17 @@ fn alloc_color(conn: &RustConnection, color_str: &str, cmap: Colormap) -> Result
                         scale_value!(hex_color.b, 255, 65535))?.reply()?.pixel as i32)
 }
 
+/// Parse style config
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `style_values` - Style values
+/// * `default_value` - Default value for style reset
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn parse_style(subtle: &mut Subtle, style_values: &HashMap<String, MixedConfigVal>, default_value: i32) -> Result<Style> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
