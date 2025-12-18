@@ -457,12 +457,6 @@ pub(crate) fn update(subtle: &mut Subtle) -> Result<()> {
     subtle.top_panel_style.inherit(&subtle.all_style);
     subtle.bottom_panel_style.inherit(&subtle.all_style);
 
-    println!("all_style={:?}", subtle.all_style);
-    println!("views_style={:?}", subtle.views_style);
-    //println!("active_style={:?}", subtle.views_active_style);
-    //println!("occupied_style={:?}", subtle.views_occupied_style);
-    //println!("visible_style={:?}", subtle.views_visible_style);
-
     // Update panel heights
     update_panel_height!(subtle, views_style);
     update_panel_height!(subtle, views_active_style);
