@@ -449,20 +449,19 @@ impl Panel {
                             self.text_widths[view_idx] = width;
                         }
 
-                        view_width += self.text_widths[view_idx]
-                            + style.calc_spacing(CalcSpacing::Left) as u16;
+                        view_width += self.text_widths[view_idx];
 
                         if view.flags.intersects(ViewFlags::MODE_ICON)
                             && let Some(icon) = view.icon.as_ref()
                         {
-                            view_width += icon.width + style.calc_spacing(CalcSpacing::Left) as u16;
+                            view_width += icon.width;
                         }
                     }
                 }
 
                 // Ensure min-width
                 self.width += max!(style.min_width as u16, view_width)
-                    + style.calc_spacing(CalcSpacing::Right) as u16;
+                    + style.calc_spacing(CalcSpacing::Width) as u16;
             }
 
             // TODO Add width of view separator if any
