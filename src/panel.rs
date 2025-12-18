@@ -12,7 +12,7 @@
 use std::fmt;
 use bitflags::bitflags;
 use log::debug;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use easy_min_max::max;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -64,33 +64,6 @@ bitflags! {
         const MOUSE_OVER = 1 << 13;
         /// Mouse out action
         const MOUSE_OUT = 1 << 14;
-    }
-}
-
-impl From<&String> for PanelFlags {
-    fn from(value: &String) -> Self {
-        let mut pos_flags = PanelFlags::empty();
-
-        // Handle positional flags
-        if 1 < value.len() {
-            pos_flags = match value.chars().next() {
-                Some('<') => PanelFlags::LEFT_POS,
-                Some('=') => PanelFlags::CENTER_POS,
-                Some('>') => PanelFlags::RIGHT_POS,
-                _ => PanelFlags::empty(),
-            }
-        }
-
-        // Handle actual types
-        let idx = if pos_flags.is_empty() { 0 } else { 1 };
-
-        match &value[idx..] {
-            "title" => PanelFlags::TITLE | pos_flags,
-            "views" => PanelFlags::VIEWS | pos_flags,
-            "tray" => PanelFlags::TRAY | pos_flags,
-            panel if panel.starts_with("$") => PanelFlags::PLUGIN | pos_flags,
-            _ => PanelFlags::SEPARATOR | pos_flags
-        }
     }
 }
 
@@ -305,32 +278,40 @@ impl Panel {
     ///
     /// A [`Result`] with either [`Panel`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn new(name: &String) -> Result<Self> {
-        let mut panel = Self {
-            flags: PanelFlags::from(name),
-            ..Self::default()
+        let mut panel = Panel::default();
+
+        // Handle positional flags
+        let (pos_flags, pos_idx) = if 1 < name.len() {
+            match name.chars().next() {
+                Some('<') => (PanelFlags::LEFT_POS, 1),
+                Some('=') => (PanelFlags::CENTER_POS, 1),
+                Some('>') => (PanelFlags::RIGHT_POS, 1),
+                _ => (PanelFlags::empty(), 0)
+            }
+        } else {
+            (PanelFlags::empty(), 0)
         };
 
         // Handle panel types
-        if panel.flags.intersects(PanelFlags::SEPARATOR) {
-            panel.text_widths.resize(1, Default::default());
-
-            // Separator use its name as a value
-            let idx = if panel.flags.intersects(PanelFlags::LEFT_POS
-                | PanelFlags::CENTER_POS
-                | PanelFlags::RIGHT_POS) { 1 } else { 0 };
-
-            panel.text = Some(name[idx..].to_string());
-        } else if panel.flags.intersects(PanelFlags::TITLE) {
-            panel.text_widths.resize(2, Default::default());
-        } else if panel.flags.intersects(PanelFlags::PLUGIN) {
-            panel.text_widths.resize(1, Default::default());
-        } else if panel.flags.intersects(PanelFlags::VIEWS) {
-            panel.flags.insert(PanelFlags::MOUSE_DOWN);
-        } else if !panel.flags.intersects(PanelFlags::TRAY) {
-            debug!("Unhandled panel type: {:?}", panel.flags);
-
-            return Err(anyhow!("Unhandled panel type"));
-        }
+        match &name[pos_idx..] {
+            "tray" => panel.flags = PanelFlags::TRAY | pos_flags,
+            "title" => {
+                panel.flags = PanelFlags::TITLE | pos_flags;
+                panel.text_widths.resize(2, Default::default());
+            },
+            "views" => {
+                panel.flags = PanelFlags::VIEWS | PanelFlags::MOUSE_DOWN | pos_flags;
+            },
+            plug_name if plug_name.starts_with("$") => {
+                panel.flags = PanelFlags::PLUGIN | pos_flags;
+                panel.text_widths.resize(1, Default::default());
+            },
+            _ => {
+                panel.flags = PanelFlags::SEPARATOR | pos_flags;
+                panel.text_widths.resize(1, Default::default());
+                panel.text = Some(name[pos_idx..].to_string());
+            }
+        };
 
         debug!("{}: panel={}", function_name!(), panel);
 
