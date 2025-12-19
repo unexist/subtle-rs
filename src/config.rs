@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) enum MixedConfigVal {
     S(String),
     VI(Vec<i32>),
+    VVI(Vec<Vec<i32>>),
     VS(Vec<String>),
     M(HashMap<String, Vec<String>>),
     I(i32),
