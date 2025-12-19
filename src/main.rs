@@ -53,6 +53,7 @@ mod icon;
 /// Tray module
 mod tray;
 /// Plugin module
+#[cfg(feature = "plugins")]
 mod plugin;
 
 use std::env;
