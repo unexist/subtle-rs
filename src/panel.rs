@@ -523,13 +523,7 @@ impl Panel {
                     self.draw_text(subtle, subtle.panel_double_buffer, 0,
                                    &mode_str, &subtle.title_style)?;
 
-                    // TODO: CACHE!
-                    if let Some(font) = subtle.title_style.get_font(subtle) {
-                        // Cache length of mode string
-                        if let Ok((width, _, _)) = font.calc_text_width(conn, &mode_str, false) {
-                            offset_x += width;
-                        }
-                    }
+                    offset_x += self.text_widths[0];
 
                     self.draw_text(subtle, subtle.panel_double_buffer, offset_x,
                                    &focus_client.name, &subtle.title_style)?;
