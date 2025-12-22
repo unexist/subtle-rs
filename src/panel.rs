@@ -511,7 +511,7 @@ impl Panel {
                 if focus_client.is_alive() && focus_client.is_visible(subtle)
                     && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
-                    let mut offset_x = subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
+                    let mut offset_x = 0; //subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
 
                     // Set window background and border
                     self.draw_rect(subtle, subtle.panel_double_buffer, 0,
@@ -523,7 +523,10 @@ impl Panel {
                     self.draw_text(subtle, subtle.panel_double_buffer, 0,
                                    &mode_str, &subtle.title_style)?;
 
-                    offset_x += self.text_widths[0];
+                    if 0 < self.text_widths[0] {
+                        offset_x += self.text_widths[0]
+                            + subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
+                    }
 
                     self.draw_text(subtle, subtle.panel_double_buffer, offset_x,
                                    &focus_client.name, &subtle.title_style)?;
