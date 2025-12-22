@@ -12,7 +12,6 @@
 use std::fmt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::time::SystemTime;
 use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
 use derive_builder::Builder;
@@ -34,7 +33,7 @@ pub(crate) struct Plugin {
 }
 
 host_fn!(get_formatted_time(user_data: (); format: String) -> String {
-    let dt: OffsetDateTime = SystemTime::now().into();
+    let dt = OffsetDateTime::now_local()?;
 
     let parsed_format = format_description::parse(&*format)?;
 
