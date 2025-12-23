@@ -14,3 +14,4 @@ tagging rules in the config.
 
 - https://subtle.de
 - https://subtle.rs
+- https://extism.org
