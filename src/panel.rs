@@ -512,7 +512,7 @@ impl Panel {
                 if focus_client.is_alive() && focus_client.is_visible(subtle)
                     && !focus_client.flags.intersects(ClientFlags::TYPE_DESKTOP)
                 {
-                    let mut offset_x = 0; //subtle.title_style.calc_spacing(CalcSpacing::Left) as u16;
+                    let mut offset_x = 0;
 
                     // Set window background and border
                     self.draw_rect(subtle, subtle.panel_double_buffer, 0,
