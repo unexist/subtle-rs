@@ -838,7 +838,6 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     while !subtle.shutdown.load(atomic::Ordering::SeqCst) {
         conn.flush()?;
 
-
         if let Ok(event) = conn.wait_for_event() {
             match event {
                 Event::ButtonPress(evt) => handle_button_press(subtle, evt)?,
