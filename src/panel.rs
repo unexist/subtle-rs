@@ -85,6 +85,7 @@ pub(crate) struct Panel {
     pub(crate) x: i16,
     pub(crate) width: u16,
     pub(crate) screen_idx: usize,
+    #[cfg(feature = "plugins")]
     pub(crate) plugin_idx: usize,
     pub(crate) text: Option<String>,
     pub(crate) text_widths: Vec<u16>,

@@ -154,6 +154,7 @@ fn main() -> Result<()> {
     display::init(&config, &mut subtle)?;
     ewmh::init(&config, &mut subtle)?;
     style::init(&config, &mut subtle)?;
+    #[cfg(feature = "plugins")]
     plugin::init(&config, &mut subtle)?; // Must be before screen init
     screen::init(&config, &mut subtle)?;
     gravity::init(&config, &mut subtle)?;
