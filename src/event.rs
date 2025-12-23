@@ -100,7 +100,7 @@ fn handle_button_press(subtle: &Subtle, event: ButtonPressEvent) -> Result<()> {
 /// # Returns
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-fn handle_configure_notify(subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
+fn handle_configure_notify(_subtle: &Subtle, event: ConfigureNotifyEvent) -> Result<()> {
     debug!("{}: win={}", function_name!(), event.window);
 
     Ok(())
@@ -131,7 +131,7 @@ fn handle_configure_request(subtle: &Subtle, event: ConfigureRequestEvent) -> Re
             && subtle.flags.contains(SubtleFlags::RESIZE)
             || client.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_RESIZE)
         {
-            let maybe_screen = subtle.screens.get(client.screen_idx as usize);
+            let _maybe_screen = subtle.screens.get(client.screen_idx as usize);
         }
     // Unmanaged window
     } else {
@@ -440,7 +440,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
             GrabFlags::WINDOW_RESTACK => {
                 if let Some(mut focus_client) = subtle.find_focus_client_mut() {
                     if let GrabAction::Index(order) = grab.action {
-                        focus_client.restack(subtle, RestackOrder::from_repr(order as u8)
+                        focus_client.restack(RestackOrder::from_repr(order as u8)
                             .context("Unknown order")?)?;
 
                         drop(focus_client);

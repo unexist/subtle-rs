@@ -621,8 +621,8 @@ impl Panel {
     /// # Returns
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, is_bottom: bool) -> Result<()> {
-        if let &PanelAction::MouseDown(x, y, button) = action {
+    pub(crate) fn handle_action(&self, subtle: &Subtle, action: &PanelAction, _is_bottom: bool) -> Result<()> {
+        if let &PanelAction::MouseDown(x, _y, _button) = action {
 
             // Check if x is in boundry box of panel
             if x >= self.x && x <= self.x + self.width as i16 {
@@ -759,7 +759,6 @@ pub(crate) fn resize_double_buffer(subtle: &Subtle) -> Result<()> {
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn update(subtle: &Subtle) -> Result<()> {
-    let conn = subtle.conn.get().unwrap();
 
     // Update screens
     for screen in subtle.screens.iter() {

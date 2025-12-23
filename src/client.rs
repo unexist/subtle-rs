@@ -219,7 +219,7 @@ impl Client {
         // Init gravities
         let grav = get_default_gravity(subtle);
 
-        for i in 0..subtle.views.len() {
+        for _i in 0..subtle.views.len() {
             client.gravities.push(grav as usize);
         }
 
@@ -617,7 +617,7 @@ impl Client {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
-        let hints = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
+        let _hints = conn.get_property(false, self.win, atoms._MOTIF_WM_HINTS,
                                       atoms._MOTIF_WM_HINTS, 0, 1)?.reply()?.value;
 
         // TODO
@@ -991,7 +991,7 @@ impl Client {
         ignore_if_dead!(self);
 
         // Update flags and tags
-        if let Some(tag) = subtle.tags.get(tag_idx) {
+        if let Some(_tag) = subtle.tags.get(tag_idx) {
             self.tags |= Tagging::from_bits_retain(1 << tag_idx);
         }
 
@@ -1203,9 +1203,6 @@ impl Client {
         }
 
         if !self.flags.contains(ClientFlags::MODE_FULL | ClientFlags::TYPE_DOCK) {
-            let mut max_x = 0;
-            let mut max_y = 0;
-
             if !self.flags.contains(ClientFlags::MODE_FIXED) {
                 if geom.width > bounds.width {
                     geom.width = bounds.width;
@@ -1217,8 +1214,8 @@ impl Client {
             }
 
             // Check whether window fits into bounds
-            max_x = bounds.x + bounds.width as i16;
-            max_y = bounds.y + bounds.height as i16;
+            let max_x = bounds.x + bounds.width as i16;
+            let max_y = bounds.y + bounds.height as i16;
 
             // Check x and center
             if geom.x < bounds.x || geom.x > max_x || geom.x + geom.width as i16  > max_x {
@@ -1251,13 +1248,12 @@ impl Client {
     ///
     /// # Arguments
     ///
-    /// * `subtle` - Global state object
     /// * `order` - Sorting / restacking order
     ///
     /// # Returns
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn restack(&mut self, subtle: &Subtle, order: RestackOrder) -> Result<()> {
+    pub(crate) fn restack(&mut self, order: RestackOrder) -> Result<()> {
         self.order = order;
 
         debug!("{}: client={}", function_name!(), self);
@@ -1556,7 +1552,7 @@ impl Client {
            ewmh::send_message(subtle, self.win, atoms.WM_PROTOCOLS,
                               &[atoms.WM_DELETE_WINDOW, CURRENT_TIME, 0, 0, 0])?;
         } else {
-            let screen_idx = if let Some(focus_client) = subtle.find_focus_client()
+            let _screen_idx = if let Some(focus_client) = subtle.find_focus_client()
                 && focus_client.win == self.win { self.screen_idx } else { -1 };
 
             // Kill it manually
@@ -1938,7 +1934,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
     'dragging: loop {
         if let Ok(event) = conn.wait_for_event() {
             match event {
-                Event::ButtonRelease(evt) => {
+                Event::ButtonRelease(_evt) => {
                     break 'dragging;
                 },
                 Event::MotionNotify(evt) => {
@@ -2088,7 +2084,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let mut wins: Vec<u32> = Vec::with_capacity(clients.len());
 
     // Sort clients from top to bottom
-    for (client_idx, client) in clients.iter().enumerate() {
+    for (_client_idx, client) in clients.iter().enumerate() {
         wins.push(client.win);
     }
 

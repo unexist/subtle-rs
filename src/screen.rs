@@ -173,7 +173,7 @@ fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec
         flags = PanelFlags::BOTTOM_START_MARKER;
     }
 
-    for (panel_idx, panel_name) in panel_list.iter().enumerate() {
+    for (_panel_idx, panel_name) in panel_list.iter().enumerate() {
 
         // Create panel
         if let Ok(mut panel) = Panel::new(panel_name) {
@@ -445,8 +445,6 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn resize(subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
-
-    let default_screen = &conn.setup().roots[subtle.screen_num];
 
     for screen in subtle.screens.iter_mut() {
 

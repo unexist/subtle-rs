@@ -107,7 +107,7 @@ impl Tray {
         conn.change_save_set(SetMode::INSERT, win)?;
 
         // X Properties
-        let geom_reply = conn.get_geometry(win)?.reply()?;
+        let _geom_reply = conn.get_geometry(win)?.reply()?;
 
         let aux = ChangeWindowAttributesAux::default()
             .event_mask(EventMask::STRUCTURE_NOTIFY
@@ -171,7 +171,7 @@ impl Tray {
             }
 
             // User/program size
-            if let Some((hint_spec, x, y)) = size_hints.size {
+            if let Some((hint_spec, x, _y)) = size_hints.size {
                 match hint_spec {
                     WmSizeHintsSpecification::UserSpecified | WmSizeHintsSpecification::ProgramSpecified => {
                         self.width = max!(x as u16, subtle.panel_height * 2);
@@ -306,7 +306,7 @@ impl Tray {
         let xembed_info = conn.get_property(false, self.win, atoms._XEMBED_INFO,
             atoms._XEMBED_INFO, 0, 2)?.reply()?.value;
 
-        if let Some(xembed_flags) = xembed_info.first() {
+        if let Some(_xembed_flags) = xembed_info.first() {
             opcode = XEmbed::WindowActivate;
 
             conn.map_window(self.win)?.check()?;
@@ -374,7 +374,6 @@ impl Tray {
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn kill(&self, subtle: &Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
-        let atoms = subtle.atoms.get().unwrap();
 
         // Ignore further events
         conn.change_window_attributes(self.win, &ChangeWindowAttributesAux::default()

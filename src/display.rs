@@ -111,12 +111,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
     subtle.move_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.move_cursor, font_wrapper.font(), font_wrapper.font(),
-                             XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
+                             XC_DOTBOX, XC_DOTBOX + 1, 0, 0, 0,
                              u16::MAX, u16::MAX, u16::MAX)?.check()?;
 
     subtle.resize_cursor = conn.generate_id()?;
     conn.create_glyph_cursor(subtle.resize_cursor, font_wrapper.font(), font_wrapper.font(),
-                             XC_LEFT_PTR, XC_LEFT_PTR + 1, 0, 0, 0,
+                             XC_SIZING, XC_SIZING + 1, 0, 0, 0,
                              u16::MAX, u16::MAX, u16::MAX)?.check()?;
 
     drop(font_wrapper);
@@ -137,7 +137,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     subtle.width = conn.setup().roots[screen_num].width_in_pixels;
     subtle.height = conn.setup().roots[screen_num].height_in_pixels;
     subtle.screen_num = screen_num;
-    subtle.conn.set(conn).map_err(|e| anyhow!("Connection already set?"))?;
+    subtle.conn.set(conn).map_err(|_e| anyhow!("Connection already set?"))?;
 
     info!("Display ({}) is {}x{}", config.display, subtle.width, subtle.height);
 
@@ -301,7 +301,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     // EWMH: Supported hints
     let mut supported_atoms: Vec<u32> = Vec::with_capacity(atoms.iter().len());
 
-    for (field_name, field_value) in atoms.iter() {
+    for (_field_name, field_value) in atoms.iter() {
         let maybe_atom = (&*field_value).downcast_ref::<u32>();
 
         if let Some(atom) = maybe_atom {
