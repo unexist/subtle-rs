@@ -350,7 +350,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
                     visible_tags.insert(view.tags);
                     visible_views.insert(Tagging::from_bits_retain(1 << screen.view_idx.get() + 1));
 
-                    if visible_tags.intersects(client.tags) ||
+                    if view.tags.intersects(client.tags) ||
                         client.flags.intersects(ClientFlags::MODE_STICK | ClientFlags::TYPE_DESKTOP)
                     {
                         // Keep screen when sticky
