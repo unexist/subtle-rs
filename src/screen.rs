@@ -247,25 +247,30 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Load screen config
     for (screen_idx, values) in config.screens.iter().enumerate() {
         // Handle virtual screens
-        if let Some(MixedConfigVal::VVI(vgeoms)) = values.get("virtual") {
-            let screen = subtle.screens.get_mut(screen_idx).context("Cannot get screen?")?;
+        if let Some(MixedConfigVal::VVI(virtuals)) = values.get("virtual") {
+            let orig_geom = subtle.screens.get(screen_idx).context("Cannot get screen?")?.geom;
 
-            for (vgeom_idx, vgeom) in vgeoms.iter().enumerate() {
-                let geom = Rectangle {
-                    x: screen.geom.x + (screen.geom.width as i16 * vgeom[0] as i16 / 100),
-                    y: screen.geom.y + (screen.geom.height as i16 * vgeom[1] as i16 / 100),
-                    width: screen.geom.width * vgeom[2] as u16 / 100,
-                    height: screen.geom.height * vgeom[3] as u16 / 100,
+            for (virt_idx, virt_geom_ary) in virtuals.iter().enumerate() {
+                let calc_geom = Rectangle {
+                    x: orig_geom.x + (orig_geom.width as i16 * virt_geom_ary[0] as i16 / 100),
+                    y: orig_geom.y + (orig_geom.height as i16 * virt_geom_ary[1] as i16 / 100),
+                    width: orig_geom.width * virt_geom_ary[2] as u16 / 100,
+                    height: orig_geom.height * virt_geom_ary[3] as u16 / 100,
                 };
 
                 // Update original screen or split into virtual one
-                if 0 == vgeom_idx {
-                    screen.geom = geom;
-                } else {
-                    /*let mut vscreen = Screen::new(subtle, geom.x, geom.y, geom.width, geom.height)?;
+                if 0 < virt_idx {
+                    let mut vscreen = Screen::new(subtle, calc_geom.x, calc_geom.y,
+                                                  calc_geom.width, calc_geom.height)?;
 
                     vscreen.flags.insert(ScreenFlags::VIRTUAL);
-                    subtle.screens.push(vscreen);*/
+                    subtle.screens.push(vscreen);
+                } else {
+                    let orig_screen = subtle.screens
+                        .get_mut(screen_idx).context("Cannot get screen?")?;
+
+                    orig_screen.geom = calc_geom;
+                    orig_screen.base = calc_geom;
                 }
             }
         }
