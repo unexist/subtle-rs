@@ -84,8 +84,8 @@ pub(crate) struct Panel {
     pub(crate) flags: PanelFlags,
     pub(crate) x: i16,
     pub(crate) width: u16,
-    pub(crate) screen_id: usize,
-    pub(crate) plugin_id: usize,
+    pub(crate) screen_idx: usize,
+    pub(crate) plugin_idx: usize,
     pub(crate) text: Option<String>,
     pub(crate) text_widths: Vec<u16>,
 }
@@ -107,7 +107,7 @@ impl Panel {
         style.reset(-1);
 
         // Pick base style
-        if let Some(current_screen) = subtle.screens.get(self.screen_id) {
+        if let Some(current_screen) = subtle.screens.get(self.screen_idx) {
             if current_screen.view_idx.get() == view_idx as isize {
                 style.inherit(&subtle.views_active_style);
             } else if subtle.client_tags.get().intersects(view.tags) {
@@ -332,7 +332,7 @@ impl Panel {
 
         // Handle panel item type
         if self.flags.intersects(PanelFlags::PLUGIN) {
-            if let Some(plugin) = subtle.plugins.get(self.plugin_id) {
+            if let Some(plugin) = subtle.plugins.get(self.plugin_idx) {
                 if let Ok(res) = plugin.update() {
                     if let Some(font) = subtle.views_style.get_font(subtle) {
                         if let Ok((width, _, _)) = font.calc_text_width(conn, &res, false) {
@@ -658,7 +658,7 @@ impl Panel {
 
                         // Check if x is in view rect
                         if x >= offset_x && x <= offset_x + view_width {
-                            view.focus(subtle, self.screen_id, true, false)?;
+                            view.focus(subtle, self.screen_idx, true, false)?;
 
                             break;
                         }
@@ -683,7 +683,7 @@ impl Panel {
 impl fmt::Display for Panel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "x={}, width={}, screen_id={}, text={:?}, text_width={:?}, flags={:?})",
-               self.x, self.width, self.screen_id, self.text, self.text_widths, self.flags)
+               self.x, self.width, self.screen_idx, self.text, self.text_widths, self.flags)
     }
 }
 
