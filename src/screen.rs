@@ -159,12 +159,13 @@ impl fmt::Display for Screen {
 ///
 /// * `screen` - Referenced screen
 /// * `panel_list` - List of panels
+/// * `screen_idx` - Screen index
 /// * `is_bottom` - Whether the panel is at the bottom
 ///
 /// # Returns
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec<Plugin>, is_bottom: bool) {
+fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec<Plugin>, screen_idx: usize,  is_bottom: bool) {
     let mut flags = PanelFlags::empty();
 
     // Add bottom marker to first panel on bottom panel in linear vec
@@ -177,12 +178,13 @@ fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec
         // Create panel
         if let Ok(mut panel) = Panel::new(panel_name) {
             panel.flags |= flags;
+            panel.screen_idx = screen_idx;
 
             if panel.flags.intersects(PanelFlags::PLUGIN) {
                 if let Some(idx) = plugin_list.iter()
                     .position(|p| panel_name.ends_with(&format!("${}", p.name)))
                 {
-                    panel.plugin_id = idx;
+                    panel.plugin_idx = idx;
                 }
             }
 
@@ -279,7 +281,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         if let Some(screen) = subtle.screens.get_mut(screen_idx) {
             if let Some(MixedConfigVal::VS(top_panels)) = values.get("top_panel") {
                 if !top_panels.is_empty() {
-                    parse_panels(screen, top_panels, &subtle.plugins, false);
+                    parse_panels(screen, top_panels, &subtle.plugins, screen_idx, false);
 
                     screen.flags.insert(ScreenFlags::TOP_PANEL);
                 }
@@ -287,7 +289,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
             if let Some(MixedConfigVal::VS(bottom_panels)) = values.get("bottom_panel") {
                 if !bottom_panels.is_empty() {
-                    parse_panels(screen, bottom_panels, &subtle.plugins, true);
+                    parse_panels(screen, bottom_panels, &subtle.plugins, screen_idx, true);
 
                     screen.flags.insert(ScreenFlags::BOTTOM_PANEL);
                 }
