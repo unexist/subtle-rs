@@ -12,6 +12,7 @@
 use anyhow::{Context, Result};
 use std::sync::atomic;
 use std::sync::atomic::Ordering;
+use std::process::{Command, Stdio};
 use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -512,6 +513,17 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
             GrabFlags::SUBTLE_QUIT => {
                 subtle.shutdown.store(true, Ordering::Relaxed);
             },
+
+            GrabFlags::COMMAND => {
+                if let GrabAction::Command(cmd) = &grab.action {
+                    println!("{}: command={}", function_name!(), cmd);
+
+                    Command::new(cmd)
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .spawn()?;
+                }
+            }
 
             _ => {},
         }
