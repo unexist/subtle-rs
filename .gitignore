@@ -44,6 +44,10 @@ release.properties
 **/target/*
 proptest-regressions/
 
+# Node
+**/dist/
+**/node_modules/
+
 # Wasm
 **/*.wasm
 
