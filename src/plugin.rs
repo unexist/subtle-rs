@@ -32,15 +32,34 @@ pub(crate) struct Plugin {
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
 
-host_fn!(get_formatted_time(user_data: (); format: String) -> String {
-    let dt = OffsetDateTime::now_local()?;
-
-    let parsed_format = format_description::parse(&*format)?;
-
-    Ok(dt.format(&parsed_format)?)
-});
-
 impl PluginBuilder {
+
+    host_fn!(get_formatted_time(_user_data: (); format: String) -> String {
+        let dt = OffsetDateTime::now_local()?;
+
+        let parsed_format = format_description::parse(&*format)?;
+
+        Ok(dt.format(&parsed_format)?)
+    });
+
+    host_fn!(get_memory(_user_data: ()) -> String {
+        let contents = std::fs::read_to_string("/proc/meminfo")?;
+
+        let mem_available = contents.lines()
+            .find(|line| line.starts_with("MemAvailable"))
+            .and_then(|l| l.split(" ").nth(3))
+            .context("Cannot read available memory")?;
+        let mem_total = contents.lines()
+            .find(|line| line.starts_with("MemTotal"))
+            .and_then(|line| line.split(" ").nth(7))
+            .context("Cannot read total memory")?;
+        let mem_free = contents.lines()
+            .find(|line| line.starts_with("MemFree"))
+            .and_then(|line| line.split(" ").nth(8))
+            .context("Cannot read free memory")?;
+
+       Ok(format!("{}, {}, {}", mem_total, mem_available, mem_free))
+    });
 
     /// Create a new instance
     ///
@@ -62,7 +81,9 @@ impl PluginBuilder {
         let plugin = extism::PluginBuilder::new(&manifest)
             .with_wasi(true)
             .with_function("get_formatted_time", [PTR], [PTR],
-                           UserData::default(), get_formatted_time)
+                           UserData::default(), Self::get_formatted_time)
+            .with_function("get_memory", [PTR], [PTR],
+                           UserData::default(), Self::get_memory)
             .build()?;
 
         debug!("{}", function_name!());
