@@ -516,7 +516,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
             GrabFlags::COMMAND => {
                 if let GrabAction::Command(cmd) = &grab.action {
-                    println!("{}: command={}", function_name!(), cmd);
+                    debug!("{}: command={}", function_name!(), cmd);
 
                     Command::new(cmd)
                         .stdout(Stdio::null())
