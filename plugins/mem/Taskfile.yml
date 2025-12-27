@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - npm run build
+      - mv ./dist/plugin.wasm ./dist/mem.wasm
+
+  run:
+    cmds:
+      - extism call ./dst/mem.wasm run --wasi
