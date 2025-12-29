@@ -17,12 +17,12 @@ use log::{debug, warn};
 use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::CURRENT_TIME;
-use x11rb::protocol::xproto::{ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
+use x11rb::protocol::xproto::{Atom, ButtonPressEvent, ClientMessageEvent, ConfigureNotifyEvent, ConfigureRequestEvent, ConfigureWindowAux, ConnectionExt, DestroyNotifyEvent, EnterNotifyEvent, ExposeEvent, FocusInEvent, KeyPressEvent, LeaveNotifyEvent, MapNotifyEvent, MapRequestEvent, Mapping, MappingNotifyEvent, ModMask, PropertyNotifyEvent, SelectionClearEvent, UnmapNotifyEvent, Window};
 use x11rb::protocol::Event;
 use crate::subtle::{SubtleFlags, Subtle};
 use crate::client::{Client, ClientFlags, DragMode, RestackOrder};
 use crate::{client, display, ewmh, grab, panel, screen, tray};
-use crate::ewmh::WMState;
+use crate::ewmh::{Atoms, WMState};
 use crate::grab::{DirectionOrder, GrabAction, GrabFlags};
 use crate::panel::PanelAction;
 use crate::tray::{Tray, TrayFlags, XEmbed, XEmbedFocus};
@@ -160,8 +160,40 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
 
     // Check if we know the window
     if default_screen.root == event.window {
-        if atoms.SUBTLE_RELOAD == event.type_ {
+        // ICCCM
+        if atoms._NET_CURRENT_DESKTOP == event.type_ {
+            print!("_NET_CURRENT_DESKTOP");
+        } else if atoms._NET_ACTIVE_WINDOW == event.type_ {
+            print!("_NET_ACTIVE_WINDOW");
+        } else if atoms._NET_RESTACK_WINDOW == event.type_ {
+            print!("_NET_RESTACK_WINDOW");
+
+        // subtle
+        } else if atoms.SUBTLE_CLIENT_TAGS == event.type_ {
+
+        } else if atoms.SUBTLE_CLIENT_RETAG == event.type_ {
+        } else if atoms.SUBTLE_CLIENT_GRAVITY == event.type_ {
+        } else if atoms.SUBTLE_CLIENT_FLAGS == event.type_ {
+
+        } else if atoms.SUBTLE_GRAVITY_NEW == event.type_ {
+        } else if atoms.SUBTLE_GRAVITY_FLAGS == event.type_ {
+        } else if atoms.SUBTLE_GRAVITY_KILL == event.type_ {
+
+        } else if atoms.SUBTLE_SCREEN_JUMP == event.type_ {
+
+        } else if atoms.SUBTLE_TAG_NEW == event.type_ {
+        } else if atoms.SUBTLE_TAG_KILL == event.type_ {
+
+        } else if atoms.SUBTLE_VIEW_NEW == event.type_ {
+        } else if atoms.SUBTLE_VIEW_TAGS == event.type_ {
+        } else if atoms.SUBTLE_VIEW_KILL == event.type_ {
+
+        } else if atoms.SUBTLE_RENDER == event.type_ {
+        } else if atoms.SUBTLE_RELOAD == event.type_ {
             println!("Reload");
+        } else if atoms.SUBTLE_RESTART == event.type_ {
+        } else if atoms.SUBTLE_QUIT == event.type_ {
+
         }
     } else if event.window == subtle.tray_win {
         if atoms._NET_SYSTEM_TRAY_OPCODE == event.type_ {
