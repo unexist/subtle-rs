@@ -162,63 +162,63 @@ fn handle_client_message(subtle: &Subtle, event: ClientMessageEvent) -> Result<(
     if default_screen.root == event.window {
         // ICCCM
         if atoms._NET_CURRENT_DESKTOP == event.type_ {
-            print!("_NET_CURRENT_DESKTOP");
+            println!("_NET_CURRENT_DESKTOP");
         } else if atoms._NET_ACTIVE_WINDOW == event.type_ {
-            print!("_NET_ACTIVE_WINDOW");
+            println!("_NET_ACTIVE_WINDOW");
         } else if atoms._NET_RESTACK_WINDOW == event.type_ {
-            print!("_NET_RESTACK_WINDOW");
+            println!("_NET_RESTACK_WINDOW");
         }
 
         // subtle: Client
         else if atoms.SUBTLE_CLIENT_TAGS == event.type_ {
-            print!("SUBTLE_CLIENT_TAG");
+            println!("SUBTLE_CLIENT_TAG");
         } else if atoms.SUBTLE_CLIENT_RETAG == event.type_ {
-            print!("SUBTLE_CLIENT_RETAG");
+            println!("SUBTLE_CLIENT_RETAG");
         } else if atoms.SUBTLE_CLIENT_GRAVITY == event.type_ {
-            print!("SUBTLE_CLIENT_GRAVITY");
+            println!("SUBTLE_CLIENT_GRAVITY");
         } else if atoms.SUBTLE_CLIENT_FLAGS == event.type_ {
-            print!("SUBTLE_CLIENT_FLAGS");
+            println!("SUBTLE_CLIENT_FLAGS");
         }
 
         // subtle: Gravity
         else if atoms.SUBTLE_GRAVITY_NEW == event.type_ {
-            print!("SUBTLE_GRAVITY_NEW");
+            println!("SUBTLE_GRAVITY_NEW");
         } else if atoms.SUBTLE_GRAVITY_FLAGS == event.type_ {
-            print!("SUBTLE_GRAVITY_FLAGS");
+            println!("SUBTLE_GRAVITY_FLAGS");
         } else if atoms.SUBTLE_GRAVITY_KILL == event.type_ {
-            print!("SUBTLE_GRAVITY_KILL");
+            println!("SUBTLE_GRAVITY_KILL");
         }
 
         // subtle: Screen
         else if atoms.SUBTLE_SCREEN_JUMP == event.type_ {
-            print!("SUBTLE_SCREEN_JUMP");
+            println!("SUBTLE_SCREEN_JUMP");
         }
 
         // subtle:: Tag
         else if atoms.SUBTLE_TAG_NEW == event.type_ {
-            print!("SUBTLE_TAG_NEW");
+            println!("SUBTLE_TAG_NEW");
         } else if atoms.SUBTLE_TAG_KILL == event.type_ {
-            print!("SUBTLE_TAG_KILL");
+            println!("SUBTLE_TAG_KILL");
         }
 
         // subtle: View
         else if atoms.SUBTLE_VIEW_NEW == event.type_ {
-            print!("SUBTLE_VIEW_NEW");
+            println!("SUBTLE_VIEW_NEW");
         } else if atoms.SUBTLE_VIEW_TAGS == event.type_ {
-            print!("SUBTLE_VIEW_TAGS");
+            println!("SUBTLE_VIEW_TAGS");
         } else if atoms.SUBTLE_VIEW_KILL == event.type_ {
-            print!("SUBTLE_VIEW_KILL");
+            println!("SUBTLE_VIEW_KILL");
         }
 
         // subtle: Main
         else if atoms.SUBTLE_RENDER == event.type_ {
-            print!("SUBTLE_RENDER");
+            println!("SUBTLE_RENDER");
         } else if atoms.SUBTLE_RELOAD == event.type_ {
-            print!("SUBTLE_RELOAD");
+            println!("SUBTLE_RELOAD");
         } else if atoms.SUBTLE_RESTART == event.type_ {
-            print!("SUBTLE_RESTART");
+            println!("SUBTLE_RESTART");
         } else if atoms.SUBTLE_QUIT == event.type_ {
-            print!("SUBTLE_QUIT");
+            println!("SUBTLE_QUIT");
         }
     } else if event.window == subtle.tray_win {
         if atoms._NET_SYSTEM_TRAY_OPCODE == event.type_ {
