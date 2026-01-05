@@ -22,6 +22,12 @@ pub(crate) struct Spacing {
 }
 
 impl Spacing {
+    /// Inherit spacing values from another instance
+    ///
+    /// # Arguments
+    ///
+    /// * `other_space` - Other spacing instance
+    /// * `merge` - Whether to merge the values
     pub(crate) fn inherit(&mut self, other_space: &Spacing, merge: bool) {
         // Inherit unset values
         if -1 == self.top || (merge && -1 != other_space.top) {
@@ -41,6 +47,11 @@ impl Spacing {
         }
     }
 
+    /// Reset values to given default value
+    ///
+    /// # Arguments
+    ///
+    /// * `default_value` - Default value to set
     pub(crate) fn reset(&mut self, default_value: i16) {
         // Set values
         self.top = default_value;
