@@ -89,7 +89,7 @@ tasks:
   xephyr:
     aliases: [x]
     cmds:
-      - zsh -c "Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -screen 640x480 -resizeable -reset {{.DISPLAY}} &"
+      - zsh -c "Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -screen 640x480 -resizeable -reset {{.DISPLAY}} &>/dev/null &"
 
   tray:
     cmds:
