@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - cargo build --target wasm32-unknown-unknown
+
+  run:
+    cmds:
+      - extism call ./target/wasm32-unknown-unknown/debug/battery.wasm run

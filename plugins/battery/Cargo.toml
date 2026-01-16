@@ -1,0 +1,20 @@
+[package]
+name = "battery"
+description = "Battery plugin for subtle-rs"
+version = "0.1.0"
+authors = [
+    "Christoph Kappel <christoph@unexist.dev>"
+]
+license-file = "LICENSE"
+homepage = "https://subtle.rs"
+repository = "https://hg.unexist.dev/subtle-rs"
+edition = "2024"
+include = ["/src", "LICENSE"]
+
+[dependencies]
+extism-pdk = "1.4.1"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
