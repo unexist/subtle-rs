@@ -93,6 +93,8 @@ impl PluginBuilder {
                            UserData::default(), Self::get_formatted_time)
             .with_function("get_memory", [PTR], [PTR],
                            UserData::default(), Self::get_memory)
+            .with_function("get_battery", [PTR], [PTR],
+                           UserData::default(), Self::get_battery)
             .build()?;
 
         debug!("{}", function_name!());
