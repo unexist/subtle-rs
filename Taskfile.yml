@@ -2,6 +2,7 @@ version: '3'
 
 env:
   DISPLAY: ':2'
+  ARGS: '--config-file=./debug.toml {{.CLI_ARGS}}'
 
 includes:
   battery:
@@ -51,12 +52,12 @@ tasks:
   # Debug helpers
   debug:
     cmds:
-      - cargo run -- -d {{.DISPLAY}} --replace --debug {{.CLI_ARGS}}
+      - cargo run -- -d {{.DISPLAY}} --replace --debug {{.ARGS}}
 
   valgrind:
     aliases: [v]
     cmds:
-      - cargo valgrind run -- -d {{.DISPLAY}} --replace {{.CLI_ARGS}}
+      - cargo valgrind run -- -d {{.DISPLAY}} --replace {{.ARGS}}
 
   # Cargo helpers
   release:
@@ -77,7 +78,7 @@ tasks:
 
   run:
     cmds:
-      - cargo run -- -d {{.DISPLAY}} {{.CLI_ARGS}}
+      - cargo run -- -d {{.DISPLAY}} {{.ARGS}}
 
   clean:
     cmds:
