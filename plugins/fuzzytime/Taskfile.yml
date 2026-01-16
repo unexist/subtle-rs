@@ -1,10 +1,27 @@
 version: '3'
 
+vars:
+  BINARY: 'fuzzytime'
+  DISTPATH: '.'
+
 tasks:
   build:
     cmds:
-      - tinygo build -target wasi -o fuzzytime.wasm fuzzytime.go
+      - tinygo build -target wasi fuzzytime.go
+
+  optimize:
+    cmds:
+      - wasm-opt -Os {{.DISTPATH}}/{{.BINARY}}.wasm --output ./{{.BINARY}}.wasm
+
+  strip:
+    cmds:
+      - wasm-strip ./{{.BINARY}}.wasm
 
   run:
     cmds:
-      - extism call ./fuzzytime.wasm run
+      - extism call ./{{.BINARY}}-unopt.wasm run
+
+  default:
+    cmds:
+      - task: build
+      - task: optimize

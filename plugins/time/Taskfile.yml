@@ -1,10 +1,28 @@
 version: '3'
 
+vars:
+  BINARY: 'time'
+  DISTPATH: './zig-out/bin'
+
 tasks:
   build:
     cmds:
       - zig build
+      - cp {{.DISTPATH}}/{{.BINARY}}.wasm ./{{.BINARY}}.wasm
+
+  optimize:
+    cmds:
+      - wasm-opt -Os {{.DISTPATH}}/{{.BINARY}}.wasm --output ./{{.BINARY}}.wasm
+
+  strip:
+    cmds:
+      - wasm-strip ./{{.BINARY}}.wasm
 
   run:
     cmds:
-      - extism call ./zig-out/bin/time.wasm run
+      - extism call ./{{.BINARY}}.wasm run
+
+  default:
+    cmds:
+      - task: build
+      - task: optimize

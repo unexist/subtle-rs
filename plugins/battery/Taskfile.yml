@@ -1,10 +1,29 @@
 version: '3'
 
+vars:
+  BINARY: 'battery'
+  DISTPATH: './target/wasm32-unknown-unknown/debug/'
+
 tasks:
   build:
     cmds:
-      - cargo build --target wasm32-unknown-unknown
+      - cargo build --target wasm32-unknown-unknown --release
+
+
+  optimize:
+    cmds:
+      - wasm-opt -Os {{.DISTPATH}}/{{.BINARY}}.wasm --output ./{{.BINARY}}.wasm
+
+  strip:
+    cmds:
+      - wasm-strip ./{{.BINARY}}.wasm
 
   run:
     cmds:
-      - extism call ./target/wasm32-unknown-unknown/debug/battery.wasm run
+      - extism call ./{{.BINARY}}.wasm run
+
+  default:
+    cmds:
+      - task: build
+      - task: optimize
+      - task: strip

@@ -1,11 +1,27 @@
 version: '3'
 
+vars:
+  BINARY: 'mem'
+  DISTPATH: './dist'
+
 tasks:
   build:
     cmds:
       - npm run build
-      - mv ./dist/plugin.wasm ./dist/mem.wasm
+
+  optimize:
+    cmds:
+      - wasm-opt -Os {{.DISTPATH}}/plugin.wasm --output ./{{.BINARY}}.wasm
+
+  strip:
+    cmds:
+      - wasm-strip ./{{.BINARY}}.wasm
 
   run:
     cmds:
-      - extism call ./dst/mem.wasm run --wasi
+      - extism call ./{{.BINARY}}.wasm run --wasi
+
+  default:
+    cmds:
+      - task: build
+      - task: optimize
