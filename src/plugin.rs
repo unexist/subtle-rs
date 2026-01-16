@@ -58,7 +58,16 @@ impl PluginBuilder {
             .and_then(|line| line.split(" ").nth(8))
             .context("Cannot read free memory")?;
 
-       Ok(format!("{}, {}, {}", mem_total, mem_available, mem_free))
+       Ok(format!("{} {} {}", mem_total, mem_available, mem_free))
+    });
+
+    host_fn!(get_battery(_user_data: (); battery_idx: String) -> String {
+        let charge_full = std::fs::read_to_string(
+            format!("/sys/class/power_supply/BAT{}/charge_full", battery_idx))?;
+        let charge_now = std::fs::read_to_string(
+            format!("/sys/class/power_supply/BAT{}/charge_now", battery_idx))?;
+
+        Ok(format!("{} {}", charge_full, charge_now))
     });
 
     /// Create a new instance
