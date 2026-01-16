@@ -12,6 +12,7 @@
 ///
 
 use extism_pdk::*;
+use itertools::Itertools;
 
 #[host_fn("extism:host/user")]
 extern "ExtismHost" {
@@ -20,7 +21,12 @@ extern "ExtismHost" {
 
 #[plugin_fn]
 pub unsafe fn run<'a>() -> FnResult<String> {
-    let output = unsafe { get_battery("0".into())? };
+    let values: String = unsafe { get_battery("0".into())? };
 
-    Ok(output)
+    info!("battery {}", values);
+
+    let (full, charge) = values.split(" ")
+        .filter_map(|v| v.parse::<i32>().ok()).collect_tuple().unwrap();
+
+    Ok(format!("{}%", charge * 100 / full))
 }
