@@ -4,6 +4,18 @@ env:
   DISPLAY: ':2'
 
 includes:
+  battery:
+    taskfile: plugins/battery/Taskfile.yml
+    dir: plugins/battery
+
+  fuzzytime:
+    taskfile: plugins/fuzzytime/Taskfile.yml
+    dir: plugins/fuzzytime
+
+  mem:
+    taskfile: plugins/mem/Taskfile.yml
+    dir: plugins/mem
+
   time:
     taskfile: plugins/time/Taskfile.yml
     dir: plugins/time
