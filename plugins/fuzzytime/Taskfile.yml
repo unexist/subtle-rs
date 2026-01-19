@@ -21,6 +21,10 @@ tasks:
     cmds:
       - extism call ./{{.BINARY}}-unopt.wasm run
 
+  sizes:
+    cmds:
+      - du -shc **/*.wasm
+
   default:
     cmds:
       - task: build
