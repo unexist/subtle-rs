@@ -25,8 +25,8 @@ pub unsafe fn run<'a>() -> FnResult<String> {
 
     info!("battery {}", values);
 
-    let (full, charge) = values.split(" ")
-        .filter_map(|v| v.parse::<i32>().ok()).collect_tuple().unwrap();
+    let (charge_full, charge_now) = values.split(" ")
+        .filter_map(|v| v.parse::<i32>().ok()).collect_tuple().or(Some((1, 0))).unwrap();
 
-    Ok(format!("{}%", charge * 100 / full))
+    Ok(format!("{}%", charge_now * 100 / charge_full))
 }
