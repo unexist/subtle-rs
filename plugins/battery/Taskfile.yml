@@ -2,13 +2,17 @@ version: '3'
 
 vars:
   BINARY: 'battery'
-  DISTPATH: './target/wasm32-unknown-unknown/debug/'
+  DISTPATH: './target/wasm32-unknown-unknown/release/'
 
 tasks:
   build:
     cmds:
       - cargo build --target wasm32-unknown-unknown --release
 
+  debug:
+    cmds:
+      - task: build
+      - cp {{.DISTPATH}}/{{.BINARY}}.wasm .
 
   optimize:
     cmds:
@@ -21,6 +25,10 @@ tasks:
   run:
     cmds:
       - extism call ./{{.BINARY}}.wasm run
+
+  sizes:
+    cmds:
+      - du -shc **/*.wasm
 
   default:
     cmds:
