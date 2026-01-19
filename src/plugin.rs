@@ -67,7 +67,7 @@ impl PluginBuilder {
         let charge_now = std::fs::read_to_string(
             format!("/sys/class/power_supply/BAT{}/charge_now", battery_idx))?;
 
-        Ok(format!("{} {}", charge_full, charge_now))
+        Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
     });
 
     /// Create a new instance
