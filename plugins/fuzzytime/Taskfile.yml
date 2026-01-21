@@ -29,3 +29,4 @@ tasks:
     cmds:
       - task: build
       - task: optimize
+      - task: strip
