@@ -7,7 +7,7 @@ vars:
 tasks:
   build:
     cmds:
-      - zig build
+      - zig build --summary all -Doptimize=ReleaseSmall
       - cp {{.DISTPATH}}/{{.BINARY}}.wasm ./{{.BINARY}}.wasm
 
   optimize:
