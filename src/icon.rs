@@ -34,7 +34,7 @@ pub(crate) struct Icon {
 
 // See here: https://www.collabora.com/news-and-blog/blog/2016/02/16/a-programmers-view-on-digital-images-the-essentials/
 
-fn load_from_file(subtle: &Subtle, bits_per_pixel: usize, filename: &str) -> Result<(Vec<u8>, u16, u16)> {
+fn load_from_file(bits_per_pixel: usize, filename: &str) -> Result<(Vec<u8>, u16, u16)> {
     let text = fs::read_to_string(filename)?;
 
     // Extract width & height
@@ -130,8 +130,8 @@ impl Icon {
             .context("Failed to find pixmap format for depth")?;
         let bits_per_pixel = fmt.bits_per_pixel as usize;
 
-        let (img_data, width, height) = load_from_file(subtle,
-                                                       bits_per_pixel, file_path)?;
+        let (img_data, width, height) =
+            load_from_file(bits_per_pixel, file_path)?;
 
         // Create pixmap and put image
         let pixmap = conn.generate_id()?;
