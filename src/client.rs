@@ -1708,15 +1708,11 @@ impl Client {
 
                 if gravity.flags.contains(GravityFlags::HORZ) {
                     geom.x = geom.x + (pos * calc) as i16;
-                    geom.y = geom.y;
                     geom.width = if pos == used { calc + round_fix } else { calc };
-                    geom.height = geom.height;
 
                     pos += 1;
                 } else if gravity.flags.contains(GravityFlags::VERT) {
-                    geom.x = geom.x;
                     geom.y = geom.y + (pos * calc) as i16;
-                    geom.width = geom.width;
                     geom.height = if pos == used { calc + round_fix } else { calc };
 
                     pos +=1;
