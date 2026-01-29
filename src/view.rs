@@ -49,12 +49,10 @@ pub(crate) struct View {
     pub(crate) flags: ViewFlags,
     /// Current tagging
     pub(crate) tags: Tagging,
-
     /// Name of this view
     pub(crate) name: String,
     /// Regex to match tags
     pub(crate) regex: Option<Regex>,
-
     /// Current win with focus
     pub(crate) focus_win: Cell<Window>,
     /// View icon if any

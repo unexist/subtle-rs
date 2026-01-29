@@ -43,7 +43,6 @@ bitflags! {
 pub(crate) struct Tray {
     /// Config and state-flags
     pub(crate) flags: TrayFlags,
-
     /// Tray win
     pub(crate) win: Window,
     /// Name of the tray

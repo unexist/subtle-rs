@@ -24,16 +24,18 @@ use crate::subtle::Subtle;
 #[derive(Builder, Debug)]
 #[builder(build_fn(skip))]
 pub(crate) struct Plugin {
+    /// Name of the plugin
     pub(crate) name: String,
+    /// URL of the wasm file
     pub(crate) url: String,
+    /// Update interval
     pub(crate) interval: i32,
-
+    /// Extism plugin
     #[builder(setter(skip))]
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
 
 impl PluginBuilder {
-
     host_fn!(get_formatted_time(_user_data: (); format: String) -> String {
         let dt = OffsetDateTime::now_local()?;
 

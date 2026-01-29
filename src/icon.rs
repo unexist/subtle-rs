@@ -17,8 +17,11 @@ use crate::subtle::Subtle;
 
 #[derive(Default, Debug, Clone)]
 pub(crate) struct Icon {
+    /// Icon pixmap
     pub(crate) pixmap: Pixmap,
+    /// Width of the icon
     pub(crate) width: u16,
+    /// Height of the icon
     pub(crate) height: u16,
 }
 

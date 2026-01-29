@@ -33,14 +33,12 @@ bitflags! {
         const IS_MOUSE = 1 << 1;
         /// Run a command
         const COMMAND = 1 << 2;
-
         /// Jump to view
         const VIEW_JUMP = 1 << 3;
         /// Jump to view
         const VIEW_SWITCH = 1 << 4;
         /// Jump to view
         const VIEW_SELECT = 1 << 5;
-
         /// Jump to screen
         const SCREEN_JUMP = 1 << 6;
         /// Reload subtle
@@ -49,7 +47,6 @@ bitflags! {
         const SUBTLE_RESTART = 1 << 8;
         /// Quit subtle
         const SUBTLE_QUIT = 1 << 9;
-
         /// Move window
         const WINDOW_MOVE = 1 << 10;
         /// Resize window

@@ -46,16 +46,19 @@ bitflags! {
 
 #[derive(Debug)]
 pub(crate) struct Screen {
+    /// Config and state-flags
     pub(crate) flags: ScreenFlags,
-
+    /// Current view
     pub(crate) view_idx: Cell<isize>,
-
+    /// Top panel window
     pub(crate) top_panel_win: Window,
+    /// Bottom panel window
     pub(crate) bottom_panel_win: Window,
-
+    /// Screen geometry
     pub(crate) geom: Rectangle,
+    /// Screen base geometry
     pub(crate) base: Rectangle,
-
+    /// Panel list
     pub(crate) panels: VecCell<Panel>,
 }
 

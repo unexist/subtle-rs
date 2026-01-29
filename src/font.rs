@@ -19,8 +19,11 @@ use x11rb::rust_connection::RustConnection;
 
 #[derive(Default, Debug, Clone)]
 pub(crate) struct Font {
+    /// Font reference
     pub(crate) fontable: u32,
+    /// Y offset of the font
     pub(crate) y: u16,
+    /// Height of the font
     pub(crate) height: u16,
 }
 

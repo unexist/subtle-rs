@@ -44,20 +44,16 @@ bitflags! {
         const SEPARATOR = 1 << 5;
         /// Copy type
         const COPY = 1 << 6;
-
         /// Bottom marker
         const BOTTOM_START_MARKER = 1 << 7;
-
         /// Left position
         const LEFT_POS = 1 << 8;
         /// Center position
         const CENTER_POS = 1 << 9;
         /// Right position
         const RIGHT_POS = 1 << 10;
-
         /// Hidden panel
         const HIDDEN = 1 << 11;
-
         /// Mouse down action
         const MOUSE_DOWN = 1 << 12;
         /// Mouse over action

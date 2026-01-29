@@ -35,6 +35,7 @@ bitflags! {
 
 #[derive(Default)]
 pub(crate) struct Gravity {
+    /// Config and state-flags
     pub(crate) flags: GravityFlags,
     pub(crate) name: String,
     pub geom: Rectangle,

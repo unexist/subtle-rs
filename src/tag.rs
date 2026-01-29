@@ -47,7 +47,6 @@ pub(crate) struct Tag {
     pub(crate) name: String,
     /// Regex to match tags
     pub(crate) regex: Option<Regex>,
-
     /// Index of the global screens vector
     pub(crate) screen_id: usize,
     /// Index of the global gravity vector

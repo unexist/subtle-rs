@@ -15,9 +15,13 @@ use crate::config::MixedConfigVal;
 
 #[derive(Default, Debug, PartialEq, Copy, Clone)]
 pub(crate) struct Spacing {
+    /// Top spacing
     pub(crate) top: i16,
+    /// Right spacing
     pub(crate) right: i16,
+    /// Bottom spacing
     pub(crate) bottom: i16,
+    /// Left spacing
     pub(crate) left: i16,
 }
 

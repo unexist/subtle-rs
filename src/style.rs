@@ -46,22 +46,31 @@ pub(crate) enum CalcSpacing {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Style {
+    /// Config and state-flags
     pub(crate) flags: StyleFlags,
-
+    /// Minimum width
     pub(crate) min_width: i16,
-
+    /// Foreground color
     pub(crate) fg: i32,
+    /// Background color
     pub(crate) bg: i32,
+    /// Icon color
     pub(crate) icon: i32,
+    /// Top value
     pub(crate) top: i32,
+    /// Right value
     pub(crate) right: i32,
+    /// Bottom value
     pub(crate) bottom: i32,
+    /// Left value
     pub(crate) left: i32,
-
+    /// Border spacing
     pub(crate) border: Spacing,
+    /// Padding spacing
     pub(crate) padding: Spacing,
+    //// Margin spacing
     pub(crate) margin: Spacing,
-
+    /// Font id
     pub(crate) font_id: isize,
 }
 
