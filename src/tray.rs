@@ -425,7 +425,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let mut wins: Vec<u32> = Vec::with_capacity(trays.len());
 
     // Sort clients from top to bottom
-    for (tray_idx, tray) in trays.iter().enumerate() {
+    for tray in trays.iter() {
         wins.push(tray.win);
     }
 
