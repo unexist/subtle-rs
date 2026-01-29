@@ -64,7 +64,7 @@ bitflags! {
 }
 
 pub(crate) enum PanelAction {
-    MouseOver(i16, i16),
+    _MouseOver(i16, i16),
     MouseDown(i16, i16, i8),
     MouseOut,
 }

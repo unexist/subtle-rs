@@ -80,12 +80,12 @@ pub(crate) enum XEmbed {
 pub(crate) enum XEmbedFocus {
     /// Focus default
     Current = 0,
-    First = 1,
-    Last = 2,
+    _First = 1,
+    _Last = 2,
 }
 
 /// Tray mapped
-const XEMBED_MAPPED: u8 = 1 << 0;
+const _XEMBED_MAPPED: u8 = 1 << 0;
 
 impl Tray {
     /// Create a new instance
