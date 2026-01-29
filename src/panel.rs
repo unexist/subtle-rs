@@ -482,8 +482,6 @@ impl Panel {
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
     pub(crate) fn render(&mut self, subtle: &Subtle) -> Result<()> {
-        let conn = subtle.conn.get().context("Failed to get connection")?;
-
         // Handle panel item type
         if self.flags.intersects(PanelFlags::ICON) {
             todo!(); // TODO icon
