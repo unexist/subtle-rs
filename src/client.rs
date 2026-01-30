@@ -281,7 +281,7 @@ impl Client {
     /// # Returns
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn set_strut(&mut self, subtle: &mut Subtle) -> Result<()> {
+    pub(crate) fn _set_strut(&mut self, subtle: &mut Subtle) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
         let atoms = subtle.atoms.get().unwrap();
 
