@@ -306,8 +306,6 @@ impl Tray {
             atoms._XEMBED_INFO, 0, 2)?.reply()?.value;
 
         if let Some(_xembed_flags) = xembed_info.first() {
-            opcode = XEmbed::WindowActivate;
-
             conn.map_window(self.win)?.check()?;
 
             self.set_wm_state(subtle, WMState::Normal)?;
