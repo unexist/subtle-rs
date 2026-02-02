@@ -85,11 +85,13 @@ pub(crate) enum GrabAction {
 
 #[derive(Default, Debug)]
 pub(crate) struct Grab {
+    /// Config and state-flags
     pub(crate) flags: GrabFlags,
-
+    /// Keycode of the grab
     pub(crate) keycode: Keycode,
+    /// Modifier mask
     pub(crate) modifiers: ModMask,
-
+    /// Action of this grab
     pub(crate) action: GrabAction,
 }
 
