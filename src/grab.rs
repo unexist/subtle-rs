@@ -237,17 +237,16 @@ impl fmt::Display for Grab {
     }
 }
 
-/// Check config and init all gravity related options
+/// Build a reverse map of keysyms to keycode to ease lookups
 ///
 /// # Arguments
 ///
-/// * `config` - Config values read either from args or config file
 /// * `subtle` - Global state object
 ///
 /// # Returns
 ///
-/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+/// A [`Result`] with either [`HashMap<Keysym, Keycode>`] on success or otherwise [`anyhow::Error`]
+fn build_reverse_keymap(subtle: &Subtle) -> Result<HashMap<Keysym, Keycode>> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
 
     // Get keyboard mapping
@@ -268,6 +267,22 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             keysyms_to_keycode.insert(keysym, keycode);
         }
     }
+
+    Ok(keysyms_to_keycode)
+}
+
+/// Check config and init all gravity related options
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
+pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    let keysyms_to_keycode = build_reverse_keymap(subtle)?;
 
     // Parse grabs
     for (grab_name, value) in config.grabs.iter() {
