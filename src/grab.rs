@@ -281,7 +281,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                         let mut gravity_ids = Vec::with_capacity(gravities.len());
 
                         for grav_name in gravities {
-                            if let Some(grav_id) = subtle.gravities.iter().position(|grav| grav.name.eq(grav_name)) {
+                            if let Some(grav_id) = subtle.gravities.iter()
+                                .position(|grav| grav.name.eq(grav_name))
+                            {
                                 gravity_ids.push(grav_id);
                             }
                         }
