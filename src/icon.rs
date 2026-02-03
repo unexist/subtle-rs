@@ -34,43 +34,43 @@ pub(crate) struct Icon {
 
 // See here: https://www.collabora.com/news-and-blog/blog/2016/02/16/a-programmers-view-on-digital-images-the-essentials/
 
-fn load_from_file(bits_per_pixel: usize, filename: &str) -> Result<(Vec<u8>, u16, u16)> {
-    let text = fs::read_to_string(filename)?;
+/// Load icon from file
+///
+/// # Arguments
+///
+/// * `bits_per_pixel` - Number of bits per pixel
+/// * `file_path` - Path to icon file
+///
+/// # Returns
+///
+/// A [`Result`] with either [`(Vec<u8>, u16, u16)`] on success or otherwise [`anyhow::Error`]
+fn load_from_file(bits_per_pixel: usize, file_path: &str) -> Result<(Vec<u8>, u16, u16)> {
+    let mut width = 0;
+    let mut height = 0;
+    let mut bits: Vec<u8> = vec![];
 
-    // Extract width & height
-    let width= text
-        .lines()
-        .find(|l| l.contains("_width"))
-        .and_then(|l| l.split_whitespace().last())
-        .context("Failed to find width field")?
-        .parse::<usize>()?;
+    for line in fs::read_to_string(file_path)?.lines() {
+        // Extract width & height
+        if line.contains("_width") {
+            width = line.split_whitespace().last()
+                .context("Failed to find width field")?
+                .parse::<usize>()?;
+        } else if line.contains("_height") {
+            height = line.split_whitespace().last()
+                .context("Failed to find height field")?
+                .parse::<usize>()?;
 
-    let height= text
-        .lines()
-        .find(|l| l.contains("_height"))
-        .and_then(|l| l.split_whitespace().last())
-        .context("Failed to find height field")?
-        .parse::<usize>()?;
-
-    // Extract the pixel bytes inside {...}
-    let start = text.find('{').context("Failed to find '{'")? + 1;
-    let end = text.find('}').context("Failed to find '}'")?;
-    let hex_data = &text[start..end];
-
-    let bits: Vec<u8> = hex_data
-        .split(',')
-        .filter_map(|token| {
-            let token = token.trim();
-            if token.is_empty() {
-                None
-            } else {
+        // Extract the pixel bytes inside {...}
+        } else if line.contains("0x") {
+            bits.append(&mut line.split(',').filter_map(|token| {
                 // Strip "0x" and parse
-                let t = token.trim_start_matches("0x");
+                let token = token.trim_matches(|c| c == ' ' || c == ';' || c == '}')
+                    .trim_start_matches("0x");
 
-                Some(u8::from_str_radix(t, 16).unwrap())
-            }
-        })
-        .collect();
+                u8::from_str_radix(token, 16).ok()
+            }).collect());
+        }
+    }
 
     // Calculate display bytes and stride
     let bytes_per_pixel = bits_per_pixel / 8;
