@@ -25,21 +25,24 @@ pub(crate) struct Icon {
     pub(crate) height: u16,
 }
 
-// Example:
-//#define black_diamond_with_question_mark_width 9
-//#define black_diamond_with_question_mark_height 9
-//static unsigned char black_diamond_with_question_mark_bits[] = {
-//   0x10, 0x00, 0x38, 0x00, 0x44, 0x00, 0xd6, 0x00, 0xdf, 0x01, 0xee, 0x00,
-//   0x7c, 0x00, 0x28, 0x00, 0x10, 0x00 };
-
-// See here: https://www.collabora.com/news-and-blog/blog/2016/02/16/a-programmers-view-on-digital-images-the-essentials/
-
 /// Load icon from file
 ///
 /// # Arguments
 ///
 /// * `bits_per_pixel` - Number of bits per pixel
 /// * `file_path` - Path to icon file
+///
+/// # Example
+///
+/// #define black_diamond_with_question_mark_width 9
+/// #define black_diamond_with_question_mark_height 9
+/// static unsigned char black_diamond_with_question_mark_bits[] = {
+///   0x10, 0x00, 0x38, 0x00, 0x44, 0x00, 0xd6, 0x00, 0xdf, 0x01, 0xee, 0x00,
+///   0x7c, 0x00, 0x28, 0x00, 0x10, 0x00 };
+///
+/// # Links
+///
+/// * https://www.collabora.com/news-and-blog/blog/2016/02/16/a-programmers-view-on-digital-images-the-essentials/
 ///
 /// # Returns
 ///
