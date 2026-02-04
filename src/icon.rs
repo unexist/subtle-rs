@@ -9,7 +9,7 @@
 /// See the file LICENSE for details.
 ///
 
-use std::{fmt, fs};
+use std::fmt;
 use anyhow::{Context, Result};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{ConnectionExt, ImageFormat, Pixmap};
@@ -52,7 +52,7 @@ fn load_from_file(bits_per_pixel: usize, file_path: &str) -> Result<(Vec<u8>, u1
     let mut height = 0;
     let mut bits: Vec<u8> = vec![];
 
-    for line in fs::read_to_string(file_path)?.lines() {
+    for line in std::fs::read_to_string(file_path)?.lines() {
         // Extract width & height
         if line.contains("_width") {
             width = line.split_whitespace().last()
