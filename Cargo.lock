@@ -2528,6 +2528,7 @@ dependencies = [
  "exec",
  "extism",
  "hex_color",
+ "itertools",
  "log",
  "once_cell",
  "proptest",
