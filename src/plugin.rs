@@ -46,42 +46,14 @@ impl PluginBuilder {
     });
 
     host_fn!(get_memory(_user_data: ()) -> String {
-        let contents = std::fs::read_to_string("/proc/meminfo")?;
-
-        let mut mem_available = 0;
-        let mut mem_total = 0;
-        let mut mem_free = 0;
-
-        /*let mem_available = contents.lines()
-            .find(|line| line.starts_with("MemAvailable"))
-            .and_then(|l| l.split(" ").nth(3))
-            .context("Cannot read available memory")?;
-        let mem_total = contents.lines()
-            .find(|line| line.starts_with("MemTotal"))
-            .and_then(|line| line.split(" ").nth(7))
-            .context("Cannot read total memory")?;
-        let mem_free = contents.lines()
-            .find(|line| line.starts_with("MemFree"))
-            .and_then(|line| line.split(" ").nth(8))
-            .context("Cannot read free memory")?;*/
-
         let (mem_available, mem_total, mem_free) = std::fs::read_to_string("/proc/meminfo")?
             .lines()
-            .filter_map(|line| {
-                if line.starts_with("MemAvailable") {
-                    line.split_whitespace().nth(3)
-                } else if line.starts_with("MemTotal") {
-                    line.split_whitespace().nth(7)
-                } else if line.starts_with("MemFree") {
-                    line.split_whitespace().nth(8)
-                } else {
-                    None
-                }
-            }).collect_tuple()
-            .or(Some(("0", "0", "0")))
-            .unwrap();
+            .filter(|line| line.starts_with("MemAvailable") || line.starts_with("MemTotal") || line.starts_with("MemFree"))
+            .map(|line| line.split_whitespace().nth(1).and_then(|v| v.parse::<i32>().ok()))
+            .collect_tuple()
+            .context("Cannot read memory")?;
 
-       Ok(format!("{} {} {}", mem_total, mem_available, mem_free))
+       Ok(format!("{} {} {}", mem_total.unwrap_or(1), mem_available.unwrap_or(0), mem_free.unwrap_or(0)))
     });
 
     host_fn!(get_battery(_user_data: (); battery_idx: String) -> String {
