@@ -10,6 +10,11 @@ the numpad.
 With those keys, windows can be moved directly to the desired gravity - the same can be done with
 tagging rules in the config.
 
+== Screenshots
+
+.subtle-rs 0.1.0
+image:: docs/screenshots/subtle-rs-0.1.0.png[]
+
 == Links
 
 - https://subtle.de
