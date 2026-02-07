@@ -18,6 +18,7 @@ use derive_builder::Builder;
 use log::{debug, info};
 use stdext::function_name;
 use time::{format_description, OffsetDateTime};
+use itertools::Itertools;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
@@ -47,7 +48,11 @@ impl PluginBuilder {
     host_fn!(get_memory(_user_data: ()) -> String {
         let contents = std::fs::read_to_string("/proc/meminfo")?;
 
-        let mem_available = contents.lines()
+        let mut mem_available = 0;
+        let mut mem_total = 0;
+        let mut mem_free = 0;
+
+        /*let mem_available = contents.lines()
             .find(|line| line.starts_with("MemAvailable"))
             .and_then(|l| l.split(" ").nth(3))
             .context("Cannot read available memory")?;
@@ -58,7 +63,23 @@ impl PluginBuilder {
         let mem_free = contents.lines()
             .find(|line| line.starts_with("MemFree"))
             .and_then(|line| line.split(" ").nth(8))
-            .context("Cannot read free memory")?;
+            .context("Cannot read free memory")?;*/
+
+        let (mem_available, mem_total, mem_free) = std::fs::read_to_string("/proc/meminfo")?
+            .lines()
+            .filter_map(|line| {
+                if line.starts_with("MemAvailable") {
+                    line.split_whitespace().nth(3)
+                } else if line.starts_with("MemTotal") {
+                    line.split_whitespace().nth(7)
+                } else if line.starts_with("MemFree") {
+                    line.split_whitespace().nth(8)
+                } else {
+                    None
+                }
+            }).collect_tuple()
+            .or(Some(("0", "0", "0")))
+            .unwrap();
 
        Ok(format!("{} {} {}", mem_total, mem_available, mem_free))
     });
