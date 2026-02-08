@@ -131,6 +131,39 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+fn configure(config: &Config, subtle: &mut Subtle) -> Result<()> {
+    display::init(&config, subtle)?;
+    ewmh::init(&config, subtle)?;
+    style::init(&config, subtle)?;
+    #[cfg(feature = "plugins")]
+    plugin::init(&config, subtle)?; // Must be before screen init
+    screen::init(&config, subtle)?;
+    gravity::init(&config, subtle)?;
+    tag::init(&config, subtle)?;
+    view::init(&config, subtle)?;
+    grab::init(&config, subtle)?;
+
+    sanity_check(subtle)?;
+
+    Ok(())
+}
+
+fn run(subtle: &mut Subtle) -> Result<()> {
+    // Prepare the stage
+    style::update(subtle)?;
+    screen::resize(subtle)?;
+
+    display::claim(subtle)?;
+    display::configure(&subtle)?;
+    display::publish(&subtle)?;
+    display::scan(subtle)?;
+
+    // Run event handler
+    event::event_loop(&subtle)?;
+
+    Ok(())
+}
+
 /// Main function
 ///
 /// # Returns
@@ -145,52 +178,35 @@ fn main() -> Result<()> {
     info!("Reading file `{:?}'", path.unwrap_or_default());
     debug!("Config: {:?}", config);
 
-    // Init subtle
     let mut subtle = Subtle::from(&config);
 
     install_signal_handler(&mut subtle)?;
     print_version();
 
-    display::init(&config, &mut subtle)?;
-    ewmh::init(&config, &mut subtle)?;
-    style::init(&config, &mut subtle)?;
-    #[cfg(feature = "plugins")]
-    plugin::init(&config, &mut subtle)?; // Must be before screen init
-    screen::init(&config, &mut subtle)?;
-    gravity::init(&config, &mut subtle)?;
-    tag::init(&config, &mut subtle)?;
-    view::init(&config, &mut subtle)?;
-    grab::init(&config, &mut subtle)?;
+    if let Err(err) = configure(&config, &mut subtle) {
+        error!("Failed to configure: {:?}", err);
+    } else {
+        drop(config);
 
-    drop(config);
-
-    sanity_check(&mut subtle)?;
-
-    style::update(&mut subtle)?;
-    screen::resize(&mut subtle)?;
-
-    display::claim(&mut subtle)?;
-    display::configure(&subtle)?;
-    display::publish(&subtle)?;
-    display::scan(&mut subtle)?;
-
-    // Run event handler
-    event::event_loop(&subtle)?;
+        if let Err(err) = run(&mut subtle) {
+            error!("Failed to configure: {:?}", err);
+        }
+    }
 
     // Tidy up
     ewmh::finish(&subtle)?;
     display::finish(&mut subtle)?;
-    
+
     // Restart if necessary
     if subtle.flags.contains(SubtleFlags::RESTART) {
         info!("Restarting");
 
         // When this actually returns something went wrong
         let err = exec::execvp(current_exe()?.as_os_str(), env::args());
-        
+
         error!("Failed to restart: {:?}", err);
     }
-    
+
     info!("Exit");
     
     Ok(())
