@@ -147,6 +147,11 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.interval(*value);
         }
 
+
+        if let Some(MixedConfigVal::MSS(config)) = values.get("config") {
+            println!("{:?}", config);
+        }
+
         if let Some(MixedConfigVal::S(value)) = values.get("url") {
             builder.url(value.to_string());
         }

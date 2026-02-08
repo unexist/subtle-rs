@@ -20,7 +20,8 @@ pub(crate) enum MixedConfigVal {
     VI(Vec<i32>),
     VVI(Vec<Vec<i32>>),
     VS(Vec<String>),
-    M(HashMap<String, Vec<String>>),
+    MVS(HashMap<String, Vec<String>>),
+    MSS(HashMap<String, MixedConfigVal>),
     I(i32),
     B(bool),
 }

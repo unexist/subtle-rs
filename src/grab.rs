@@ -292,7 +292,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                     subtle.grabs.push(grab);
                 }
             }
-            MixedConfigVal::M(items) => {
+            MixedConfigVal::MVS(items) => {
                 for (grab_keys, gravities) in items.iter() {
                     if let Ok(mut grab) = Grab::new("window_gravity", grab_keys, &keysyms_to_keycode) {
                         let mut gravity_ids = Vec::with_capacity(gravities.len());
