@@ -11,6 +11,7 @@
 
 use std::fmt;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
@@ -31,6 +32,8 @@ pub(crate) struct Plugin {
     pub(crate) url: String,
     /// Update interval
     pub(crate) interval: i32,
+    /// Plugin config if any
+    pub(crate) config: Option<HashMap<String, String>>,
     /// Extism plugin
     #[builder(setter(skip))]
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
@@ -98,6 +101,7 @@ impl PluginBuilder {
             name: self.name.clone().context("Name not set")?,
             url,
             interval: self.interval.unwrap(),
+            config: self.config.as_ref().and_then(|config| config.clone()),
             plugin: Rc::new(RefCell::new(plugin)),
         })
     }
@@ -147,9 +151,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.interval(*value);
         }
 
-
         if let Some(MixedConfigVal::MSS(config)) = values.get("config") {
-            println!("{:?}", config);
+            let config_data = config.into_iter()
+                .map(|entry| (String::from(entry.0), String::from(entry.1)))
+                .collect();
+
+            builder.config(Some(config_data));
         }
 
         if let Some(MixedConfigVal::S(value)) = values.get("url") {
