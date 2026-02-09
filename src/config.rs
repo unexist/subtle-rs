@@ -26,6 +26,12 @@ pub(crate) enum MixedConfigVal {
     B(bool),
 }
 
+impl From<&MixedConfigVal> for String {
+    fn from(value: &MixedConfigVal) -> Self {
+        todo!()
+    }
+}
+
 #[derive(ClapConfigFile)]
 #[config_file_name = "subtle"]
 #[config_file_formats = "yaml,toml,json"]
