@@ -28,7 +28,12 @@ pub(crate) enum MixedConfigVal {
 
 impl From<&MixedConfigVal> for String {
     fn from(value: &MixedConfigVal) -> Self {
-        todo!()
+        match value {
+            MixedConfigVal::S(value) => String::from(value),
+            MixedConfigVal::I(value) => value.to_string(),
+            MixedConfigVal::B(value) => value.to_string(),
+            _ => todo!(),
+        }
     }
 }
 
