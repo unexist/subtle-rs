@@ -15,10 +15,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
+use chrono::{DateTime, Local};
 use derive_builder::Builder;
 use log::{debug, info};
 use stdext::function_name;
-use time::{format_description, OffsetDateTime};
 use itertools::Itertools;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
@@ -46,13 +46,11 @@ impl PluginBuilder {
         let plug_data = user_data.get()?;
         let plug_data = plug_data.lock().unwrap();
 
-        let dt = OffsetDateTime::now_local()?;
+        let current_local: DateTime<Local> = Local::now();
 
         let conf_format = plug_data.get("format").unwrap_or(&format);
 
-        let parsed_format = format_description::parse(&*conf_format)?;
-
-        Ok(dt.format(&parsed_format)?)
+        Ok(current_local.format(&*conf_format).to_string())
     });
 
     host_fn!(get_memory(_user_data: PluginUserData;) -> String {
