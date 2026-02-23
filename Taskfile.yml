@@ -60,6 +60,10 @@ tasks:
       - cargo valgrind run -- -d {{.DISPLAY}} --replace {{.ARGS}}
 
   # Cargo helpers
+  build:
+    cmds:
+      - cargo build
+
   release:
     cmds:
       - cargo build --release
