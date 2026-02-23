@@ -42,10 +42,15 @@ pub(crate) struct Plugin {
 }
 
 impl PluginBuilder {
-    host_fn!(get_formatted_time(_user_data: PluginUserData; format: String) -> String {
+    host_fn!(get_formatted_time(user_data: PluginUserData; format: String) -> String {
+        let plug_data = user_data.get()?;
+        let plug_data = plug_data.lock().unwrap();
+
         let dt = OffsetDateTime::now_local()?;
 
-        let parsed_format = format_description::parse(&*format)?;
+        let conf_format = plug_data.get("format").unwrap_or(&format);
+
+        let parsed_format = format_description::parse(&*conf_format)?;
 
         Ok(dt.format(&parsed_format)?)
     });
@@ -61,18 +66,18 @@ impl PluginBuilder {
        Ok(format!("{} {} {}", mem_total.unwrap_or(1), mem_available.unwrap_or(0), mem_free.unwrap_or(0)))
     });
 
-    host_fn!(get_battery(user_data: PluginUserData; battery_idx: String) -> String {
+    host_fn!(get_battery(user_data: PluginUserData; battery_slot: String) -> String {
         let plug_data = user_data.get()?;
         let plug_data = plug_data.lock().unwrap();
 
-        let battery_slot = plug_data.get("battery_slot").unwrap_or(&battery_idx);
+        let conf_slot = plug_data.get("battery_slot").unwrap_or(&battery_slot);
 
-        debug!("battery_slot={}", battery_slot);
+        debug!("conf_slot={}", conf_slot);
 
         let charge_full = std::fs::read_to_string(
-            format!("/sys/class/power_supply/BAT{}/charge_full", battery_slot))?;
+            format!("/sys/class/power_supply/BAT{}/charge_full", conf_slot))?;
         let charge_now = std::fs::read_to_string(
-            format!("/sys/class/power_supply/BAT{}/charge_now", battery_slot))?;
+            format!("/sys/class/power_supply/BAT{}/charge_now", conf_slot))?;
 
         Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
     });
