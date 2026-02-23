@@ -35,7 +35,7 @@ func get_formatted_time(uint64) uint64
 
 //go:export run
 func Run() int32 {
-	format := "[hour repr:12]:[minute]"
+	format := "%I:%M"
 	mem := pdk.AllocateString(format)
 	defer mem.Free()
 
