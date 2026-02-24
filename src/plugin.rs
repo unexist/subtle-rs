@@ -50,6 +50,8 @@ impl PluginBuilder {
 
         let conf_format = plug_data.get("format").unwrap_or(&format);
 
+        debug!("conf_format={}", conf_format);
+
         Ok(current_local.format(&*conf_format).to_string())
     });
 
