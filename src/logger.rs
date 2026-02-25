@@ -16,14 +16,23 @@ use crate::Config;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LogLevel {
+    /// No log messages at all
     None,
+    /// All other informational messages
     Info,
+    /// Subtle related warnings
     Warnings,
+    /// Subtle related errors
     Error,
+    /// Deprecation warnings
     Deprecated,
+    /// Logs related to Xlib
     Events,
+    /// All Xlib errors
     XError,
+    /// Subtle related information
     Subtle,
+    /// Debugging messages
     Debug
 }
 
