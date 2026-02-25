@@ -131,6 +131,16 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Configure and init sub-systems
+///
+/// # Arguments
+///
+/// * `config` - Config values read either from args or config file
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn configure(config: &Config, subtle: &mut Subtle) -> Result<()> {
     display::init(&config, subtle)?;
     ewmh::init(&config, subtle)?;
@@ -148,6 +158,15 @@ fn configure(config: &Config, subtle: &mut Subtle) -> Result<()> {
     Ok(())
 }
 
+/// Run the main thing
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn run(subtle: &mut Subtle) -> Result<()> {
     // Prepare the stage
     style::update(subtle)?;
@@ -183,6 +202,7 @@ fn main() -> Result<()> {
     install_signal_handler(&mut subtle)?;
     print_version();
 
+    // Run and handle errors gracefully
     if let Err(err) = configure(&config, &mut subtle) {
         error!("Failed to configure: {:?}", err);
     } else {
