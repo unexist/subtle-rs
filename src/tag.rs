@@ -40,6 +40,7 @@ bitflags! {
 
 #[derive(Default, Builder)]
 #[builder(default)]
+#[builder(build_fn(error = "anyhow::Error"))]
 pub(crate) struct Tag {
     /// Config and state-flags
     pub(crate) flags: TagFlags,

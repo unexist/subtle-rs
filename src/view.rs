@@ -44,6 +44,7 @@ bitflags! {
 
 #[derive(Default, Builder)]
 #[builder(default)]
+#[builder(build_fn(error = "anyhow::Error"))]
 pub(crate) struct View {
     /// Config and state-flags
     pub(crate) flags: ViewFlags,
