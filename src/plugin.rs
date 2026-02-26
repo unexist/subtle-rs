@@ -25,62 +25,72 @@ use crate::subtle::Subtle;
 
 type PluginUserData = HashMap<String, String>;
 
-#[derive(Builder, Debug)]
-#[builder(build_fn(skip))]
+#[derive(Debug)]
 pub(crate) struct Plugin {
     /// Name of the plugin
     pub(crate) name: String,
-    /// URL of the wasm file
-    pub(crate) url: String,
     /// Update interval
     pub(crate) interval: i32,
     /// Plugin user data
     pub(crate) user_data: UserData<PluginUserData>,
     /// Extism plugin
-    #[builder(setter(skip))]
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
 
+#[derive(Builder)]
+#[builder(name = "PluginBuilder", build_fn(skip))]
+pub(crate) struct PluginBuilderSeed {
+    /// Name of the plugin
+    pub(crate) name: String,
+    /// Update interval
+    pub(crate) interval: i32,
+    /// Path or file url to wasm file
+    url: String,
+    /// Plugin user data
+    pub(crate) user_data: UserData<PluginUserData>,
+}
+
+host_fn!(get_formatted_time(user_data: PluginUserData; format: String) -> String {
+    let plug_data = user_data.get()?;
+    let plug_data = plug_data.lock().unwrap();
+
+    let current_local: DateTime<Local> = Local::now();
+
+    let conf_format = plug_data.get("format").unwrap_or(&format);
+
+    debug!("conf_format={}", conf_format);
+
+    Ok(current_local.format(&*conf_format).to_string())
+});
+
+host_fn!(get_memory(_user_data: PluginUserData;) -> String {
+    let (mem_available, mem_total, mem_free) = std::fs::read_to_string("/proc/meminfo")?
+        .lines()
+        .filter(|line| line.starts_with("MemAvailable") || line.starts_with("MemTotal") || line.starts_with("MemFree"))
+        .map(|line| line.split_whitespace().nth(1).and_then(|v| v.parse::<i32>().ok()))
+        .collect_tuple()
+        .context("Cannot read `/proc/meminfo`")?;
+
+   Ok(format!("{} {} {}", mem_total.unwrap_or(1), mem_available.unwrap_or(0), mem_free.unwrap_or(0)))
+});
+
+host_fn!(get_battery(user_data: PluginUserData; battery_slot: String) -> String {
+    let plug_data = user_data.get()?;
+    let plug_data = plug_data.lock().unwrap();
+
+    let conf_slot = plug_data.get("battery_slot").unwrap_or(&battery_slot);
+
+    debug!("conf_slot={}", conf_slot);
+
+    let charge_full = std::fs::read_to_string(
+        format!("/sys/class/power_supply/BAT{}/charge_full", conf_slot))?;
+    let charge_now = std::fs::read_to_string(
+        format!("/sys/class/power_supply/BAT{}/charge_now", conf_slot))?;
+
+    Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
+});
+
 impl PluginBuilder {
-    host_fn!(get_formatted_time(user_data: PluginUserData; format: String) -> String {
-        let plug_data = user_data.get()?;
-        let plug_data = plug_data.lock().unwrap();
-
-        let current_local: DateTime<Local> = Local::now();
-
-        let conf_format = plug_data.get("format").unwrap_or(&format);
-
-        debug!("conf_format={}", conf_format);
-
-        Ok(current_local.format(&*conf_format).to_string())
-    });
-
-    host_fn!(get_memory(_user_data: PluginUserData;) -> String {
-        let (mem_available, mem_total, mem_free) = std::fs::read_to_string("/proc/meminfo")?
-            .lines()
-            .filter(|line| line.starts_with("MemAvailable") || line.starts_with("MemTotal") || line.starts_with("MemFree"))
-            .map(|line| line.split_whitespace().nth(1).and_then(|v| v.parse::<i32>().ok()))
-            .collect_tuple()
-            .context("Cannot read memory")?;
-
-       Ok(format!("{} {} {}", mem_total.unwrap_or(1), mem_available.unwrap_or(0), mem_free.unwrap_or(0)))
-    });
-
-    host_fn!(get_battery(user_data: PluginUserData; battery_slot: String) -> String {
-        let plug_data = user_data.get()?;
-        let plug_data = plug_data.lock().unwrap();
-
-        let conf_slot = plug_data.get("battery_slot").unwrap_or(&battery_slot);
-
-        debug!("conf_slot={}", conf_slot);
-
-        let charge_full = std::fs::read_to_string(
-            format!("/sys/class/power_supply/BAT{}/charge_full", conf_slot))?;
-        let charge_now = std::fs::read_to_string(
-            format!("/sys/class/power_supply/BAT{}/charge_now", conf_slot))?;
-
-        Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
-    });
 
     /// Create a new instance
     ///
@@ -96,7 +106,7 @@ impl PluginBuilder {
         let url = self.url.clone().context("Url not set")?;
 
         // Load wasm plugin
-        let wasm = Wasm::file(url.clone());
+        let wasm = Wasm::file(url);
         let manifest = Manifest::new([wasm]);
 
         let user_data = self.user_data.clone().unwrap_or_default();
@@ -104,18 +114,17 @@ impl PluginBuilder {
         let plugin = extism::PluginBuilder::new(&manifest)
             .with_wasi(true)
             .with_function("get_formatted_time", [PTR], [PTR],
-                           user_data.clone(), Self::get_formatted_time)
+                           user_data.clone(), get_formatted_time)
             .with_function("get_memory", [PTR], [PTR],
-                           user_data.clone(), Self::get_memory)
+                           user_data.clone(), get_memory)
             .with_function("get_battery", [PTR], [PTR],
-                           user_data.clone(), Self::get_battery)
+                           user_data.clone(), get_battery)
             .build()?;
 
         debug!("{}", function_name!());
 
         Ok(Plugin {
             name: self.name.clone().context("Name not set")?,
-            url,
             interval: self.interval.unwrap(),
             user_data: user_data.clone(),
             plugin: Rc::new(RefCell::new(plugin)),
@@ -141,7 +150,7 @@ impl Plugin {
 
 impl fmt::Display for Plugin {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "url={}, interval={}", self.url, self.interval)
+        write!(f, "name={}, interval={}", self.name, self.interval)
     }
 }
 
