@@ -60,19 +60,19 @@ pub(crate) enum XEmbed {
     WindowActivate = 1,
     /// Tray has no focus
     WindowDeactivate = 2,
-    RequestFocus = 3,
+    _RequestFocus = 3,
     /// Focus model
     FocusIn = 4,
-    FocusOut = 5,
-    FocusNext = 6,
-    FocusPrev = 7,
-    GrabKey = 8,
-    UngrabKey = 9,
-    ModalityOn = 10,
-    ModalityOff = 11,
-    RegisterAccelerator = 12,
-    UnregisterAccelerator = 13,
-    ActivateAccelerator = 14,
+    _FocusOut = 5,
+    _FocusNext = 6,
+    _FocusPrev = 7,
+    _GrabKey = 8,
+    _UngrabKey = 9,
+    _ModalityOn = 10,
+    _ModalityOff = 11,
+    _RegisterAccelerator = 12,
+    _UnregisterAccelerator = 13,
+    _ActivateAccelerator = 14,
 }
 
 #[repr(u8)]
