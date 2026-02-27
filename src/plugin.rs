@@ -42,10 +42,10 @@ pub(crate) struct Plugin {
 pub(crate) struct PluginBuilderSeed {
     /// Name of the plugin
     pub(crate) name: String,
-    /// Update interval
-    pub(crate) interval: i32,
     /// Path or file url to wasm file
     url: String,
+    /// Update interval
+    pub(crate) interval: i32,
     /// Plugin user data
     pub(crate) user_data: UserData<PluginUserData>,
 }
@@ -172,6 +172,10 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.name(value.to_string());
         }
 
+        if let Some(MixedConfigVal::S(value)) = values.get("url") {
+            builder.url(value.to_string());
+        }
+
         if let Some(MixedConfigVal::I(value)) = values.get("interval") {
             builder.interval(*value);
         }
@@ -184,11 +188,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.user_data(UserData::new(user_data));
         }
 
-        if let Some(MixedConfigVal::S(value)) = values.get("url") {
-            builder.url(value.to_string());
-        }
-
-        // Finally create plugin
+        // Finally create actual plugin
         let plugin = builder.build()?;
 
         info!("Loaded plugin ({})", plugin.name);
