@@ -1730,6 +1730,15 @@ impl Client {
         Ok(())
     }
 
+    /// Convenience method to get the border width of the client
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// The border width
     fn get_border_width(&self, subtle: &Subtle) -> i16 {
         if self.flags.contains(ClientFlags::MODE_BORDERLESS) {
             0
@@ -1738,6 +1747,15 @@ impl Client {
         }
     }
 
+    /// Apply size hints to window
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    /// * `bounds` - Outer bounds for sizes
+    /// * `adjust_x` - Whether to update x position
+    /// * `adjust_y` - Whether to update y position
+    /// * `geom` - Geometry to update
     fn apply_size_hints(&self, subtle: &Subtle, bounds: &Rectangle,
                         adjust_x: bool, adjust_y: bool, geom: &mut Rectangle)
     {
@@ -1882,6 +1900,16 @@ impl Ord for Client {
     }
 }
 
+/// Draw and erase (XOR) mask on root window
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `geom` - Geometry of the mask
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
@@ -1897,6 +1925,21 @@ fn draw_mask(subtle: &Subtle, geom: &Rectangle) -> Result<()> {
     Ok(())
 }
 
+/// Drag client window interactively
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `screen` - Screen to drag on
+/// * `client` - Client to drag
+/// * `geom` - Geometry of the mask
+/// * `query_reply` - Cached query reply
+/// * `drag_mode` - Dragging mode
+/// * `drag_edge` - Dragging starting edge
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &mut Rectangle,
                       query_reply: &QueryPointerReply, drag_mode: DragMode, drag_edge: DragEdge) -> Result<()>
 {
@@ -1980,6 +2023,15 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
     Ok(())
 }
 
+/// Convenience method to get the default gravity
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+///
+/// # Returns
+///
+/// The default gravity idx
 fn get_default_gravity(subtle: &Subtle) -> isize {
     let mut grav: isize = subtle.default_gravity;
 
@@ -1991,6 +2043,16 @@ fn get_default_gravity(subtle: &Subtle) -> isize {
     grav
 }
 
+/// Convenience method to calculate the zaphod mode size
+///
+/// # Arguments
+///
+/// * `subtle` - Global state object
+/// * `bounds` - Bounds to update
+///
+/// # Returns
+///
+/// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
     let mut flags = ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL;
 
