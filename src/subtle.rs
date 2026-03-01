@@ -444,6 +444,26 @@ impl Subtle {
 
         Ok(())
     }
+
+    /// Convenience method to get the default gravity
+    ///
+    /// # Arguments
+    ///
+    /// * `subtle` - Global state object
+    ///
+    /// # Returns
+    ///
+    /// The default gravity idx
+    pub(crate) fn get_default_gravity(&self) -> isize {
+        let mut grav: isize = self.default_gravity;
+
+        // Get gravity from focus client
+        if -1 == self.default_gravity && let Some(focus) = self.find_focus_client() {
+            grav = focus.gravity_idx;
+        }
+
+        grav
+    }
 }
 
 impl Default for Subtle {

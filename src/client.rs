@@ -217,7 +217,7 @@ impl Client {
         };
 
         // Init gravities
-        let grav = get_default_gravity(subtle);
+        let grav = subtle.get_default_gravity();
 
         for _i in 0..subtle.views.len() {
             client.gravities.push(grav as usize);
@@ -2021,26 +2021,6 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
     draw_mask(subtle, &geom)?;
 
     Ok(())
-}
-
-/// Convenience method to get the default gravity
-///
-/// # Arguments
-///
-/// * `subtle` - Global state object
-///
-/// # Returns
-///
-/// The default gravity idx
-fn get_default_gravity(subtle: &Subtle) -> isize {
-    let mut grav: isize = subtle.default_gravity;
-
-    // Get gravity from focus client
-    if -1 == subtle.default_gravity && let Some(focus) = subtle.find_focus_client() {
-        grav = focus.gravity_idx;
-    }
-
-    grav
 }
 
 /// Convenience method to calculate the zaphod mode size
