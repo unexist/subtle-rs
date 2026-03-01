@@ -72,6 +72,13 @@ tasks:
     cmds:
       - cargo package --list
 
+  pluzgins:
+      cmds:
+        - task: battery:default
+        - task: fuzzytime:default
+        - task: mem:default
+        - task time:default
+
   doc:
     cmds:
       - cargo doc
