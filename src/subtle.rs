@@ -20,6 +20,8 @@ use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use easy_min_max::max;
+use log::debug;
+use stdext::function_name;
 use veccell::VecCell;
 use x11rb::connection::Connection;
 use x11rb::NONE;
@@ -230,6 +232,45 @@ impl Subtle {
             trays.iter_mut().find(|c| c.win == win)
         }).ok()
     }
+
+    /// Find next client
+    ///
+    /// # Returns
+    ///
+    /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
+    pub(crate) fn find_next_client(&'_ self, screen_idx: isize, jump_to_win: bool) -> Option<Ref<'_, Client>> {
+        debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
+
+        // Pass 1: Check focus history of current screen
+        for win in self.focus_history.iter() {
+            if let Some(client) = self.find_client(*win) {
+                if client.screen_idx == screen_idx && client.is_alive() && client.is_visible(self)
+                    && self.find_focus_win() != client.win
+                {
+                    return Some(client)
+                }
+            }
+        }
+
+        // Pass 2: Check client stacking list backwards of current screen
+        if let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
+            clients.iter().find(|c| c.screen_idx == screen_idx && c.is_alive() && c.is_visible(self))
+        }) {
+            return Some(client)
+        }
+
+        // Pass 3: Check client stacking list backwards of any visible screen
+        if 1 < self.clients.borrow().len() && jump_to_win {
+            if let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
+                clients.iter().find(|c| c.is_alive() && c.is_visible(self) && self.find_focus_win() != c.win)
+            }) {
+                return Some(client)
+            }
+        }
+
+        None
+    }
+
 
     /// Find focus client
     ///

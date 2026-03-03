@@ -12,7 +12,6 @@
 use std::fmt;
 use std::cmp::{Ordering, PartialEq};
 use std::ops::{BitAnd, BitOr, BitXor};
-use std::cell::Ref;
 use x11rb::protocol::xproto::{Atom, AtomEnum, ChangeWindowAttributesAux, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, GrabMode, InputFocus, PropMode, QueryPointerReply, Rectangle, SetMode, StackMode, Window, CLIENT_MESSAGE_EVENT};
 use bitflags::bitflags;
 use anyhow::{anyhow, Context, Result};
@@ -2061,39 +2060,6 @@ fn calc_zaphod(subtle: &Subtle, geom: &mut Rectangle) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub(crate) fn find_next(subtle: &'_ Subtle, screen_idx: isize, jump_to_win: bool) -> Option<Ref<'_, Client>> {
-    debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
-
-    // Pass 1: Check focus history of current screen
-    for win in subtle.focus_history.iter() {
-        if let Some(client) = subtle.find_client(*win) {
-            if client.screen_idx == screen_idx && client.is_alive() && client.is_visible(subtle)
-                && subtle.find_focus_win() != client.win
-            {
-                return Some(client)
-            }
-        }
-    }
-
-    // Pass 2: Check client stacking list backwards of current screen
-    if let Ok(client) = Ref::filter_map(subtle.clients.borrow(), |clients| {
-        clients.iter().find(|c| c.screen_idx == screen_idx && c.is_alive() && c.is_visible(subtle))
-    }) {
-        return Some(client)
-    }
-
-    // Pass 3: Check client stacking list backwards of any visible screen
-    if 1 < subtle.clients.borrow().len() && jump_to_win {
-        if let Ok(client) = Ref::filter_map(subtle.clients.borrow(), |clients| {
-            clients.iter().find(|c| c.is_alive() && c.is_visible(subtle) && subtle.find_focus_win() != c.win)
-        }) {
-            return Some(client)
-        }
-    }
-
-    None
 }
 
 pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
