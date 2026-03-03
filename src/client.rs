@@ -1157,18 +1157,18 @@ impl Client {
                 {
                     self.gravity_tile(subtle, gravity_idx, if -1 == screen_idx { 0 } else { screen_idx })?;
                 } else {
-                    let mut bounds = screen.geom;
+                    let mut geom = screen.geom;
 
                     // Set size for bounds
                     if self.flags.contains(ClientFlags::MODE_ZAPHOD) {
-                        calc_zaphod(subtle, &mut bounds)?;
+                        calc_zaphod(subtle, &mut geom)?;
                     }
 
                     if maybe_gravity.is_some() {
-                        maybe_gravity.unwrap().apply_size(&bounds, &mut self.geom);
+                        maybe_gravity.unwrap().apply_size(&geom, &mut self.geom);
                     }
 
-                    self.move_resize(subtle, &bounds)?;
+                    self.move_resize(subtle, &geom)?;
                 }
             }
         }
@@ -2028,32 +2028,32 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
 /// # Arguments
 ///
 /// * `subtle` - Global state object
-/// * `bounds` - Bounds to update
+/// * `geom` - Geometry to update
 ///
 /// # Returns
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-fn calc_zaphod(subtle: &Subtle, bounds: &mut Rectangle) -> Result<()> {
+fn calc_zaphod(subtle: &Subtle, geom: &mut Rectangle) -> Result<()> {
     let mut flags = ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL;
 
     // Update bounds according to styles
-    bounds.x = subtle.clients_style.padding.left;
-    bounds.y = subtle.clients_style.padding.top;
-    bounds.width = subtle.width - (subtle.clients_style.padding.left -
+    geom.x = subtle.clients_style.padding.left;
+    geom.y = subtle.clients_style.padding.top;
+    geom.width = subtle.width - (subtle.clients_style.padding.left -
         subtle.clients_style.padding.right) as u16;
-    bounds.height = subtle.height - (subtle.clients_style.padding.top -
+    geom.height = subtle.height - (subtle.clients_style.padding.top -
         subtle.clients_style.padding.bottom) as u16;
 
     // Iterate over screens to find fitting square
     for screen in subtle.screens.iter() {
         if screen.flags.contains(flags) {
             if screen.flags.contains(ScreenFlags::TOP_PANEL) {
-                bounds.y += subtle.panel_height as i16;
-                bounds.height -= subtle.panel_height;
+                geom.y += subtle.panel_height as i16;
+                geom.height -= subtle.panel_height;
             }
 
             if screen.flags.contains(ScreenFlags::BOTTOM_PANEL) {
-                bounds.height -= subtle.panel_height;
+                geom.height -= subtle.panel_height;
             }
 
             flags &= !(screen.flags & (ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL));
