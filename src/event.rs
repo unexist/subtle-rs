@@ -481,7 +481,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
 
                             // Find next and focus
                             if !is_visible {
-                                if let Some(next_client) = client::find_next(subtle, screen_idx, false) {
+                                if let Some(next_client) = subtle.find_next_client(screen_idx, false) {
                                     next_client.focus(subtle, true)?;
                                 }
                             }
@@ -561,7 +561,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                     panel::render(subtle)?;
 
                     // Update focus if necessary
-                    if let Some(next_client) = client::find_next(subtle, screen_idx, false) {
+                    if let Some(next_client) = subtle.find_next_client(screen_idx, false) {
                         next_client.focus(subtle, true)?;
                     }
                 }
@@ -900,7 +900,7 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
 
     grab::set(subtle, default_screen.root, GrabFlags::IS_KEY)?;
 
-    if let Some(client) = client::find_next(subtle, 0, false) {
+    if let Some(client) = subtle.find_next_client(0, false) {
         client.focus(subtle, true)?;
     }
 

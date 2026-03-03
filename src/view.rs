@@ -22,7 +22,6 @@ use x11rb::NONE;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Window};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
 use crate::config::{Config, MixedConfigVal};
-use crate::{client};
 use crate::subtle::Subtle;
 use crate::tagging::Tagging;
 use crate::icon::Icon;
@@ -128,8 +127,8 @@ impl View {
                 } else {
                     self.focus_win.set(NONE);
                 }
-            } else if let Some(focus_client) = client::find_next(subtle,
-                                                                 screen_idx as isize, false)
+            } else if let Some(focus_client) = subtle.find_next_client(
+                screen_idx as isize, false)
             {
                 focus_client.focus(subtle, true)?;
             }
