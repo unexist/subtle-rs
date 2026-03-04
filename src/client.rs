@@ -1167,7 +1167,7 @@ impl Client {
                         maybe_gravity.unwrap().apply_size(&geom, &mut self.geom);
                     }
 
-                    self.move_resize(subtle, &geom)?;
+                    self.move_resize(subtle, &geom, true)?;
                 }
             }
         }
@@ -1426,15 +1426,7 @@ impl Client {
         }
 
         // Finally move and resize window
-        self.geom = geom;
-
-        let aux = ConfigureWindowAux::default()
-            .x(self.geom.x as i32)
-            .y(self.geom.y as i32)
-            .width(self.geom.width as u32)
-            .height(self.geom.height as u32);
-
-        conn.configure_window(self.win, &aux)?.check()?;
+        self.move_resize(subtle, &geom, false)?;
 
         // Remove grabs
         conn.ungrab_pointer(CURRENT_TIME)?;
@@ -1624,23 +1616,26 @@ impl Client {
     /// # Arguments
     ///
     /// * `subtle` - Global state object
-    /// * `bounds` - Outer bounds for sizes
+    /// * `geom` - New geometry to use
+    /// * `apply_border_and_gaps` - Whether to apply border and gaps to geometry
     ///
     /// # Returns
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-    fn move_resize(&mut self, subtle: &Subtle, bounds: &Rectangle) -> Result<()> {
+    fn move_resize(&mut self, subtle: &Subtle, geom: &Rectangle, apply_border_and_gaps: bool) -> Result<()> {
         let conn = subtle.conn.get().unwrap();
 
         // Update border and gap
-        self.geom.x += subtle.clients_style.margin.left;
-        self.geom.y += subtle.clients_style.margin.left;
-        self.geom.width -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.left
-            + subtle.clients_style.margin.right) as u16;
-        self.geom.height -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.top
-            + subtle.clients_style.margin.bottom) as u16;
+        if apply_border_and_gaps {
+            self.geom.x += subtle.clients_style.margin.left;
+            self.geom.y += subtle.clients_style.margin.left;
+            self.geom.width -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.left
+                + subtle.clients_style.margin.right) as u16;
+            self.geom.height -= (2 * self.get_border_width(subtle) + subtle.clients_style.margin.top
+                + subtle.clients_style.margin.bottom) as u16;
+        }
 
-        self.resize(subtle, bounds, true)?;
+        self.resize(subtle, geom, true)?;
 
         let aux = ConfigureWindowAux::default()
             .x(self.geom.x as i32)
@@ -1730,7 +1725,7 @@ impl Client {
                 if let Some(mut_client) = subtle.clients.borrow_mut().get_mut(client_idx) {
                     mut_client.geom = geom;
 
-                    mut_client.move_resize(subtle, &screen.geom)?;
+                    mut_client.move_resize(subtle, &screen.geom, true)?;
                 }
             }
         }
