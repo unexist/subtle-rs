@@ -1425,7 +1425,16 @@ impl Client {
             }
         }
 
-        self.move_resize(subtle, &geom)?;
+        // Finally move and resize window
+        self.geom = geom;
+
+        let aux = ConfigureWindowAux::default()
+            .x(self.geom.x as i32)
+            .y(self.geom.y as i32)
+            .width(self.geom.width as u32)
+            .height(self.geom.height as u32);
+
+        conn.configure_window(self.win, &aux)?.check()?;
 
         // Remove grabs
         conn.ungrab_pointer(CURRENT_TIME)?;
@@ -2016,7 +2025,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
         }
     }
 
-    // Erase mask again
+    // Redraw mask to erase it on exit
     draw_mask(subtle, &geom)?;
 
     Ok(())
