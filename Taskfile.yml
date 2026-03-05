@@ -4,23 +4,6 @@ env:
   DISPLAY: ':2'
   ARGS: '--config-file=./debug.toml {{.CLI_ARGS}}'
 
-includes:
-  battery:
-    taskfile: plugins/battery/Taskfile.yml
-    dir: plugins/battery
-
-  fuzzytime:
-    taskfile: plugins/fuzzytime/Taskfile.yml
-    dir: plugins/fuzzytime
-
-  mem:
-    taskfile: plugins/mem/Taskfile.yml
-    dir: plugins/mem
-
-  time:
-    taskfile: plugins/time/Taskfile.yml
-    dir: plugins/time
-
 tasks:
   # Test helpers
   test:
@@ -71,13 +54,6 @@ tasks:
   pkglist:
     cmds:
       - cargo package --list
-
-  pluzgins:
-      cmds:
-        - task: battery:default
-        - task: fuzzytime:default
-        - task: mem:default
-        - task time:default
 
   doc:
     cmds:
