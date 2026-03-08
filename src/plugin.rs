@@ -23,16 +23,12 @@ use itertools::Itertools;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
-type PluginUserData = HashMap<String, String>;
-
 #[derive(Debug)]
 pub(crate) struct Plugin {
     /// Name of the plugin
     pub(crate) name: String,
     /// Update interval
     pub(crate) interval: i32,
-    /// Plugin user data
-    pub(crate) user_data: UserData<PluginUserData>,
     /// Extism plugin
     pub(crate) plugin: Rc<RefCell<extism::Plugin>>,
 }
@@ -46,24 +42,17 @@ pub(crate) struct PluginBuilderSeed {
     url: String,
     /// Update interval
     pub(crate) interval: i32,
-    /// Plugin user data
-    pub(crate) user_data: UserData<PluginUserData>,
+    /// Plugin config
+    pub(crate) config: HashMap<String, String>,
 }
 
-host_fn!(get_formatted_time(user_data: PluginUserData; format: String) -> String {
-    let plug_data = user_data.get()?;
-    let plug_data = plug_data.lock().unwrap();
-
+host_fn!(get_formatted_time(_user_data: (); format: String) -> String {
     let current_local: DateTime<Local> = Local::now();
 
-    let conf_format = plug_data.get("format").unwrap_or(&format);
-
-    debug!("conf_format={}", conf_format);
-
-    Ok(current_local.format(&*conf_format).to_string())
+    Ok(current_local.format(&*format).to_string())
 });
 
-host_fn!(get_memory(_user_data: PluginUserData;) -> String {
+host_fn!(get_memory(_user_data: ()) -> String {
     let (mem_available, mem_total, mem_free) = std::fs::read_to_string("/proc/meminfo")?
         .lines()
         .filter(|line| line.starts_with("MemAvailable") || line.starts_with("MemTotal") || line.starts_with("MemFree"))
@@ -74,18 +63,11 @@ host_fn!(get_memory(_user_data: PluginUserData;) -> String {
    Ok(format!("{} {} {}", mem_total.unwrap_or(1), mem_available.unwrap_or(0), mem_free.unwrap_or(0)))
 });
 
-host_fn!(get_battery(user_data: PluginUserData; battery_slot: String) -> String {
-    let plug_data = user_data.get()?;
-    let plug_data = plug_data.lock().unwrap();
-
-    let conf_slot = plug_data.get("battery_slot").unwrap_or(&battery_slot);
-
-    debug!("conf_slot={}", conf_slot);
-
+host_fn!(get_battery(_user_data: (); battery_slot: String) -> String {
     let charge_full = std::fs::read_to_string(
-        format!("/sys/class/power_supply/BAT{}/charge_full", conf_slot))?;
+        format!("/sys/class/power_supply/BAT{}/charge_full", battery_slot))?;
     let charge_now = std::fs::read_to_string(
-        format!("/sys/class/power_supply/BAT{}/charge_now", conf_slot))?;
+        format!("/sys/class/power_supply/BAT{}/charge_now", battery_slot))?;
 
     Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
 });
@@ -105,20 +87,21 @@ impl PluginBuilder {
     pub(crate) fn build(&mut self) -> Result<Plugin> {
         let url = self.url.clone().context("Url not set")?;
 
+        let config = self.config.take().unwrap_or_default();
+
         // Load wasm plugin
         let wasm = Wasm::file(url);
-        let manifest = Manifest::new([wasm]);
-
-        let user_data = self.user_data.clone().unwrap_or_default();
+        let manifest = Manifest::new([wasm])
+            .with_config(config.into_iter());
 
         let plugin = extism::PluginBuilder::new(&manifest)
             .with_wasi(true)
             .with_function("get_formatted_time", [PTR], [PTR],
-                           user_data.clone(), get_formatted_time)
+                           UserData::default(), get_formatted_time)
             .with_function("get_memory", [PTR], [PTR],
-                           user_data.clone(), get_memory)
+                           UserData::default(), get_memory)
             .with_function("get_battery", [PTR], [PTR],
-                           user_data.clone(), get_battery)
+                           UserData::default(), get_battery)
             .build()?;
 
         debug!("{}", function_name!());
@@ -126,7 +109,6 @@ impl PluginBuilder {
         Ok(Plugin {
             name: self.name.clone().context("Name not set")?,
             interval: self.interval.unwrap(),
-            user_data: user_data.clone(),
             plugin: Rc::new(RefCell::new(plugin)),
         })
     }
@@ -180,12 +162,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             builder.interval(*value);
         }
 
-        if let Some(MixedConfigVal::MSS(config)) = values.get("config") {
-            let user_data: HashMap<String, String> = config.into_iter()
+        if let Some(MixedConfigVal::MSS(values)) = values.get("config") {
+            let config: HashMap<String, String> = values.into_iter()
                 .map(|entry| (String::from(entry.0), String::from(entry.1)))
                 .collect();
 
-            builder.user_data(UserData::new(user_data));
+            builder.config(config);
         }
 
         // Finally create actual plugin
