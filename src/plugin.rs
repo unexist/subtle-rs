@@ -13,6 +13,7 @@ use std::fmt;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::time::Duration;
 use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
@@ -92,6 +93,7 @@ impl PluginBuilder {
         // Load wasm plugin
         let wasm = Wasm::file(url);
         let manifest = Manifest::new([wasm])
+            .with_timeout(Duration::from_secs(5))
             .with_config(config.into_iter());
 
         let plugin = extism::PluginBuilder::new(&manifest)
