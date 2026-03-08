@@ -23,6 +23,7 @@ pub(crate) enum MixedConfigVal {
     MVS(HashMap<String, Vec<String>>),
     MSS(HashMap<String, MixedConfigVal>),
     I(i32),
+    F(f32),
     B(bool),
 }
 
@@ -31,6 +32,7 @@ impl From<&MixedConfigVal> for String {
         match value {
             MixedConfigVal::S(value) => String::from(value),
             MixedConfigVal::I(value) => value.to_string(),
+            MixedConfigVal::F(value) => value.to_string(),
             MixedConfigVal::B(value) => value.to_string(),
             _ => todo!(),
         }
