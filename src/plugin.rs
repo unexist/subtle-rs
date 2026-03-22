@@ -18,9 +18,12 @@ use extism::{host_fn, Manifest, UserData, Wasm, PTR};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use derive_builder::Builder;
+use extism::ValType::I32;
 use log::{debug, info};
 use stdext::function_name;
 use itertools::Itertools;
+use regex::Regex;
+use lazy_static::lazy_static;
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
@@ -47,6 +50,13 @@ pub(crate) struct PluginBuilderSeed {
     pub(crate) config: HashMap<String, String>,
 }
 
+/// Lazy global for all instances of this plugin
+type CpuUserData = Vec<(i32, i32, i32)>;
+
+lazy_static! {
+    static ref CPU_USER_DATA: UserData<CpuUserData> = UserData::new(CpuUserData::new());
+}
+
 host_fn!(get_formatted_time(_user_data: (); format: String) -> String {
     let current_local: DateTime<Local> = Local::now();
 
@@ -71,6 +81,27 @@ host_fn!(get_battery(_user_data: (); battery_slot: String) -> String {
         format!("/sys/class/power_supply/BAT{}/charge_now", battery_slot))?;
 
     Ok(format!("{} {}", charge_full.trim(), charge_now.trim()))
+});
+
+host_fn!(get_cpu(user_data: CpuUserData;) -> bool {
+    let plug_data = user_data.get()?;
+    let mut plug_data = plug_data.lock().unwrap();
+
+    plug_data.clear();
+
+    let regex = Regex::new(r"cpu(\d+) (\d+) (\d+) (\d+)")?;
+
+    for line in std::fs::read_to_string("/proc/stat")?.lines() {
+        if let Some(cap) = regex.captures(line) {
+            let cpu_user = cap.get(1).map_or(0, |v| v.as_str().parse::<i32>().unwrap_or(0));
+            let cpu_nice = cap.get(2).map_or(0, |v| v.as_str().parse::<i32>().unwrap_or(0));
+            let cpu_system = cap.get(3).map_or(0, |v| v.as_str().parse::<i32>().unwrap_or(0));
+
+            plug_data.push((cpu_user, cpu_nice, cpu_system));
+        }
+    }
+
+   Ok(true)
 });
 
 impl PluginBuilder {
@@ -104,6 +135,8 @@ impl PluginBuilder {
                            UserData::default(), get_memory)
             .with_function("get_battery", [PTR], [PTR],
                            UserData::default(), get_battery)
+            .with_function("get_cpu", [PTR], [I32],
+                           CPU_USER_DATA.clone(), get_cpu)
             .build()?;
 
         debug!("{}", function_name!());
