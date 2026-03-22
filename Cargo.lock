@@ -2513,6 +2513,7 @@ dependencies = [
  "extism",
  "hex_color",
  "itertools",
+ "lazy_static",
  "log",
  "once_cell",
  "proptest",
