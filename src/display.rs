@@ -353,35 +353,36 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn finish(subtle: &mut Subtle) -> Result<()> {
-    let conn = subtle.conn.get().context("Failed to get connection")?;
+    // We might have no connection yet - better check
+    if let Some(conn) = subtle.conn.get() {
+        let default_screen = &conn.setup().roots[subtle.screen_num];
 
-    let default_screen = &conn.setup().roots[subtle.screen_num];
+        conn.flush()?;
 
-    conn.flush()?;
+        // Free GCs
+        conn.free_gc(subtle.invert_gc)?;
+        conn.free_gc(subtle.draw_gc)?;
 
-    // Free GCs
-    conn.free_gc(subtle.invert_gc)?;
-    conn.free_gc(subtle.draw_gc)?;
+        // Free cursors
+        conn.free_cursor(subtle.arrow_cursor)?;
+        conn.free_cursor(subtle.move_cursor)?;
+        conn.free_cursor(subtle.resize_cursor)?;
 
-    // Free cursors
-    conn.free_cursor(subtle.arrow_cursor)?;
-    conn.free_cursor(subtle.move_cursor)?;
-    conn.free_cursor(subtle.resize_cursor)?;
+        // Destroy windows
+        conn.destroy_window(subtle.support_win)?;
+        conn.destroy_window(subtle.tray_win)?;
 
-    // Destroy windows
-    conn.destroy_window(subtle.support_win)?;
-    conn.destroy_window(subtle.tray_win)?;
+        // Destroy pixmaps
+        if 0 != subtle.panel_double_buffer {
+            conn.free_pixmap(subtle.panel_double_buffer)?;
+        }
 
-    // Destroy pixmaps
-    if 0 != subtle.panel_double_buffer {
-        conn.free_pixmap(subtle.panel_double_buffer)?;
-    }
+        conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
 
-    conn.set_input_focus(InputFocus::POINTER_ROOT, default_screen.root, CURRENT_TIME)?.check()?;
-
-    // Destroy fonts
-    for font in subtle.fonts.iter() {
-        font.kill(conn)?;
+        // Destroy fonts
+        for font in subtle.fonts.iter() {
+            font.kill(conn)?;
+        }
     }
 
     debug!("{}", function_name!());
