@@ -209,7 +209,7 @@ fn main() -> Result<()> {
         drop(config);
 
         if let Err(err) = run(&mut subtle) {
-            error!("Failed to configure: {:?}", err);
+            error!("Failed to run: {:?}", err);
         }
     }
 
