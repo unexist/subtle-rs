@@ -146,7 +146,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
         }
 
-        // Handle modes
+        // Handle client modes
         if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("sticky") {
             if *enable_mode {
                 client_flags.insert(ClientFlags::MODE_STICK);
