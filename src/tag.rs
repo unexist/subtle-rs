@@ -148,6 +148,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         // Handle client modes
+        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("borderless") {
+            if *enable_mode {
+                mode_flags.insert(ClientFlags::MODE_BORDERLESS);
+            }
+        }
+
+        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("floating") {
+            if *enable_mode {
+                mode_flags.insert(ClientFlags::MODE_FLOAT);
+            }
+        }
+
         if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("sticky") {
             if *enable_mode {
                 mode_flags.insert(ClientFlags::MODE_STICK);
