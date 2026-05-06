@@ -9,7 +9,7 @@
 /// See the file LICENSE for details.
 ///
 
-use crate::client::Client;
+use crate::client::{Client, RestackOrder};
 use crate::config::{Config, MixedConfigVal};
 use crate::gravity::Gravity;
 use crate::tag::Tag;
@@ -474,12 +474,12 @@ impl Subtle {
     pub(crate) fn restack_windows(&self) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
-        self.clients.borrow_mut().sort();
-
         let aux = ConfigureWindowAux::default()
-            .stack_mode(StackMode::BELOW);
+            .stack_mode(StackMode::ABOVE);
 
-        for client in self.clients.borrow().iter().skip(1) {
+        for client in self.clients.borrow_mut().iter_mut().rev() {
+            client.restack(RestackOrder::None);
+
             conn.configure_window(client.win, &aux)?;
         }
 
