@@ -1250,16 +1250,10 @@ impl Client {
     /// # Arguments
     ///
     /// * `order` - Sorting / restacking order
-    ///
-    /// # Returns
-    ///
-    /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn restack(&mut self, order: RestackOrder) -> Result<()> {
+    pub(crate) fn restack(&mut self, order: RestackOrder) {
         self.order = order;
 
         debug!("{}: client={}", function_name!(), self);
-
-        Ok(())
     }
 
     /// Snap window to outer bounds of screen

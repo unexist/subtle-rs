@@ -499,7 +499,7 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                 if let Some(mut focus_client) = subtle.find_focus_client_mut() {
                     if let GrabAction::Index(order) = grab.action {
                         focus_client.restack(RestackOrder::from_repr(order as u8)
-                            .context("Unknown order")?)?;
+                            .context("Unknown order")?);
 
                         drop(focus_client);
 
