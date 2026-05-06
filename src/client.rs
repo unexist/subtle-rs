@@ -57,7 +57,6 @@ pub(crate) enum DragMode {
     RESIZE = 1,
 }
 
-
 bitflags! {
     #[derive(Default, Debug, Copy, Clone, PartialEq)]
     pub(crate) struct DragEdge: u32 {
