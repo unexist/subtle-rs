@@ -154,6 +154,12 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
         }
 
+        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("fixed") {
+            if *enable_mode {
+                mode_flags.insert(ClientFlags::MODE_FIXED);
+            }
+        }
+
         if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("floating") {
             if *enable_mode {
                 mode_flags.insert(ClientFlags::MODE_FLOAT);
