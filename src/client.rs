@@ -989,9 +989,11 @@ impl Client {
     pub(crate) fn tag(&mut self, subtle: &Subtle, tag_idx: usize, mode_flags: &mut ClientFlags) -> Result<()> {
         ignore_if_dead!(self);
 
-        // Update flags and tags
-        if let Some(_tag) = subtle.tags.get(tag_idx) {
+        // Update tags and mode flags
+        if let Some(tag) = subtle.tags.get(tag_idx) {
             self.tags |= Tagging::from_bits_retain(1 << tag_idx);
+
+            mode_flags.insert(tag.client_flags);
         }
 
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
