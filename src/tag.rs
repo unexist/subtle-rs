@@ -19,7 +19,7 @@ use stdext::function_name;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
-use crate::client::Client;
+use crate::client::{Client, ClientFlags};
 use crate::config::{Config, MixedConfigVal};
 use crate::subtle::Subtle;
 
@@ -54,6 +54,8 @@ pub(crate) struct Tag {
     pub(crate) gravity_id: usize,
     /// Geometry of this tag
     pub(crate) geom: Option<Rectangle>,
+    /// Client flags to apply on match
+    pub(crate) client_flags: ClientFlags,
 }
 
 impl Tag {
@@ -97,6 +99,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for tag_values in config.tags.iter() {
         let mut builder = TagBuilder::default();
         let mut flags = TagFlags::empty();
+        let mut client_flags = ClientFlags::empty();
 
         if let Some(MixedConfigVal::S(value)) = tag_values.get("name") {
             builder.name(value.to_string());
@@ -143,7 +146,21 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
         }
 
+        // Handle modes
+        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("sticky") {
+            if *enable_mode {
+                client_flags.insert(ClientFlags::MODE_STICK);
+            }
+        }
+
+        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("resize") {
+            if *enable_mode {
+                client_flags.insert(ClientFlags::MODE_RESIZE);
+            }
+        }
+
         builder.flags(flags);
+        builder.client_flags(client_flags);
 
         subtle.tags.push(builder.build()?);
     }
