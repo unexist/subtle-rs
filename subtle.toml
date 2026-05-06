@@ -848,35 +848,21 @@ name = "dev"
 match = "editor"
 icon = "/home/unexist/.local/share/icons/black_diamond_with_question_mark.xbm"
 
-# == Panel
+# == Plugins
 
-# There are two possible # panels per screen in subtle. Each panel can be configured
-# with different # panel items and sublets screen wise. The default config uses a top
-# panel # on the first screen only, it's up to the user to enable the bottom panel or
-# disable either one # or both.
-#
-# Following items are available for the panels:
-#
-# [*:views*]     List of views with buttons
-# [*:title*]     Title of the current active window
-# [*:tray*]      Systray icons (Can be used only once)
-# [*:spacer*]    Variable spacer (free width / count of spacers)
-# [*:center*]    Enclose items with :center to center them on the panel
-# [*:separator*] Insert separator
-
-# Empty panels are hidden.
+# Plugins are small WASM binaries, that provide means to enhance the bars of
+# subtle-rs by for ex. adding a clock like the example.
 #
 # === Links
 #
-# https://subtle.rs/projects/subtle/wiki/Panel
+# https://subtle.rs/projects/subtle/wiki/Plugins
 
-# Time panel
-[[panel]]
+# Time plugin
+[[plugin]]
 name = "time"
 interval = 60
-script = """
-print("12:00")
-"""
+config = { "format" = "%H:%M:%S" }
+url = "/home/unexist/projects/sublets-rs/time/time.wasm"
 
 #
 # == Screens
