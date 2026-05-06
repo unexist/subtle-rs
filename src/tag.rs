@@ -55,7 +55,7 @@ pub(crate) struct Tag {
     /// Geometry of this tag
     pub(crate) geom: Option<Rectangle>,
     /// Client flags to apply on match
-    pub(crate) client_flags: ClientFlags,
+    pub(crate) mode_flags: ClientFlags,
 }
 
 impl Tag {
@@ -99,7 +99,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     for tag_values in config.tags.iter() {
         let mut builder = TagBuilder::default();
         let mut flags = TagFlags::empty();
-        let mut client_flags = ClientFlags::empty();
+        let mut mode_flags = ClientFlags::empty();
 
         if let Some(MixedConfigVal::S(value)) = tag_values.get("name") {
             builder.name(value.to_string());
@@ -120,6 +120,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
         }
 
+        // Handle geometry
         if let Some(MixedConfigVal::VI(value)) = tag_values.get("geometry") {
             if 4 == value.len() {
                 flags.insert(TagFlags::GEOMETRY);
@@ -132,7 +133,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             }
         }
 
-        // Handle geometry
+        // Handle position
         if let Some(MixedConfigVal::VI(value)) = tag_values.get("position") {
             if flags.contains(TagFlags::GEOMETRY) {
                 warn!("Tags cannot use both geometry and position");
@@ -149,18 +150,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         // Handle client modes
         if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("sticky") {
             if *enable_mode {
-                client_flags.insert(ClientFlags::MODE_STICK);
+                mode_flags.insert(ClientFlags::MODE_STICK);
             }
         }
 
         if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("resize") {
             if *enable_mode {
-                client_flags.insert(ClientFlags::MODE_RESIZE);
+                mode_flags.insert(ClientFlags::MODE_RESIZE);
             }
         }
 
         builder.flags(flags);
-        builder.client_flags(client_flags);
+        builder.mode_flags(mode_flags);
 
         subtle.tags.push(builder.build()?);
     }
