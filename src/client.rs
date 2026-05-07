@@ -1858,7 +1858,7 @@ impl Ord for Client {
         };
 
         // Complicated comparison to ensure stacking order.
-        // Our desired order is following: Desktop < Gravity < Float < Full
+        // Our desired order is following from bottom to top: Desktop < Gravity < Float < Full
         //
         // This function returns following values:
         //
