@@ -14,8 +14,9 @@ use bitflags::bitflags;
 use regex::{Regex, RegexBuilder};
 use anyhow::Result;
 use derive_builder::Builder;
-use log::{debug, warn};
+use log::{debug, info, warn};
 use stdext::function_name;
+use switch_statement::switch;
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, PropMode, Rectangle};
 use x11rb::wrapper::ConnectionExt as ConnectionExtWrapper;
@@ -167,6 +168,18 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         set_client_flag!("sticky", ClientFlags::MODE_STICK);
         set_client_flag!("urgent", ClientFlags::MODE_URGENT);
         set_client_flag!("zaphod", ClientFlags::MODE_ZAPHOD);
+
+        // Handle window types
+        if let Some(MixedConfigVal::S(window_type)) = tag_values.get("type") {
+            switch! { window_type;
+                "desktop" => mode_flags.insert(ClientFlags::TYPE_DESKTOP),
+                "dock" => mode_flags.insert(ClientFlags::TYPE_DOCK),
+                "toolbar" => mode_flags.insert(ClientFlags::TYPE_TOOLBAR),
+                "splash" => mode_flags.insert(ClientFlags::TYPE_SPLASH),
+                "dialog" => mode_flags.insert(ClientFlags::TYPE_DIALOG),
+                _ => info!("Window type not found")
+            }
+        }
 
         builder.flags(flags);
         builder.mode_flags(mode_flags);
