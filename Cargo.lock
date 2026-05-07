@@ -2648,10 +2648,17 @@ dependencies = [
  "stdext",
  "struct_iterable",
  "strum_macros",
+ "switch_statement",
  "veccell",
  "x11-keysymdef",
  "x11rb",
 ]
+
+[[package]]
+name = "switch_statement"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c836b2ec4343af14b5b3dd741e9fd083af682ca64d88437273e9da00a13a1f80"
 
 [[package]]
 name = "syn"
