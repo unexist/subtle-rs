@@ -159,10 +159,14 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         set_client_flag!("borderless", ClientFlags::MODE_BORDERLESS);
+        set_client_flag!("center", ClientFlags::MODE_CENTER);
         set_client_flag!("fixed", ClientFlags::MODE_FIXED);
         set_client_flag!("floating", ClientFlags::MODE_FLOAT);
-        set_client_flag!("sticky", ClientFlags::MODE_STICK);
+        set_client_flag!("full", ClientFlags::MODE_FULL);
         set_client_flag!("resize", ClientFlags::MODE_RESIZE);
+        set_client_flag!("sticky", ClientFlags::MODE_STICK);
+        set_client_flag!("urgent", ClientFlags::MODE_URGENT);
+        set_client_flag!("zaphod", ClientFlags::MODE_ZAPHOD);
 
         builder.flags(flags);
         builder.mode_flags(mode_flags);
