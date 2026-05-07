@@ -148,35 +148,21 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         // Handle client modes
-        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("borderless") {
-            if *enable_mode {
-                mode_flags.insert(ClientFlags::MODE_BORDERLESS);
-            }
+        macro_rules! set_client_flag {
+            ($name:expr, $flag:expr) => {
+                if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get($name) {
+                    if *enable_mode {
+                        mode_flags.insert($flag);
+                    }
+                }
+            };
         }
 
-        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("fixed") {
-            if *enable_mode {
-                mode_flags.insert(ClientFlags::MODE_FIXED);
-            }
-        }
-
-        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("floating") {
-            if *enable_mode {
-                mode_flags.insert(ClientFlags::MODE_FLOAT);
-            }
-        }
-
-        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("sticky") {
-            if *enable_mode {
-                mode_flags.insert(ClientFlags::MODE_STICK);
-            }
-        }
-
-        if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get("resize") {
-            if *enable_mode {
-                mode_flags.insert(ClientFlags::MODE_RESIZE);
-            }
-        }
+        set_client_flag!("borderless", ClientFlags::MODE_BORDERLESS);
+        set_client_flag!("fixed", ClientFlags::MODE_FIXED);
+        set_client_flag!("floating", ClientFlags::MODE_FLOAT);
+        set_client_flag!("sticky", ClientFlags::MODE_STICK);
+        set_client_flag!("resize", ClientFlags::MODE_RESIZE);
 
         builder.flags(flags);
         builder.mode_flags(mode_flags);
