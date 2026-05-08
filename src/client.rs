@@ -932,7 +932,9 @@ impl Client {
         if self.flags.contains(ClientFlags::MODE_FLOAT | ClientFlags::MODE_FULL
             | ClientFlags::TYPE_DESKTOP | ClientFlags::TYPE_DOCK)
         {
-            restack_clients(RestackOrder::Up)?;
+            self.restack(RestackOrder::Up);
+
+            subtle.restack_windows()?;
         }
 
         // EWMH: State and flags
@@ -2057,12 +2059,6 @@ fn calc_zaphod(subtle: &Subtle, geom: &mut Rectangle) -> Result<()> {
             flags &= !(screen.flags & (ScreenFlags::TOP_PANEL | ScreenFlags::BOTTOM_PANEL));
         }
     }
-
-    Ok(())
-}
-
-pub(crate) fn restack_clients(order: RestackOrder) -> Result<()> {
-    debug!("{}: restack={:?}", function_name!(), order);
 
     Ok(())
 }
