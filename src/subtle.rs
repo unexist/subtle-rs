@@ -477,7 +477,7 @@ impl Subtle {
         self.clients.borrow_mut().sort();
 
         let aux = ConfigureWindowAux::default()
-            .stack_mode(StackMode::ABOVE);
+            .stack_mode(StackMode::BELOW);
 
         for client in self.clients.borrow_mut().iter_mut().rev() {
             client.order = RestackOrder::None;
