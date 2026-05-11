@@ -538,14 +538,13 @@ fn handle_key_press(subtle: &Subtle, event: KeyPressEvent) -> Result<()> {
                         focus_client.arrange(subtle, new_gravity_id as isize, screen_id)?;
                         focus_client.restack(RestackOrder::Up);
 
-                        subtle.restack_windows()?;
-
                         if !subtle.flags.intersects(SubtleFlags::SKIP_POINTER_WARP) {
                             focus_client.warp_pointer(subtle)?;
                         }
 
                         drop(focus_client);
 
+                        subtle.restack_windows()?;
                         screen::configure(subtle)?;
                         panel::update(subtle)?;
                     }
