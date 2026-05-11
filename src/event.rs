@@ -701,7 +701,6 @@ fn handle_property_notify(subtle: &Subtle, event: PropertyNotifyEvent) -> Result
                 panel::update(subtle)?;
                 panel::render(subtle)?;
             }
-
         }
     } else if atoms.WM_HINTS == event.atom {
         if let Some(mut client) = subtle.find_client_mut(event.window) {
