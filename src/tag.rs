@@ -151,8 +151,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         // Handle client modes
         macro_rules! set_client_flag {
             ($name:expr, $flag:expr) => {
-                if let Some(MixedConfigVal::B(enable_mode)) = tag_values.get($name) {
-                    if *enable_mode {
+                if let Some(MixedConfigVal::B(is_mode_enabled)) = tag_values.get($name) {
+                    if *is_mode_enabled {
                         mode_flags.insert($flag);
                     }
                 }
