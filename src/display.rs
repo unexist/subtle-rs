@@ -20,6 +20,7 @@ use x11rb::protocol::xproto::{AtomEnum, CapStyle, ChangeWindowAttributesAux, Con
 use x11rb::wrapper::ConnectionExt as ConnectionWrapperExt;
 use crate::{client, ewmh, Config, Subtle};
 use crate::client::Client;
+use crate::config::MixedConfigVal;
 use crate::subtle::SubtleFlags;
 
 // Taken from /usr/include/X11/cursorfont.h
@@ -52,6 +53,15 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     conn.create_window(COPY_DEPTH_FROM_PARENT, subtle.support_win, default_screen.root,
                        -100, -100, 1, 1, 0,
                        WindowClass::INPUT_OUTPUT, default_screen.root_visual, &aux)?.check()?;
+
+    if let Some(MixedConfigVal::S(wm_name)) = config.subtle.get("wm_name") {
+        // We don't have this atom registered yet, but also don't want to keep the name
+        let net_wm_name = conn.intern_atom(false,
+                                           "_NET_WM_NAME".as_bytes())?.reply()?.atom;
+
+        conn.change_property8(PropMode::REPLACE, subtle.support_win, net_wm_name,
+                              AtomEnum::STRING, wm_name.as_bytes())?.check()?;
+    }
 
     // Create tray window
     subtle.tray_win = conn.generate_id()?;

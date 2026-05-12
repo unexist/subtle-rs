@@ -592,6 +592,7 @@ impl From<&Config> for Subtle {
             subtle.snap_size = *snap_size as u16;
         }
 
+        // Config flags
         macro_rules! apply_config_flag {
             ($config_key:expr, $subtle_flag:path) => {
                 if let Some(MixedConfigVal::B(value)) = config.subtle.get($config_key) && *value {
