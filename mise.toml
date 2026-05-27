@@ -1,0 +1,78 @@
+[env]
+DISPLAY = ":2"
+ARGS = "--config-file=./debug.toml"
+
+[tasks.test-all]
+run = "cargo test -- --nocapture"
+
+[tasks.cap-all]
+run = "cargo test"
+
+[tasks.trace]
+env.RUST_BACKTRACE = 1
+run = "cargo test"
+
+[tasks.test]
+usage = '''
+arg "<mod>" {
+    choices "grab" "style" "tagging" "gravity" "spacing" "tag" "view"
+}
+'''
+run = "cargo test ${usage_mod?}_test -- --include-ignored"
+
+[tasks.cap]
+usage = '''
+arg "<mod>" {
+    choices "grab" "style" "tagging" "gravity" "spacing" "tag" "view"
+}
+'''
+run = "cargo test ${usage_mod?}_test -- --no-capture --include-ignored"
+
+[tasks.debug]
+raw_args = true
+run = "cargo run -- -d ${DISPLAY} --replace --debug ${ARGS}"
+
+[tasks.valgrind]
+alias = "v"
+raw_args = true
+run = "cargo valgrind run -- -d ${DISPLAY} --replace ${ARGS}"
+
+[tasks.build]
+run = "cargo build"
+
+[tasks.release]
+run = "cargo build --release"
+
+[tasks.pkglist]
+run = "cargo package --list"
+
+[tasks.doc]
+run = "cargo doc"
+
+[tasks.doctest]
+run = "cargo test --doc"
+
+[tasks.run]
+raw_args = true
+run = "cargo run -- -d ${DISPLAY} ${ARGS}"
+
+[tasks.clean]
+run = "cargo clean"
+
+[tasks.bloat]
+run = "cargo bloat"
+
+[tasks.background]
+alias = "bg"
+run = "xsetroot -d ${DISPLAY} -solid \"#595959\""
+
+[tasks.alacritty]
+alias = "a"
+run = "zsh -c \"DISPLAY=${DISPLAY} alacritty &\""
+
+[tasks.xephyr]
+alias = "x"
+run = "zsh -c \"Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -screen 640x480 -resizeable -reset ${DISPLAY} &>/dev/null &\""
+
+[tasks.tray]
+run = "yad --notification"
