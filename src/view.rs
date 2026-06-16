@@ -68,7 +68,7 @@ impl View {
     fn retag(&mut self, subtle: &Subtle) {
         for (tag_idx, tag) in subtle.tags.iter().enumerate() {
             if let Some(regex) = self.regex.as_ref()
-                && regex.is_match(&*tag.name)
+                && regex.is_match(&tag.name)
             {
                 self.tags = Tagging::from_bits_retain(1 << tag_idx);
             }
