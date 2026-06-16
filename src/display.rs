@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Display functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Display functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::process;
 use anyhow::{anyhow, Context, Result};
@@ -80,10 +80,10 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     // Check extensions
     if conn.query_extension("XINERAMA".as_ref())?.reply()?.present {
         subtle.flags.insert(SubtleFlags::XINERAMA);
-        
+
         debug!("Found xinerama extension");
     }
-    
+
     if conn.query_extension("RANDR".as_ref())?.reply()?.present {
         subtle.flags.insert(SubtleFlags::XRANDR);
 
@@ -167,14 +167,14 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
     let conn = subtle.conn.get().context("Failed to get connection")?;
     let session = conn.intern_atom(false,
                                    format!("WM_S{}", subtle.screen_num).as_bytes())?.reply()?.atom;
-    
+
     let owner = conn.get_selection_owner(session)?.reply()?.owner;
-    
+
     if NONE != owner {
         if !subtle.flags.contains(SubtleFlags::REPLACE) {
             return Err(anyhow!("Found a running window manager"))
         }
-        
+
         let aux = ChangeWindowAttributesAux::default()
             .event_mask(EventMask::STRUCTURE_NOTIFY);
         conn.change_window_attributes(owner, &aux)?.check()?;
@@ -184,7 +184,7 @@ pub(crate) fn claim(subtle: &Subtle) -> Result<()> {
 
     // Acquire session selection
     conn.set_selection_owner(subtle.support_win, session, Time::CURRENT_TIME)?.check()?;
-    
+
     if conn.get_selection_owner(session)?.reply()?.owner != subtle.support_win {
         return Err(anyhow!("Failed replacing current window manager"))
     }
@@ -212,6 +212,7 @@ pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
         let attr = conn.get_window_attributes(win)?.reply()?;
 
         if !attr.override_redirect {
+            #[allow(clippy::single_match)]
             match attr.map_state {
                 MapState::VIEWABLE => {
                     let client = Client::new(subtle, win)?;
@@ -222,7 +223,7 @@ pub(crate) fn scan(subtle: &Subtle) -> Result<()> {
             }
         }
     }
-    
+
     client::publish(subtle, false)?;
 
     debug!("{}", function_name!());
@@ -315,7 +316,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
         let maybe_atom = (&*field_value).downcast_ref::<u32>();
 
         if let Some(atom) = maybe_atom {
-            supported_atoms.push(atom.clone());
+            supported_atoms.push(*atom);
         }
     }
 

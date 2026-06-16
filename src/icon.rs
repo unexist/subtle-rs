@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Xbm functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Xbm functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use anyhow::{Context, Result};
@@ -47,6 +47,7 @@ pub(crate) struct Icon {
 /// # Returns
 ///
 /// A [`Result`] with either [`(Vec<u8>, u16, u16)`] on success or otherwise [`anyhow::Error`]
+#[allow(clippy::manual_div_ceil)]
 fn load_from_file(bits_per_pixel: usize, file_path: &str) -> Result<(Vec<u8>, u16, u16)> {
     let mut width = 0;
     let mut height = 0;

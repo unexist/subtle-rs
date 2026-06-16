@@ -63,3 +63,7 @@ cast_precision_loss = { level = "allow", priority = 20 }
 missing_errors_doc = { level = "allow", priority = 20 }
 similar_names = { level = "allow", priority = 20 }
 too_many_lines = { level = "allow", priority = 20 }
+
+[lints.clippy]
+collapsible_if = "allow"
+upper_case_acronyms = "allow"

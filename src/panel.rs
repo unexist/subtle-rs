@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file View functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file View functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use bitflags::bitflags;
@@ -142,7 +142,7 @@ impl Panel {
     {
         let conn = subtle.conn.get().context("Failed to get connection")?;
 
-        if 0 >= self.width {
+        if 0 == self.width {
             return Ok(());
         }
 
@@ -269,12 +269,12 @@ impl Panel {
     ///
     /// # Arguments
     ///
-    /// * `flags` - Panel flags to set
+    /// * `name` - Name of the panel
     ///
     /// # Returns
     ///
     /// A [`Result`] with either [`Panel`] on success or otherwise [`anyhow::Error`]
-    pub(crate) fn new(name: &String) -> Result<Self> {
+    pub(crate) fn new(name: &str) -> Result<Self> {
         let mut panel = Panel::default();
 
         // Handle positional flags
@@ -347,7 +347,7 @@ impl Panel {
         } else if self.flags.intersects(PanelFlags::SEPARATOR) {
             if let Some(text) = &self.text {
                 if let Some(font) = subtle.separator_style.get_font(subtle) {
-                    if let Ok((width, _, _)) = font.calc_text_width(conn, &text, false) {
+                    if let Ok((width, _, _)) = font.calc_text_width(conn, text, false) {
                         self.text_widths[0] = width;
                     }
                 }
@@ -489,13 +489,13 @@ impl Panel {
             self.draw_rect(subtle, subtle.panel_double_buffer,0, self.width, &subtle.views_style)?;
 
             if let Some(text) = &self.text {
-                self.draw_text(subtle, subtle.panel_double_buffer, 0, &text, &subtle.views_style)?;
+                self.draw_text(subtle, subtle.panel_double_buffer, 0, text, &subtle.views_style)?;
             }
         } else if self.flags.intersects(PanelFlags::SEPARATOR) {
             self.draw_rect(subtle, subtle.panel_double_buffer,0, self.width, &subtle.separator_style)?;
 
             if let Some(text) = &self.text {
-                self.draw_text(subtle, subtle.panel_double_buffer, 0, &text, &subtle.separator_style)?;
+                self.draw_text(subtle, subtle.panel_double_buffer, 0, text, &subtle.separator_style)?;
             }
 
         } else if self.flags.intersects(PanelFlags::TRAY) {
@@ -869,7 +869,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
     for screen in subtle.screens.iter() {
         let mut panel_win = screen.top_panel_win;
 
-        clear_double_buffer(subtle, &screen, &subtle.top_panel_style)?;
+        clear_double_buffer(subtle, screen, &subtle.top_panel_style)?;
 
         // Render panel items
         for (panel_idx, panel) in screen.panels.iter().enumerate() {
@@ -881,7 +881,7 @@ pub(crate) fn render(subtle: &Subtle) -> Result<()> {
                                screen.base.width, subtle.panel_height
                 )?.check()?;
 
-                clear_double_buffer(subtle, &screen, &subtle.bottom_panel_style)?;
+                clear_double_buffer(subtle, screen, &subtle.bottom_panel_style)?;
 
                 panel_win = screen.bottom_panel_win;
             }

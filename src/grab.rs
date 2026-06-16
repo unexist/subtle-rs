@@ -1,18 +1,18 @@
-///
-/// @package subtle-rs
-///
-/// @file Grab functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Grab functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use std::collections::HashMap;
 use bitflags::bitflags;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, bail};
 use log::debug;
 use stdext::function_name;
 use x11rb::connection::Connection;
@@ -185,12 +185,12 @@ pub(crate) fn parse_name(name: &str) -> Result<(GrabFlags, GrabAction)> {
 
         _ => {
             // Handle grabs with index
-            if name.starts_with("view_jump") {
-                (GrabFlags::VIEW_JUMP, GrabAction::Index(name[9..].parse()?))
-            } else if name.starts_with("view_switch") {
-                (GrabFlags::VIEW_SWITCH, GrabAction::Index(name[11..].parse()?))
-            } else if name.starts_with("screen_jump") {
-                (GrabFlags::SCREEN_JUMP, GrabAction::Index(name[11..].parse()?))
+            if let Some(stripped) = name.strip_prefix("view_jump") {
+                (GrabFlags::VIEW_JUMP, GrabAction::Index(stripped.parse()?))
+            } else if let Some(stripped) = name.strip_prefix("view_switch") {
+                (GrabFlags::VIEW_SWITCH, GrabAction::Index(stripped.parse()?))
+            } else if let Some(stripped) =name.strip_prefix("screen_jump") {
+                (GrabFlags::SCREEN_JUMP, GrabAction::Index(stripped.parse()?))
             } else {
                 (GrabFlags::COMMAND, GrabAction::Command(name.to_string()))
             }
@@ -221,7 +221,6 @@ impl Grab {
             keycode,
             modifiers,
             action,
-            ..Default::default()
         };
 
         debug!("{}: name={}, grab={}", function_name!(), name, grab);
@@ -315,8 +314,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
     }
 
-    if 0 == subtle.gravities.len() {
-        return Err(anyhow!("No grabs found"));
+    if subtle.gravities.is_empty() {
+        bail!("No grabs found");
     }
 
     debug!("{}", function_name!());
@@ -408,4 +407,3 @@ pub(crate) fn unset(subtle: &Subtle, win: Window) -> Result<()> {
 
     Ok(())
 }
-

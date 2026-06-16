@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Config functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Config functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+
 
 use clap_config_file::ClapConfigFile;
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ pub(crate) struct Config {
     /// Connect to DISPLAY
     #[config_arg(short = 'd', default_value = ":0", accept_from = "cli_only")]
     pub(crate) display: String,
-    
+
     /// Replace current window manager
     #[config_arg(short = 'r', default_value = false, accept_from = "cli_only")]
     pub(crate) replace: bool,

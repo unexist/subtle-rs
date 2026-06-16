@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Plugin functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-//
+//!
+//! @package subtle-rs
+//!
+//! @file Plugin functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use std::cell::RefCell;
@@ -60,7 +60,7 @@ lazy_static! {
 host_fn!(get_formatted_time(_user_data: (); format: String) -> String {
     let current_local: DateTime<Local> = Local::now();
 
-    Ok(current_local.format(&*format).to_string())
+    Ok(current_local.format(&format).to_string())
 });
 
 host_fn!(get_memory(_user_data: ()) -> String {
@@ -198,7 +198,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
         }
 
         if let Some(MixedConfigVal::MSS(values)) = values.get("config") {
-            let config: HashMap<String, String> = values.into_iter()
+            let config: HashMap<String, String> = values.iter()
                 .map(|entry| (String::from(entry.0), String::from(entry.1)))
                 .collect();
 

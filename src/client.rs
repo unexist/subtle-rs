@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Client functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Client functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use std::cmp::{Ordering, PartialEq};
@@ -154,7 +154,7 @@ pub(crate) struct Client {
 
     pub(crate) screen_idx: isize,
     pub(crate) gravity_idx: isize,
-    
+
     pub(crate) geom: Rectangle,
     pub(crate) order: RestackOrder,
 
@@ -581,8 +581,8 @@ impl Client {
             }
 
             // Handle window group hint
-            if wm_hints.window_group.is_some() {
-                if let Some(group_lead) = subtle.find_client(wm_hints.window_group.unwrap()) {
+            if let Some(window_group) = wm_hints.window_group {
+                if let Some(group_lead) = subtle.find_client(window_group) {
                     self.flags = group_lead.flags; // TODO *flags |= (k->flags & MODES_ALL);
                     self.tags = group_lead.tags;
                     self.screen_idx = group_lead.screen_idx;
@@ -590,6 +590,7 @@ impl Client {
             }
 
             // Handle just false value of input hint since it is the default
+            #[allow(clippy::single_match)]
             match wm_hints.input {
                 Some(false) => self.flags.remove(ClientFlags::INPUT),
                 _ => {}
@@ -888,8 +889,10 @@ impl Client {
                 if let Some(screen) = subtle.screens.get(self.screen_idx as usize) {
                     debug!("client={}, screen={}", self, screen);
                     // Set to screen center
-                    self.geom.x = screen.geom.x + (screen.geom.width as i16 - self.geom.width as i16 - 2 * 1) / 2; // TODO BORDER
-                    self.geom.y = screen.geom.y + (screen.geom.height as i16 - self.geom.height as i16 - 2 * 1) / 2; // TODO BORDER
+                    self.geom.x = screen.geom.x + (screen.geom.width as i16 - self.geom.width as i16
+                        - 2 * self.get_border_width(subtle)) / 2;
+                    self.geom.y = screen.geom.y + (screen.geom.height as i16 - self.geom.height as i16
+                        - 2 * self.get_border_width(subtle)) / 2;
 
                     mode_flags.insert(ClientFlags::MODE_FLOAT);
                     self.flags.insert(ClientFlags::ARRANGE);
@@ -986,7 +989,6 @@ impl Client {
     /// # Returns
     ///
     /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
-
     pub(crate) fn tag(&mut self, subtle: &Subtle, tag_idx: usize, mode_flags: &mut ClientFlags) -> Result<()> {
         ignore_if_dead!(self);
 
@@ -1039,7 +1041,7 @@ impl Client {
         // EWMH: Tags
         let data: [u32; 1] = [self.tags.bits()];
 
-        conn.change_property32(PropMode::REPLACE, self.win, 
+        conn.change_property32(PropMode::REPLACE, self.win,
                                atoms.SUBTLE_CLIENT_TAGS, AtomEnum::CARDINAL, &data)?.check()?;
 
         debug!("{}: client={}, mode_flags={:?}", function_name!(), self, mode_flags);
@@ -1166,8 +1168,8 @@ impl Client {
                         calc_zaphod(subtle, &mut geom)?;
                     }
 
-                    if maybe_gravity.is_some() {
-                        maybe_gravity.unwrap().apply_size(&geom, &mut self.geom);
+                    if let Some(gravity) = maybe_gravity {
+                        gravity.apply_size(&geom, &mut self.geom);
                     }
 
                     self.move_resize(subtle, &geom, true)?;
@@ -1510,22 +1512,22 @@ impl Client {
 
         // Collect window modes
         if self.flags.intersects(ClientFlags::MODE_FULL) {
-            mode_str.push_str("+");
+            mode_str.push('+');
         }
         if self.flags.intersects(ClientFlags::MODE_FLOAT) {
-            mode_str.push_str("^");
+            mode_str.push('^');
         }
         if self.flags.intersects(ClientFlags::MODE_STICK) {
-            mode_str.push_str("*");
+            mode_str.push('*');
         }
         if self.flags.intersects(ClientFlags::MODE_RESIZE) {
-            mode_str.push_str("-");
+            mode_str.push('-');
         }
         if self.flags.intersects(ClientFlags::MODE_ZAPHOD) {
-            mode_str.push_str("=");
+            mode_str.push('=');
         }
         if self.flags.intersects(ClientFlags::MODE_FIXED) {
-            mode_str.push_str("!");
+            mode_str.push('!');
         }
 
         mode_str
@@ -1707,12 +1709,12 @@ impl Client {
                 let mut geom = Rectangle::default();
 
                 if gravity.flags.contains(GravityFlags::HORZ) {
-                    geom.x = geom.x + (pos * calc) as i16;
+                    geom.x += (pos * calc) as i16;
                     geom.width = if pos == used { calc + round_fix } else { calc };
 
                     pos += 1;
                 } else if gravity.flags.contains(GravityFlags::VERT) {
-                    geom.y = geom.y + (pos * calc) as i16;
+                    geom.y += (pos * calc) as i16;
                     geom.height = if pos == used { calc + round_fix } else { calc };
 
                     pos +=1;
@@ -1847,6 +1849,7 @@ impl Ord for Client {
     fn cmp(&self, other: &Self) -> Ordering {
 
         // Direction is required when we change stacking on the same level
+        #[allow(clippy::if_same_then_else)]
         let direction = if RestackOrder::Down == self.order {
             Ordering::Less
         } else if RestackOrder::Up == self.order {
@@ -1967,7 +1970,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
         dy = geom.y + geom.height as i16 - query_reply.root_y;
     }
 
-    draw_mask(subtle, &geom)?;
+    draw_mask(subtle, geom)?;
 
     // Start event loop
     'dragging: loop {
@@ -1977,7 +1980,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
                     break 'dragging;
                 },
                 Event::MotionNotify(evt) => {
-                    draw_mask(subtle, &geom)?;
+                    draw_mask(subtle, geom)?;
 
                     if DragMode::MOVE == drag_mode {
                         geom.x = (query_reply.root_x - query_reply.win_x)
@@ -1985,7 +1988,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
                         geom.y = (query_reply.root_y - query_reply.win_y)
                             - (query_reply.root_y - evt.root_y);
 
-                        client.snap(subtle, &screen, geom)?;
+                        client.snap(subtle, screen, geom)?;
                     } else {
                         // Handle resize based on edge
                         if drag_edge.intersects(DragEdge::LEFT) {
@@ -2010,7 +2013,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
                                               drag_edge.intersects(DragEdge::TOP), geom);
                     }
 
-                    draw_mask(subtle, &geom)?;
+                    draw_mask(subtle, geom)?;
                 },
                 _ => {},
             }
@@ -2018,7 +2021,7 @@ fn drag_interactively(subtle: &Subtle, screen: &Screen, client: &Client, geom: &
     }
 
     // Redraw mask to erase it on exit
-    draw_mask(subtle, &geom)?;
+    draw_mask(subtle, geom)?;
 
     Ok(())
 }
@@ -2083,7 +2086,7 @@ pub(crate) fn publish(subtle: &Subtle, restack_windows: bool) -> Result<()> {
     let mut wins: Vec<u32> = Vec::with_capacity(clients.len());
 
     // Sort clients from top to bottom
-    for (_client_idx, client) in clients.iter().enumerate() {
+    for client in clients.iter() {
         wins.push(client.win);
     }
 

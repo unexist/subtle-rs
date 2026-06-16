@@ -1,15 +1,15 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_variables, unused_assignments))]
 
-///
-/// @package subtle-rs
-///
-/// @file Main functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Main functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 #[cfg(test)]
 mod tests;
@@ -80,10 +80,10 @@ const DEFAULT_FONT_NAME: &str = "-*-*-*-*-*-*-14-*-*-*-*-*-*-*";
 fn install_signal_handler(subtle: &mut Subtle) -> Result<()> {
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&subtle.shutdown))
         .map_err(|e| anyhow!("Failed to register SIGINT handler: {}", e))?;
-    
+
     signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&subtle.shutdown))
         .map_err(|e| anyhow!("Failed to register SIGTERM handler: {}", e))?;
-    
+
     Ok(())
 }
 
@@ -142,16 +142,16 @@ fn sanity_check(subtle: &mut Subtle) -> Result<()> {
 ///
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 fn configure(config: &Config, subtle: &mut Subtle) -> Result<()> {
-    display::init(&config, subtle)?;
-    ewmh::init(&config, subtle)?;
-    style::init(&config, subtle)?;
+    display::init(config, subtle)?;
+    ewmh::init(config, subtle)?;
+    style::init(config, subtle)?;
     #[cfg(feature = "plugins")]
-    plugin::init(&config, subtle)?; // Must be before screen init
-    screen::init(&config, subtle)?;
-    gravity::init(&config, subtle)?;
-    tag::init(&config, subtle)?;
-    view::init(&config, subtle)?;
-    grab::init(&config, subtle)?;
+    plugin::init(config, subtle)?; // Must be before screen init
+    screen::init(config, subtle)?;
+    gravity::init(config, subtle)?;
+    tag::init(config, subtle)?;
+    view::init(config, subtle)?;
+    grab::init(config, subtle)?;
 
     sanity_check(subtle)?;
 
@@ -173,12 +173,12 @@ fn run(subtle: &mut Subtle) -> Result<()> {
     screen::resize(subtle)?;
 
     display::claim(subtle)?;
-    display::configure(&subtle)?;
-    display::publish(&subtle)?;
+    display::configure(subtle)?;
+    display::publish(subtle)?;
     display::scan(subtle)?;
 
     // Run event handler
-    event::event_loop(&subtle)?;
+    event::event_loop(subtle)?;
 
     Ok(())
 }
@@ -228,6 +228,6 @@ fn main() -> Result<()> {
     }
 
     info!("Exit");
-    
+
     Ok(())
 }

@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Gravity functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Gravity functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use bitflags::bitflags;
@@ -66,9 +66,9 @@ impl Gravity {
             },
             ..Self::default()
         };
-        
+
         debug!("{}: {}", function_name!(), grav);
-        
+
         grav
     }
 
@@ -115,7 +115,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     }
 
     // Check gravities
-    if 0 == subtle.gravities.len() {
+    if subtle.gravities.is_empty() {
         return Err(anyhow!("No gravities found"));
     }
 
@@ -131,7 +131,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     publish(subtle)?;
 
     debug!("{}", function_name!());
-    
+
     Ok(())
 }
 
@@ -149,7 +149,7 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     let atoms = subtle.atoms.get().unwrap();
 
     let default_screen = &conn.setup().roots[subtle.screen_num];
-    
+
     let mut gravities: Vec<String> = Vec::with_capacity(subtle.gravities.len());
 
     for gravity in subtle.gravities.iter() {

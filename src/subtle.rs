@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Subtle functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Subtle functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use crate::client::{Client, RestackOrder};
 use crate::config::{Config, MixedConfigVal};
@@ -61,21 +61,21 @@ bitflags! {
         /// EWMH set
         const EWMH = 1 << 7;
         /// Replace previous wm
-        const REPLACE = 1 << 8; 
+        const REPLACE = 1 << 8;
         /// Restart
-        const RESTART = 1 << 9; 
+        const RESTART = 1 << 9;
         /// Reload config
-        const RELOAD = 1 << 10; 
+        const RELOAD = 1 << 10;
         /// Use tray
-        const TRAY = 1 << 11; 
+        const TRAY = 1 << 11;
         /// Enable gravity tiling
-        const GRAVITY_TILING = 1 << 12; 
+        const GRAVITY_TILING = 1 << 12;
         /// Click to focus
-        const CLICK_TO_FOCUS = 1 << 13; 
+        const CLICK_TO_FOCUS = 1 << 13;
         /// Skip pointer warp
-        const SKIP_POINTER_WARP = 1 << 14; 
+        const SKIP_POINTER_WARP = 1 << 14;
         /// Skip urgent warp
-        const SKIP_URGENT_WARP = 1 << 15; 
+        const SKIP_URGENT_WARP = 1 << 15;
     }
 }
 
@@ -243,12 +243,11 @@ impl Subtle {
 
         // Pass 1: Check focus history of current screen
         for win in self.focus_history.iter() {
-            if let Some(client) = self.find_client(*win) {
-                if client.screen_idx == screen_idx && client.is_alive() && client.is_visible(self)
-                    && self.find_focus_win() != client.win
-                {
-                    return Some(client)
-                }
+            if let Some(client) = self.find_client(*win)
+                && client.screen_idx == screen_idx && client.is_alive() && client.is_visible(self)
+                && self.find_focus_win() != client.win
+            {
+                return Some(client)
             }
         }
 
@@ -260,13 +259,12 @@ impl Subtle {
         }
 
         // Pass 3: Check client stacking list backwards of any visible screen
-        if 1 < self.clients.borrow().len() && jump_to_win {
-            if let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
+        if 1 < self.clients.borrow().len() && jump_to_win
+            && let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
                 clients.iter().find(|c| c.is_alive() && c.is_visible(self) && self.find_focus_win() != c.win)
             }) {
                 return Some(client)
             }
-        }
 
         None
     }
@@ -320,6 +318,7 @@ impl Subtle {
     /// # Returns
     ///
     /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
+    #[allow(clippy::manual_find)]
     pub(crate) fn find_grab(&self, code: Keycode, modifiers: ModMask) -> Option<&Grab> {
         for grab in self.grabs.iter() {
             if grab.keycode == code && grab.modifiers == modifiers {
@@ -345,10 +344,10 @@ impl Subtle {
             if x >= screen.base.x && x < screen.base.x + screen.base.width as i16
                 && y >= screen.base.y && y < screen.base.y + screen.base.height as i16
             {
-                return Some((idx, &screen))
+                return Some((idx, screen))
             }
         }
-        
+
         None
     }
 
@@ -366,11 +365,10 @@ impl Subtle {
 
             let default_screen = &conn.setup().roots[self.screen_num];
 
-            if let Ok(cookie) = conn.query_pointer(default_screen.root) {
-                if let Ok(reply) = cookie.reply() {
+            if let Ok(cookie) = conn.query_pointer(default_screen.root)
+                && let Ok(reply) = cookie.reply() {
                     return self.find_screen_by_xy(reply.root_x, reply.root_y);
                 }
-            }
         }
 
         None

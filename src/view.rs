@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file View functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file View functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//1 @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use std::cell::Cell;
@@ -255,13 +255,13 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
 
     conn.change_property8(PropMode::REPLACE, default_screen.root, atoms._NET_DESKTOP_NAMES,
                           AtomEnum::STRING, names.join("\0").as_bytes())?.check()?;
-    
+
     // EWMH: Current desktop
     let data: [u32; 1] = [0];
-    
+
     conn.change_property32(PropMode::REPLACE, default_screen.root, atoms._NET_CURRENT_DESKTOP,
                            AtomEnum::CARDINAL, &data)?.check()?;
-    
+
     conn.flush()?;
 
     debug!("{}: nviews={}", function_name!(), subtle.views.len());

@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Ewmh functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Ewmh functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use anyhow::Result;
 use bitflags::bitflags;
@@ -109,13 +109,13 @@ x11rb::atom_manager! {
 /// A [`Result`] with either [`unit`] on success or otherwise [`anyhow::Error`]
 pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
-    
+
     let atoms = Atoms::new(conn)?.reply()?;
-    
+
     subtle.atoms.set(atoms).unwrap();
 
     subtle.flags.insert(SubtleFlags::EWMH);
-    
+
     debug!("{}", function_name!());
 
     Ok(())
@@ -136,7 +136,7 @@ pub(crate) fn init(_config: &Config, subtle: &mut Subtle) -> Result<()> {
 pub(crate) fn send_message(subtle: &Subtle, win: Window, message_type: Atom, data32: &[u32; 5]) -> Result<()> {
     let conn = subtle.conn.get().unwrap();
 
-    conn.send_event(false, win, EventMask::NO_EVENT, &ClientMessageEvent::new(
+    conn.send_event(false, win, EventMask::NO_EVENT, ClientMessageEvent::new(
         32,
         win,
         message_type,

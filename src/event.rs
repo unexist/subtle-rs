@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Event functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Event functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use anyhow::{Context, Result};
 use std::sync::atomic;
@@ -375,7 +375,7 @@ fn handle_expose(subtle: &Subtle, event: ExposeEvent) -> Result<()> {
     if 0 == event.count {
         panel::render(subtle)?;
     }
-    
+
     debug!("{}: win={}, count={}", function_name!(), event.window, event.count);
 
     Ok(())
@@ -939,6 +939,6 @@ pub(crate) fn event_loop(subtle: &Subtle) -> Result<()> {
     if subtle.flags.intersects(SubtleFlags::TRAY) {
         display::deselect_tray(subtle)?;
     }
-    
+
     Ok(())
 }

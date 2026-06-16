@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Font functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Font functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use anyhow::Result;
@@ -81,7 +81,7 @@ impl Font {
                 byte2: *b,
             }).collect();
 
-        let reply = conn.query_text_extents(self.fontable, &*text_char2b)?.reply()?;
+        let reply = conn.query_text_extents(self.fontable, &text_char2b)?.reply()?;
 
         Ok(((if center {
             reply.overall_width - (reply.overall_left - reply.overall_right).abs()

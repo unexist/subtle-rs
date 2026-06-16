@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Screen functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Screen functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use std::cell::Cell;
@@ -176,7 +176,7 @@ fn parse_panels(screen: &mut Screen, panel_list: &Vec<String>, plugin_list: &Vec
         flags = PanelFlags::BOTTOM_START_MARKER;
     }
 
-    for (_panel_idx, panel_name) in panel_list.iter().enumerate() {
+    for panel_name in panel_list.iter() {
 
         // Create panel
         if let Ok(mut panel) = Panel::new(panel_name) {
@@ -241,7 +241,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         }
     }
-    
+
     // Create default screen
     if subtle.screens.is_empty() {
         if let Ok(screen) = Screen::new(subtle, 0, 0, subtle.width, subtle.height) {
@@ -351,7 +351,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
                     // Set visible tags and views to ease lookups
                     visible_tags.insert(view.tags);
-                    visible_views.insert(Tagging::from_bits_retain(1 << screen.view_idx.get() + 1));
+                    visible_views.insert(Tagging::from_bits_retain(1 << (screen.view_idx.get() + 1)));
 
                     if view.tags.intersects(client.tags) ||
                         client.flags.intersects(ClientFlags::MODE_STICK | ClientFlags::TYPE_DESKTOP)
@@ -433,7 +433,7 @@ pub(crate) fn configure(subtle: &Subtle) -> Result<()> {
 
     debug!("{}: visible_tags={:?}, visible_views={:?}, client_tags={:?}",
         function_name!(), visible_tags, visible_views, client_tags);
-    
+
     Ok(())
 }
 

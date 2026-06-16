@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Tag functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Tag functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use bitflags::bitflags;
@@ -71,9 +71,9 @@ impl Tag {
     /// Either [`true`] on success and otherwise [`false`]
     pub(crate) fn matches(&self, client: &Client) -> bool {
         if let Some(regex) = self.regex.as_ref() {
-            regex.is_match(&*client.name)
-                || regex.is_match(&*client.instance)
-                || regex.is_match(&*client.klass)
+            regex.is_match(&client.name)
+                || regex.is_match(&client.instance)
+                || regex.is_match(&client.klass)
         } else {
             false
         }
@@ -186,7 +186,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
         subtle.tags.push(builder.build()?);
     }
-    
+
     // Sanity check
     if subtle.tags.is_empty() {
         let mut builder = TagBuilder::default();
@@ -197,9 +197,9 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
     }
 
     publish(subtle)?;
-    
+
     debug!("{}", function_name!());
-    
+
     Ok(())
 }
 
@@ -230,6 +230,6 @@ pub(crate) fn publish(subtle: &Subtle) -> Result<()> {
     conn.flush()?;
 
     debug!("{}: ntags={}", function_name!(), subtle.tags.len());
-    
+
     Ok(())
 }

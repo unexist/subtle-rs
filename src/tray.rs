@@ -1,13 +1,13 @@
-///
-/// @package subtle-rs
-///
-/// @file Tray functions
-/// @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
-/// @version $Id$
-///
-/// This program can be distributed under the terms of the GNU GPLv3.
-/// See the file LICENSE for details.
-///
+//!
+//! @package subtle-rs
+//!
+//! @file Tray functions
+//! @copyright (c) 2025-present Christoph Kappel <christoph@unexist.dev>
+//! @version $Id$
+//!
+//! This program can be distributed under the terms of the GNU GPLv3.
+//! See the file LICENSE for details.
+//!
 
 use std::fmt;
 use bitflags::bitflags;
@@ -281,7 +281,7 @@ impl Tray {
                             - subtle.tray_style.calc_spacing(CalcSpacing::Height)) as u32)
             .stack_mode(StackMode::ABOVE);
 
-        conn.configure_window(self.win, &aux)?.check()?;
+        conn.configure_window(self.win, aux)?.check()?;
 
         debug!("{}: tray={}", function_name!(), self);
 
