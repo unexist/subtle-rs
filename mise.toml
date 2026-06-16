@@ -76,3 +76,6 @@ run = "zsh -c \"Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -sc
 
 [tasks.tray]
 run = "yad --notification"
+
+[tasks.clippy]
+run = "bacon clippy"
