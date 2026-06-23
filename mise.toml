@@ -77,5 +77,8 @@ run = "zsh -c \"Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -sc
 [tasks.tray]
 run = "yad --notification"
 
+[tasks.upgrade]
+run = "cargo update -i"
+
 [tasks.clippy]
 run = "bacon clippy"
