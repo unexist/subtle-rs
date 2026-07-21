@@ -52,7 +52,7 @@ run = "cargo doc"
 [tasks.doctest]
 run = "cargo test --doc"
 
-[tasks.run]
+[tasks.crun]
 raw_args = true
 run = "cargo run -- -d ${DISPLAY} ${ARGS}"
 
@@ -77,8 +77,17 @@ run = "zsh -c \"Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -sc
 [tasks.tray]
 run = "yad --notification"
 
-[tasks.upgrade]
-run = "cargo update -i"
+[tasks.cupgrade]
+usage = '''
+flag "-d --dry-run" {
+    help "Enable dry-running"
+}
+'''
+run = '''
+DRY_RUN="${usage_dry_run}"
+
+cargo upgrade -i $DRY_RUN
+'''
 
 [tasks.clippy]
 run = "bacon clippy"
