@@ -77,16 +77,18 @@ run = "zsh -c \"Xephyr -ac -noreset +extension RANDR +xinerama -name xeph640 -sc
 [tasks.tray]
 run = "yad --notification"
 
-[tasks.cupgrade]
+[tasks.cuc]
 usage = '''
 flag "-d --dry-run" {
     help "Enable dry-running"
 }
 '''
 run = '''
-DRY_RUN="${usage_dry_run}"
-
-cargo upgrade -i $DRY_RUN
+{% if usage.dry_run %}
+    cargo update-check
+{% else %}
+    cargo update-check -u
+{% endif %}
 '''
 
 [tasks.clippy]
