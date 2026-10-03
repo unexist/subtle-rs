@@ -18,7 +18,7 @@ anyhow = "1.0.104"
 clap = { version = "4.6.7", features = ["derive"] }
 clap-config-file = "0.6.0"
 serde = { version = "1.0.229", features = ["derive"] }
-config = "0.15.26"
+config = "0.15.27"
 bitflags = "2.13.2"
 x11rb = { version = "0.14.0", features = ["randr", "xinerama", "xinput", "xkb", "image"] }
 x11-keysymdef = "0.2.0"
@@ -36,7 +36,7 @@ strum_macros = "0.28.0"
 itertools = "0.15.0"
 extism = { version = "1.30.0", optional = true }
 chrono = { version = "0.4.45", optional = true }
-lazy_static = "1.5.0"
+lazy_static = "1.5.1"
 switch_statement = "1.0.0"
 
 [dev-dependencies]
