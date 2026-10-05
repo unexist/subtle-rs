@@ -194,7 +194,7 @@ fn main() -> Result<()> {
 
     logger::init(&config)?;
 
-    info!("Reading file `{:?}'", path.unwrap_or_default());
+    info!("Reading config file `{:?}'", path.unwrap_or_default());
     debug!("Config: {:?}", config);
 
     let mut subtle = Subtle::from(&config);
