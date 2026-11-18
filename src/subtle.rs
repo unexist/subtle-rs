@@ -11,30 +11,33 @@
 
 use crate::client::{Client, RestackOrder};
 use crate::config::{Config, MixedConfigVal};
-use crate::gravity::Gravity;
-use crate::tag::Tag;
-use crate::view::View;
-use bitflags::bitflags;
-use anyhow::Result;
-use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use easy_min_max::max;
-use log::debug;
-use stdext::function_name;
-use veccell::VecCell;
-use x11rb::connection::Connection;
-use x11rb::NONE;
-use x11rb::protocol::xproto::{ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Cursor, Gcontext, Keycode, ModMask, Pixmap, StackMode, Window};
-use x11rb::rust_connection::RustConnection;
 use crate::ewmh::Atoms;
 use crate::font::Font;
 use crate::grab::Grab;
+use crate::gravity::Gravity;
 use crate::plugin::Plugin;
 use crate::screen::Screen;
 use crate::style::{CalcSpacing, Style};
+use crate::tag::Tag;
 use crate::tagging::Tagging;
 use crate::tray::Tray;
+use crate::view::View;
+use anyhow::Result;
+use bitflags::bitflags;
+use easy_min_max::max;
+use log::debug;
+use std::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use stdext::function_name;
+use veccell::VecCell;
+use x11rb::NONE;
+use x11rb::connection::Connection;
+use x11rb::protocol::xproto::{
+    ChangeWindowAttributesAux, ConfigureWindowAux, ConnectionExt, Cursor, Gcontext, Keycode,
+    ModMask, Pixmap, StackMode, Window,
+};
+use x11rb::rust_connection::RustConnection;
 
 const HISTORY_SIZE: usize = 5;
 
@@ -76,6 +79,8 @@ bitflags! {
         const SKIP_POINTER_WARP = 1 << 14;
         /// Skip urgent warp
         const SKIP_URGENT_WARP = 1 << 15;
+        /// Apply zaphod mode on physical screens only
+        const ZAPHOD_PHYSICAL = 1 << 16;
     }
 }
 
@@ -185,7 +190,8 @@ impl Subtle {
     pub(crate) fn find_client(&'_ self, win: Window) -> Option<Ref<'_, Client>> {
         Ref::filter_map(self.clients.borrow(), |clients| {
             clients.iter().find(|c| c.win == win)
-        }).ok()
+        })
+        .ok()
     }
 
     /// Find mut client by given window
@@ -200,7 +206,8 @@ impl Subtle {
     pub(crate) fn find_client_mut(&'_ self, win: Window) -> Option<RefMut<'_, Client>> {
         RefMut::filter_map(self.clients.borrow_mut(), |clients| {
             clients.iter_mut().find(|c| c.win == win)
-        }).ok()
+        })
+        .ok()
     }
 
     /// Find tray by given window
@@ -215,7 +222,8 @@ impl Subtle {
     pub(crate) fn find_tray(&'_ self, win: Window) -> Option<Ref<'_, Tray>> {
         Ref::filter_map(self.trays.borrow(), |trays| {
             trays.iter().find(|t| t.win == win)
-        }).ok()
+        })
+        .ok()
     }
 
     /// Find mut tray by given window
@@ -230,7 +238,8 @@ impl Subtle {
     pub(crate) fn find_tray_mut(&'_ self, win: Window) -> Option<RefMut<'_, Tray>> {
         RefMut::filter_map(self.trays.borrow_mut(), |trays| {
             trays.iter_mut().find(|c| c.win == win)
-        }).ok()
+        })
+        .ok()
     }
 
     /// Find next client
@@ -238,37 +247,53 @@ impl Subtle {
     /// # Returns
     ///
     /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
-    pub(crate) fn find_next_client(&'_ self, screen_idx: isize, jump_to_win: bool) -> Option<Ref<'_, Client>> {
-        debug!("{}: screen_id={}, jump={}", function_name!(), screen_idx, jump_to_win);
+    pub(crate) fn find_next_client(
+        &'_ self,
+        screen_idx: isize,
+        jump_to_win: bool,
+    ) -> Option<Ref<'_, Client>> {
+        debug!(
+            "{}: screen_id={}, jump={}",
+            function_name!(),
+            screen_idx,
+            jump_to_win
+        );
 
         // Pass 1: Check focus history of current screen
         for win in self.focus_history.iter() {
             if let Some(client) = self.find_client(*win)
-                && client.screen_idx == screen_idx && client.is_alive() && client.is_visible(self)
+                && client.screen_idx == screen_idx
+                && client.is_alive()
+                && client.is_visible(self)
                 && self.find_focus_win() != client.win
             {
-                return Some(client)
+                return Some(client);
             }
         }
 
         // Pass 2: Check client stacking list backwards of current screen
         if let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
-            clients.iter().find(|c| c.screen_idx == screen_idx && c.is_alive() && c.is_visible(self))
+            clients
+                .iter()
+                .find(|c| c.screen_idx == screen_idx && c.is_alive() && c.is_visible(self))
         }) {
-            return Some(client)
+            return Some(client);
         }
 
         // Pass 3: Check client stacking list backwards of any visible screen
-        if 1 < self.clients.borrow().len() && jump_to_win
+        if 1 < self.clients.borrow().len()
+            && jump_to_win
             && let Ok(client) = Ref::filter_map(self.clients.borrow(), |clients| {
-                clients.iter().find(|c| c.is_alive() && c.is_visible(self) && self.find_focus_win() != c.win)
-            }) {
-                return Some(client)
-            }
+                clients
+                    .iter()
+                    .find(|c| c.is_alive() && c.is_visible(self) && self.find_focus_win() != c.win)
+            })
+        {
+            return Some(client);
+        }
 
         None
     }
-
 
     /// Find focus client
     ///
@@ -277,7 +302,7 @@ impl Subtle {
     /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_focus_client(&'_ self) -> Option<Ref<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
-            return self.find_client(*win)
+            return self.find_client(*win);
         }
 
         None
@@ -290,7 +315,7 @@ impl Subtle {
     /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
     pub(crate) fn find_focus_client_mut(&'_ self) -> Option<RefMut<'_, Client>> {
         if let Some(win) = self.focus_history.borrow(0) {
-            return self.find_client_mut(*win)
+            return self.find_client_mut(*win);
         }
 
         None
@@ -303,7 +328,7 @@ impl Subtle {
     /// Either the found [`Window`] on success or otherwise [`NONE`]
     pub(crate) fn find_focus_win(&self) -> Window {
         if let Some(win) = self.focus_history.borrow(0) {
-            return *win
+            return *win;
         }
 
         NONE
@@ -339,12 +364,14 @@ impl Subtle {
     /// # Returns
     ///
     /// A [`Option`] with either [`Some`] on success or otherwise [`None`]
-    pub(crate) fn find_screen_by_xy(&self, x: i16, y:i16) -> Option<(usize, &Screen)> {
+    pub(crate) fn find_screen_by_xy(&self, x: i16, y: i16) -> Option<(usize, &Screen)> {
         for (idx, screen) in self.screens.iter().enumerate() {
-            if x >= screen.base.x && x < screen.base.x + screen.base.width as i16
-                && y >= screen.base.y && y < screen.base.y + screen.base.height as i16
+            if x >= screen.base.x
+                && x < screen.base.x + screen.base.width as i16
+                && y >= screen.base.y
+                && y < screen.base.y + screen.base.height as i16
             {
-                return Some((idx, screen))
+                return Some((idx, screen));
             }
         }
 
@@ -359,16 +386,17 @@ impl Subtle {
     pub(crate) fn find_screen_by_pointer(&self) -> Option<(usize, &Screen)> {
         // Check if there is only one screen
         if 1 == self.screens.len() {
-            return self.screens.first().map(|screen| (0, screen))
+            return self.screens.first().map(|screen| (0, screen));
         } else {
             let conn = self.conn.get().unwrap();
 
             let default_screen = &conn.setup().roots[self.screen_num];
 
             if let Ok(cookie) = conn.query_pointer(default_screen.root)
-                && let Ok(reply) = cookie.reply() {
-                    return self.find_screen_by_xy(reply.root_x, reply.root_y);
-                }
+                && let Ok(reply) = cookie.reply()
+            {
+                return self.find_screen_by_xy(reply.root_x, reply.root_y);
+            }
         }
 
         None
@@ -442,20 +470,25 @@ impl Subtle {
     pub(crate) fn update_tray_win(&self, parent_win: Window, x: i32, width: u32) -> Result<()> {
         let conn = self.conn.get().unwrap();
 
-        conn.reparent_window(self.tray_win, parent_win, 0, 0,)?.check()?;
+        conn.reparent_window(self.tray_win, parent_win, 0, 0)?
+            .check()?;
 
-        let aux = ChangeWindowAttributesAux::default()
-            .background_pixel(self.tray_style.bg as u32);
+        let aux = ChangeWindowAttributesAux::default().background_pixel(self.tray_style.bg as u32);
 
-        conn.change_window_attributes(self.tray_win, &aux)?.check()?;
+        conn.change_window_attributes(self.tray_win, &aux)?
+            .check()?;
 
         let aux = ConfigureWindowAux::default()
             .x(x + self.tray_style.calc_spacing(CalcSpacing::Left) as i32)
             .y(self.tray_style.calc_spacing(CalcSpacing::Top) as i32)
-            .width(max!(1, width
-                - self.tray_style.calc_spacing(CalcSpacing::Width) as u32))
-            .height(max!(1, self.panel_height as u32
-                - self.tray_style.calc_spacing(CalcSpacing::Height) as u32))
+            .width(max!(
+                1,
+                width - self.tray_style.calc_spacing(CalcSpacing::Width) as u32
+            ))
+            .height(max!(
+                1,
+                self.panel_height as u32 - self.tray_style.calc_spacing(CalcSpacing::Height) as u32
+            ))
             .stack_mode(StackMode::ABOVE);
 
         conn.configure_window(self.tray_win, &aux)?.check()?;
@@ -474,8 +507,7 @@ impl Subtle {
 
         self.clients.borrow_mut().sort();
 
-        let aux = ConfigureWindowAux::default()
-            .stack_mode(StackMode::BELOW);
+        let aux = ConfigureWindowAux::default().stack_mode(StackMode::BELOW);
 
         for client in self.clients.borrow_mut().iter_mut().rev() {
             client.order = RestackOrder::None;
@@ -499,7 +531,9 @@ impl Subtle {
         let mut grav: isize = self.default_gravity;
 
         // Get gravity from focus client
-        if -1 == self.default_gravity && let Some(focus) = self.find_focus_client() {
+        if -1 == self.default_gravity
+            && let Some(focus) = self.find_focus_client()
+        {
             grav = focus.gravity_idx;
         }
 
@@ -593,7 +627,9 @@ impl From<&Config> for Subtle {
         // Config flags
         macro_rules! apply_config_flag {
             ($config_key:expr, $subtle_flag:path) => {
-                if let Some(MixedConfigVal::B(value)) = config.subtle.get($config_key) && *value {
+                if let Some(MixedConfigVal::B(value)) = config.subtle.get($config_key)
+                    && *value
+                {
                     subtle.flags.insert($subtle_flag);
                 }
             };
@@ -605,6 +641,7 @@ impl From<&Config> for Subtle {
         apply_config_flag!("click_to_focus", SubtleFlags::CLICK_TO_FOCUS);
         apply_config_flag!("skip_pointer_warp", SubtleFlags::SKIP_POINTER_WARP);
         apply_config_flag!("skip_urgent_warp", SubtleFlags::SKIP_URGENT_WARP);
+        apply_config_flag!("zaphod_phsical", SubtleFlags::ZAPHOD_PHYSICAL);
 
         subtle
     }
