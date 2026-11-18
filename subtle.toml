@@ -47,6 +47,9 @@ skip_pointer_warp = false
 # Skip pointer movement to urgent windows
 skip_urgent_warp = false
 
+# Apply zaphod mode to physical screens only
+zaphod_physical = true
+
 # Set the WM_NAME of subtle (Java quirk)
 #wm_name = "LG3D"
 
