@@ -256,7 +256,7 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
             let orig_geom = subtle.screens.get(screen_idx).context("Cannot get screen?")?.geom;
 
             for (virt_idx, virt_geom_ary) in virtuals.iter().enumerate() {
-                let calc_geom = Rectangle {
+                let virt_geom = Rectangle {
                     x: orig_geom.x + (orig_geom.width as i16 * virt_geom_ary[0] as i16 / 100),
                     y: orig_geom.y + (orig_geom.height as i16 * virt_geom_ary[1] as i16 / 100),
                     width: orig_geom.width * virt_geom_ary[2] as u16 / 100,
@@ -265,8 +265,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
 
                 // Update original screen or split into virtual one
                 if 0 < virt_idx {
-                    let mut vscreen = Screen::new(subtle, calc_geom.x, calc_geom.y,
-                                                  calc_geom.width, calc_geom.height)?;
+                    let mut vscreen = Screen::new(subtle, virt_geom.x, virt_geom.y,
+                                                  virt_geom.width, virt_geom.height)?;
 
                     vscreen.flags.insert(ScreenFlags::VIRTUAL);
                     subtle.screens.push(vscreen);
@@ -274,8 +274,8 @@ pub(crate) fn init(config: &Config, subtle: &mut Subtle) -> Result<()> {
                     let orig_screen = subtle.screens
                         .get_mut(screen_idx).context("Cannot get screen?")?;
 
-                    orig_screen.geom = calc_geom;
-                    orig_screen.base = calc_geom;
+                    orig_screen.geom = virt_geom;
+                    orig_screen.base = virt_geom;
                 }
             }
         }

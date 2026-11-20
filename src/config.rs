@@ -8,10 +8,9 @@
 //! This program can be distributed under the terms of the GNU GPLv3.
 //! See the file LICENSE for details.
 
-
 use clap_config_file::ClapConfigFile;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -52,7 +51,12 @@ pub(crate) struct Config {
     pub(crate) replace: bool,
 
     /// Set logging level LEVEL
-    #[config_arg(short = 'l', name = "level", default_value = "", accept_from = "cli_only")]
+    #[config_arg(
+        short = 'l',
+        name = "level",
+        default_value = "",
+        accept_from = "cli_only"
+    )]
     pub(crate) loglevel: String,
 
     /// Print debugging messages
@@ -62,24 +66,48 @@ pub(crate) struct Config {
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) subtle: HashMap<String, MixedConfigVal>,
 
-    #[config_arg(name = "style", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "style",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) styles: Vec<HashMap<String, MixedConfigVal>>,
 
-    #[config_arg(name = "gravity", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "gravity",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) gravities: Vec<HashMap<String, MixedConfigVal>>,
 
     #[config_arg(multi_value_behavior = "extend", accept_from = "config_only")]
     pub(crate) grabs: HashMap<String, MixedConfigVal>,
 
-    #[config_arg(name = "tag", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "tag",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) tags: Vec<HashMap<String, MixedConfigVal>>,
 
-    #[config_arg(name = "view", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "view",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) views: Vec<HashMap<String, MixedConfigVal>>,
 
-    #[config_arg(name = "plugin", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "plugin",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) plugins: Vec<HashMap<String, MixedConfigVal>>,
 
-    #[config_arg(name = "screen", multi_value_behavior = "extend", accept_from = "config_only")]
+    #[config_arg(
+        name = "screen",
+        multi_value_behavior = "extend",
+        accept_from = "config_only"
+    )]
     pub(crate) screens: Vec<HashMap<String, MixedConfigVal>>,
 }
