@@ -12,7 +12,7 @@ edition = "2024"
 include = ["/src", "LICENSE"]
 
 [dependencies]
-env_logger = "0.11.11"
+env_logger = "0.11.12"
 log = "0.4.35"
 anyhow = "1.0.104"
 clap = { version = "4.6.9", features = ["derive"] }
